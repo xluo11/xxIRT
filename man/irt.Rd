@@ -44,13 +44,20 @@ An \code{irt} object contains thetas and item parameters as well as an optional 
 D=1.7 by default. set a=.588 for Rasch items.
 }
 \examples{
-# create an IRT object
+# create an IRT object without responses
 irt(rnorm(10), a=c(.8, 1.0, 1.2), b=c(-.5, 0, .5), c=0)
-gen.rsp(gen.irt(10, 5)) # generate responses
-plot(gen.irt(10, 5)) # plot TCC
-plot(gen.irt(10, 5), total=FALSE) # plot ICCs
-plot(gen.irt(10, 5), type="information") # plot TIF
-plot(gen.irt(10, 5), type="information", total=FALSE) # plot IIFs
+# create an IRT object with responses
+irt(rnorm(10), a=1, b=rnorm(5), c=0, rsp=matrix(round(runif(50)),nrow=10,ncol=5))
+# generate responses
+gen.rsp(gen.irt(10, 5))
+# plot TCC
+plot(gen.irt(10, 5))
+# plot ICCs
+plot(gen.irt(10, 5), total=FALSE) 
+# plot TIF
+plot(gen.irt(10, 5), type="information") 
+# plot IIFs
+plot(gen.irt(10, 5), type="information", total=FALSE)
 }
 \seealso{
 Other commons: \code{\link{gen.irt}}, \code{\link{prob}}

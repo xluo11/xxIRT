@@ -35,19 +35,23 @@ a matrix or vector (when summarized) results
 # probabilities
 prob(gen.irt(10, 5))
 # product of probabilities
-prob(gen.irt(10, 5), summary=1, fun=prod) 
+prob(gen.irt(10, 5), summary=1, fun=prod)
 # information
 info(gen.irt(10, 5)) 
 # add information over items
 info(gen.irt(10, 5), summary=1, fun=sum) 
 # add information over people
-info(gen.irt(10, 5), summary=2, fun=sum) 
+info(gen.irt(10, 5), summary=2, fun=sum)
 # likelihood of response vectors
 likelihood(gen.rsp(gen.irt(10, 5)), summary=1, fun=prod)
 # log-likelihood of response vectors
 likelihood(gen.rsp(gen.irt(10, 5)), summary=1, fun=sum, log=TRUE)
 }
 \seealso{
+Other commons: \code{\link{gen.irt}}, \code{\link{irt}}
+
+Other commons: \code{\link{gen.irt}}, \code{\link{irt}}
+
 Other commons: \code{\link{gen.irt}}, \code{\link{irt}}
 }
 

@@ -108,4 +108,11 @@ plot(x$thetas, z, xlim=c(-5, 5), ylim=c(-5, 5), pch=16, col=rgb(.8,.2,.2,.5))
 abline(a=0, b=1, lty=2)
 }
 }
+\seealso{
+Other estimation: \code{\link{estimate.theta.mle}}
+
+Other estimation: \code{\link{estimate.theta.mle}}
+
+Other estimation: \code{\link{estimate.theta.mle}}
+}
 

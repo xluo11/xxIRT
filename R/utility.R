@@ -27,7 +27,7 @@ freq <- function(x, categories){
   rs <- data.frame(table(x))
   rs <- rs$Freq[match(categories, rs$x)]
   rs[is.na(rs)] <- 0
-  rs <- data.frame(x=categories, n=rs) 
+  rs <- data.frame(x=categories, n=rs, p=rs/sum(rs))
   return(rs)
 }
 

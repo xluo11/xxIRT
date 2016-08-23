@@ -10,23 +10,29 @@
 #' An \code{irt} object contains thetas and item parameters as well as an optional repsonse matrix. 
 #' D=1.7 by default. set a=.588 for Rasch items.
 #' @examples
-#' # create an IRT object
+#' # create an IRT object without responses
 #' irt(rnorm(10), a=c(.8, 1.0, 1.2), b=c(-.5, 0, .5), c=0)
+#' # create an IRT object with responses
+#' irt(rnorm(10), a=1, b=rnorm(5), c=0, rsp=matrix(round(runif(50)),nrow=10,ncol=5))
 #' @family commons
 #' @export
 irt <- function(theta, a, b, c, rsp=NULL){
-  # validation
   theta <- as.vector(theta)
   b <- as.vector(b)
   if(length(a) == 1) a <- rep(a, length(b)) else a <- as.vector(a)
   if(length(c) == 1) c <- rep(c, length(b)) else c <- as.vector(c)
-  if(length(a) != length(b) || length(c) != length(b)) stop("parameters have different lengths.")
-  if(any(a < 0)) stop("don't know how to handle negative a parameters.")
-  if(any(c < 0)) stop("don't know how to handle negative c parameters.")
-  if(any(abs(b) > 5.0)) warning("CAUTION: some b parameters are too large.")
-  if(any(abs(theta) > 5.0)) warning("CAUTION: some theta are too large.")
-  if(!is.null(rsp))
-    if(dim(rsp)[1] != length(theta) || dim(rsp)[2] != length(b)) stop("rsp dimension is different from people or items.")
+  
+  if(length(a) != length(b) || length(c) != length(b)) 
+    stop("unequal lengths in parameters: ", length(a), " a's, ", length(b), "b's, ", length(c), "c's.")
+  if(any(a < 0)) stop("negative a parameters.")
+  if(any(c < 0)) stop("negative c parameters.")
+  if(any(abs(b) > 5.0)) warning("CAUTION: some large b parameters.")
+  if(any(abs(theta) > 5.0)) warning("CAUTION: some large theta parameters.")
+  if(!is.null(rsp)){
+    if(dim(rsp)[1] != length(theta)) stop("unequal response rows and thetas: ", dim(rsp)[1], " vs. ", length(theta))
+    if(dim(rsp)[2] != length(b)) stop("unequal response columns and items: ", dim(rsp)[2], " vs. ", length(b))
+  }
+
   # output
   rs <- list()
   rs$thetas <- theta
@@ -50,37 +56,45 @@ irt <- function(theta, a, b, c, rsp=NULL){
 #' @param a.sig the log sd of the lognormal distribution from which a parameters are generated
 #' @param b.mu the mean of the normal distribution from which b parameters are generated
 #' @param b.sig the sd of the normal distribution from which b parameters are generated
-#' @param c.min the minumum of the uniform distribution from which c parameters are generated
-#' @param c.max the maximum of the uniform distribution from which c parameters are generated
+#' @param c.alpha the alpha parameter of the beta distribution from which c parameters are generated
+#' @param c.beta the beta parameter of the beta distribution from which c parameters are generated
 #' @return an \code{irt} object
 #' @details
 #' In generation, thetas are drawn from the normal distribution, a parameters from the lognormal distribution,
-#' b parameters from the normal distribution, and c parameters from the uniform distribution.
+#' b parameters from the normal distribution, and c parameters from the beta distribution.
 #' When parameters are imported, they are not drawn from the distribution. 
 #' @examples
-#' gen.irt(10, 5) # generate 10 people, 5 items
-#' gen.irt(10, 5, thetas=seq(.1, 1, length.out=10)) # generate data with given thetas
-#' gen.irt(10, 5, a=.588, c=0)  # generate data with given iteme parameters (Rasch items)
+#' # generate 10 people, 5 items
+#' gen.irt(10, 5)
+#' # generate data with given thetas
+#' gen.irt(10, 5, thetas=seq(.1, 1, length.out=10)) 
+#' # generate data with given iteme parameters (Rasch items)
+#' gen.irt(10, 5, a=.588, c=0)
 #' @family commons
 #' @export
-#' @importFrom stats runif rnorm
-gen.irt <- function(n.peo, n.item, thetas=NULL, a=NULL, b=NULL, c=NULL, theta.mu=0, theta.sig=1, a.mu=0, a.sig=0.15, b.mu=0, b.sig=1, c.min=0, c.max=0.15){
+#' @importFrom stats rbeta rnorm
+gen.irt <- function(n.peo, n.item, thetas=NULL, a=NULL, b=NULL, c=NULL, theta.mu=0, theta.sig=1, a.mu=0, a.sig=0.15, b.mu=0, b.sig=1, c.alpha=5, c.beta=43){
   if(is.null(thetas)) thetas <- rnorm(n.peo, theta.mu, theta.sig)
+  else if(length(thetas) != n.peo) stop("thetas length different from n.peo: ", length(thetas), " vs. ", n.peo)
   if(is.null(a)) a <- exp(rnorm(n.item, a.mu, a.sig))
+  else if(length(a) != n.item && length(a) != 1) stop("a parameters length different from n.item: ", length(a), " vs. ", n.item)
   if(is.null(b)) b <- rnorm(n.item, b.mu, b.sig)
-  if(is.null(c)) c <- runif(n.item, c.min, c.max)
+  else if(length(b) != n.item  && length(b) != 1) stop("b parameters length different from n.item: ", length(b), " vs. ", n.item)
+  if(is.null(c)) c <- rbeta(n.item, c.alpha, c.beta)
+  else if(length(c) != n.item  && length(c) != 1) stop("c parameters length different from n.item: ", length(c), " vs. ", n.item)
   return(irt(thetas, a, b, c))
 }
 
 #' @rdname irt
 #' @description \code{gen.rsp} generates binary/dichotomous responses for a given IRT object
 #' @examples
-#' gen.rsp(gen.irt(10, 5)) # generate responses
+#' # generate responses
+#' gen.rsp(gen.irt(10, 5))
 #' @family commons
 #' @export
 #' @importFrom stats runif
 gen.rsp <- function(x){
-  if(class(x) != "irt") stop("put an irt object in the 1st argument.")
+  if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
   n.peo <- length(x$thetas)
   n.item <- nrow(x$items)
   p <- prob(x)
@@ -96,10 +110,14 @@ gen.rsp <- function(x){
 #' @param ... other arguments, e.g., type, total, items
 #' @return \code{plot} returns a ggplot2 object
 #' @examples
-#' plot(gen.irt(10, 5)) # plot TCC
-#' plot(gen.irt(10, 5), total=FALSE) # plot ICCs
-#' plot(gen.irt(10, 5), type="information") # plot TIF
-#' plot(gen.irt(10, 5), type="information", total=FALSE) # plot IIFs
+#' # plot TCC
+#' plot(gen.irt(10, 5))
+#' # plot ICCs
+#' plot(gen.irt(10, 5), total=FALSE) 
+#' # plot TIF
+#' plot(gen.irt(10, 5), type="information") 
+#' # plot IIFs
+#' plot(gen.irt(10, 5), type="information", total=FALSE)
 #' @family commons
 #' @export
 #' @import ggplot2
@@ -115,7 +133,7 @@ plot.irt <- function(x, ...){
   else if(tolower(type) == "information")
     rs <- info(x)
   else
-    stop("don't recognize the type of plot.")
+    stop("unrecognized plot type ('probability' or 'information'): ", type)
   colnames(rs) <- paste("Item", 1:ncol(rs))
   if(total)
     rs <- data.frame(theta=x$thetas, value=apply(rs, 1, sum), variable="Total")
@@ -136,12 +154,12 @@ plot.irt <- function(x, ...){
 #' # probabilities
 #' prob(gen.irt(10, 5))
 #' # product of probabilities
-#' prob(gen.irt(10, 5), summary=1, fun=prod) 
+#' prob(gen.irt(10, 5), summary=1, fun=prod)
 #' @family commons
 #' @export
 prob <- function(x, summary=NULL, fun=NULL){
-  if(is.null(summary) != is.null(fun)) stop("summary and fun parameters are not both on/off.")
-  if(class(x) != "irt") stop("put an irt object in the 1st argument.")
+  if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
+  if(is.null(summary) != is.null(fun)) stop("summary and fun are not both on/off.")
   theta <- x$thetas
   a <- x$items$a
   b <- x$items$b
@@ -160,11 +178,12 @@ prob <- function(x, summary=NULL, fun=NULL){
 #' # add information over items
 #' info(gen.irt(10, 5), summary=1, fun=sum) 
 #' # add information over people
-#' info(gen.irt(10, 5), summary=2, fun=sum) 
+#' info(gen.irt(10, 5), summary=2, fun=sum)
+#' @family commons
 #' @export
 info <- function(x, summary=NULL, fun=NULL){
-  if(is.null(summary) != is.null(fun)) stop("summary and fun parameters are not both on/off.")
-  if(class(x) != "irt") stop("put an irt object in the 1st argument.")
+  if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
+  if(is.null(summary) != is.null(fun)) stop("summary and fun are not both on/off.")
   n.peo <- length(x$thetas)
   p <- prob(x)
   a <- matrix(rep(x$item$a, n.peo), nrow=n.peo, byrow=T)
@@ -182,12 +201,14 @@ info <- function(x, summary=NULL, fun=NULL){
 #' likelihood(gen.rsp(gen.irt(10, 5)), summary=1, fun=prod)
 #' # log-likelihood of response vectors
 #' likelihood(gen.rsp(gen.irt(10, 5)), summary=1, fun=sum, log=TRUE)
+#' @family commons
 #' @export
 likelihood <- function(x, summary=NULL, fun=NULL, log=FALSE){
-  if(is.null(summary) != is.null(fun)) stop("summary and fun parameters are not both on/off.")
-  if(class(x) != "irt") stop("put an irt object in the 1st argument.")
+  if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
+  if(is.null(summary) != is.null(fun)) stop("summary and fun are not both on/off.")
   if(is.null(x$rsp)) stop("rsp is not found in the object.")
-  if(is.null(x$rsp)) stop("rsp dimension is not aligned with people and items.")
+  else if(dim(x$rsp)[1] != length(x$thetas) || dim(x$rsp)[2] != nrow(x$items)) 
+    stop("unequal rsp dimension with people/items.")
   p <- prob(x)
   u <- x$rsp
   rs <- p^u * (1-p)^(1-u)
@@ -195,5 +216,4 @@ likelihood <- function(x, summary=NULL, fun=NULL, log=FALSE){
   if(!is.null(summary)) rs <- apply(rs, summary, fun)
   return(rs)
 }
-
 

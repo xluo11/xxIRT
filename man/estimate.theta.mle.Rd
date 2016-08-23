@@ -72,4 +72,11 @@ cor(x$thetas, y)
 plot(x$thetas, y, xlim=c(-3, 3), ylim=c(-3, 3), col=rgb(.8,.2,.2,.5), pch=16)
 abline(a=0, b=1)
 }
+\seealso{
+Other estimation: \code{\link{estimate.item.jmle}}
+
+Other estimation: \code{\link{estimate.item.jmle}}
+
+Other estimation: \code{\link{estimate.item.jmle}}
+}
 

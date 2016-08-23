@@ -2,6 +2,7 @@
 % Please edit documentation in R/cat.R
 \name{cat.sim}
 \alias{cat.estimate.default}
+\alias{cat.select.ccat}
 \alias{cat.select.default}
 \alias{cat.sim}
 \alias{cat.stop.default}
@@ -22,6 +23,8 @@ cat.stop.default(cat.data)
 \method{print}{cat}(x, ...)
 
 \method{plot}{cat}(x, ...)
+
+cat.select.ccat(cat.data)
 }
 \arguments{
 \item{theta}{the true value of theta parameter}
@@ -47,14 +50,16 @@ cat.stop.default(cat.data)
 \value{
 \code{cat.sim} returns a \code{cat} object (see details section)
 
-\code{cat.select.default} returns a list with an selected item (item) and an updated pool (pool)
+\code{cat.select.default} returns a list with \code{item} (selected item), \code{pool} (updated pool), \code{output} (optional output) elements.
 
-\code{cat.estimate.default} returns a numeric theta estimate
+\code{cat.estimate.default} returns a list with \code{theta} (theta estimate) and \code{output} (optional output) elements.
 
-\code{cat.stop.default} returns a boolean value: TRUE to stop and FALSE to continue
+\code{cat.stop.default} returns a list with \code{stop} (TRUE to stop and FALSE to continue) and \code{output} (optional output) elements.
 }
 \description{
 \code{cat.sim} simulates CAT sessions with user-defined algorithms
+
+\code{cat.select.ccat} implements the constrained item slection algorithm described in Kingsbury & Zara (1989, 1991)
 }
 \details{
 All inputs are combined into a list called \code{cat.data} which is passed to 
@@ -66,8 +71,10 @@ contains outpus too. In details, \code{cat.data} includes \code{pool} (the item 
 When writing new selection, estimation, termination functions, use \code{cat.data} as the only argument 
 and follow the structure strictly. For example, the selection function should return a list of 
 selected item (item) and updated pool (pool). e.g., \code{foo(cat.data){...; return(list(item=item, pool=pool))}}.
-The estimation function should return an estimated theta. e.g., \code{foo(cat.data){...; return(theta)}}.
-The termination function should return a boolean value. e.g., \code{foo(cat.data){...; return(FALSE)}}
+The estimation function should return a list containing an estimated theta (theta). e.g., \code{foo(cat.data){...; return(list(theta=theta))}}.
+The termination function should return a list containg a boolean value (stop). e.g., \code{foo(cat.data){...; return(list(stop=FALSE))}}.
+If a \code{output} element is included in the returning list, it'll be added to \code{cat.data} as
+\code{cat.data$output.select}, \code{cat.data$output.estimate}, \code{cat.data$output.stop} respectively.
 
 \code{cat.select.default} randomly selects an item from the k (set in options using keyword random or 5 by default) most informative items.
 
@@ -77,12 +84,26 @@ The termination function should return a boolean value. e.g., \code{foo(cat.data
 (1) if \code{opts$stop.se} is set, then evalute if the se reaches the se threshold;
 (2) if \code{opts$stop.mi} is set, then evalute if all item fails to reach the mi threshold;
 (3) if \code{opts$stop.cut} is set, then evalute if the 95% confidence interval contains the cut score
+
+\code{cat.select.ccat}: set target content percentage using \code{ccat.target} in \code{options}. 
+Use \code{ccat.random} in \code{options} to allow the first k items to randomly draw next content domain.
 }
 \examples{
+# generate an item pool
 pool <- gen.irt(1, 100)$items
+pool$content <- sample(1:3, nrow(pool), replace=TRUE)
+# cat simulation: 10-30 items
 opts <- list(min=10, max=30, stop.se=.3)
 x <- cat.sim(0.1, pool, opts)
 x
 plot(x)
+# cat simulation with randomesque
+opts <- list(min=10, max=30, stop.se=.3, select.random=10)
+x <- cat.sim(0.1, pool, opts)
+plot(x)
+# cat simulation with content balancing
+opts <- list(min=10, max=30, stop.se=.3, ccat.target=c(.5,.3,.2), ccat.random=5)
+x <- cat.sim(0.1, pool, opts, cat.select=cat.select.ccat)
+freq(x$items$content, 1:3)
 }
 

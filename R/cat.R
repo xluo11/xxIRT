@@ -18,14 +18,27 @@
 #' When writing new selection, estimation, termination functions, use \code{cat.data} as the only argument 
 #' and follow the structure strictly. For example, the selection function should return a list of 
 #' selected item (item) and updated pool (pool). e.g., \code{foo(cat.data){...; return(list(item=item, pool=pool))}}.
-#' The estimation function should return an estimated theta. e.g., \code{foo(cat.data){...; return(theta)}}.
-#' The termination function should return a boolean value. e.g., \code{foo(cat.data){...; return(FALSE)}} 
+#' The estimation function should return a list containing an estimated theta (theta). e.g., \code{foo(cat.data){...; return(list(theta=theta))}}.
+#' The termination function should return a list containg a boolean value (stop). e.g., \code{foo(cat.data){...; return(list(stop=FALSE))}}.
+#' If a \code{output} element is included in the returning list, it'll be added to \code{cat.data} as
+#' \code{cat.data$output.select}, \code{cat.data$output.estimate}, \code{cat.data$output.stop} respectively.
 #' @examples
+#' # generate an item pool
 #' pool <- gen.irt(1, 100)$items
+#' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
+#' # cat simulation: 10-30 items
 #' opts <- list(min=10, max=30, stop.se=.3)
 #' x <- cat.sim(0.1, pool, opts)
 #' x
 #' plot(x)
+#' # cat simulation with randomesque
+#' opts <- list(min=10, max=30, stop.se=.3, select.random=10)
+#' x <- cat.sim(0.1, pool, opts)
+#' plot(x)
+#' # cat simulation with content balancing
+#' opts <- list(min=10, max=30, stop.se=.3, ccat.target=c(.5,.3,.2), ccat.random=5)
+#' x <- cat.sim(0.1, pool, opts, cat.select=cat.select.ccat)
+#' freq(x$items$content, 1:3)
 #' @family cat
 #' @export
 #' @importFrom stats runif
@@ -33,12 +46,12 @@ cat.sim <- function(theta, pool, opts, cat.select=cat.select.default, cat.estima
   # validate min and max test length
   if(is.null(opts$min)) stop("min length is not set in options.")
   if(is.null(opts$max)) stop("max length is not set in options.")
-  if(opts$min < 0 || opts$min > opts$max) stop("invalid min/max length values.")
+  if(opts$min < 0 || opts$min > opts$max) stop("invalid min/max length values: ", opts$min, " -- ", opts$max)
   # validate item pool
   if(is.null(pool)) stop("item pool is null.")
-  pool <- as.data.frame(pool, stringsAsFactors=T)
+  pool <- as.data.frame(pool, stringsAsFactors=TRUE)
   if(any(!c("a", "b", "c") %in% colnames(pool))) stop("cannot find a/b/c parameters in item pool.")
-  if(nrow(pool) < opts$max) stop("insufficient items in item pool.")
+  if(nrow(pool) < opts$max) stop("insufficient items in item pool: ", nrow(pool))
   # entry point
   t <- ifelse(is.null(opts$entry), 0, opts$entry)
   
@@ -58,22 +71,26 @@ cat.sim <- function(theta, pool, opts, cat.select=cat.select.default, cat.estima
     cat.data$len <- i
     if(debug) cat("position #", i, ":", sep="")
     # select
-    nextitem <- cat.select(cat.data)
-    cat.data$pool <- nextitem$pool
-    cat.data$items <- rbind(cat.data$items, nextitem$item)
-    if(debug) cat("select item", paste(c("a","b","c"), "=", round(nextitem$item[c("a","b","c")],2), collapse=",", sep=""), ",")
+    selection <- cat.select(cat.data)
+    cat.data$pool <- selection$pool
+    cat.data$items <- rbind(cat.data$items, selection$item)
+    if(!is.null(selection$output)) cat.data$output.select <- selection$output
+    if(debug) cat("select item", paste(c("a","b","c"), "=", round(selection$item[c("a","b","c")],2), collapse=",", sep=""), ",")
     # administer
-    p <- prob(irt(cat.data$true, nextitem$item$a, nextitem$item$b, nextitem$item$c))[1,1]
+    p <- with(selection$item, prob(irt(cat.data$true, a, b, c))[1,1])
     rsp <- (p >= runif(1)) * 1
     cat.data$stats[i, 1] <- rsp
     if(debug) cat("p=", round(p,2),", response=", rsp, sep="")
     # estimate
-    est <- cat.estimate(cat.data)
-    cat.data$est <- cat.data$stats[i, 2] <- est
+    estimation <- cat.estimate(cat.data)
+    cat.data$est <- cat.data$stats[i, 2] <- estimation$theta
     cat.data$stats[i,3] <- 1 / sqrt(sum(info(irt(cat.data$est, cat.data$items[1:i,"a"], cat.data$items[1:i,"b"], cat.data$items[1:i,"c"]))))
-    if(debug) cat("est.=", round(est, 2), sep="", "\n")
+    if(!is.null(estimation$output)) cat.data$output.estimate <- estimation$output
+    if(debug) cat("est.=", round(estimation$theta, 2), sep="", "\n")
     # stopping
-    if(cat.stop(cat.data)) break
+    termination <- cat.stop(cat.data)
+    if(!is.null(termination$output)) cat.data$output.stop <- termination$output
+    if(termination$stop) break
   }
   
   # clean and report data
@@ -85,23 +102,23 @@ cat.sim <- function(theta, pool, opts, cat.select=cat.select.default, cat.estima
 
 #' @rdname cat.sim
 #' @param cat.data a list of CAT inputs and outputs (see details) 
-#' @return \code{cat.select.default} returns a list with an selected item (item) and an updated pool (pool)
+#' @return \code{cat.select.default} returns a list with \code{item} (selected item), \code{pool} (updated pool), \code{output} (optional output) elements.
 #' @details 
 #' \code{cat.select.default} randomly selects an item from the k (set in options using keyword random or 5 by default) most informative items. 
 #' @family cat
 #' @export
 cat.select.default <- function(cat.data){
   pool <- cat.data$pool
-  i <- info(irt(cat.data$est, pool$a, pool$b, pool$c))[1,]
-  random <- ifelse(is.null(cat.data$opts$random), 5, cat.data$opts$random)
-  random <- min(random, length(i))
-  index <- order(i, decreasing=T)[1:random]
+  information <- info(irt(cat.data$est, pool$a, pool$b, pool$c))[1,]
+  randomesque <- ifelse(is.null(cat.data$opts$select.random), 1, cat.data$opts$select.random)
+  randomesque <- min(randomesque, length(information))
+  index <- order(information, decreasing=T)[1:randomesque]
   if(length(index) > 1) index <- sample(index, 1)
-  list(item=pool[index,], pool=pool[-index,])
+  return(list(item=pool[index,], pool=pool[-index,]))
 }
 
 #' @rdname cat.sim
-#' @return \code{cat.estimate.default} returns a numeric theta estimate
+#' @return \code{cat.estimate.default} returns a list with \code{theta} (theta estimate) and \code{output} (optional output) elements.
 #' @details 
 #' \code{cat.estimate.default} estimates theta using EAP for a response vector of all 1's or 0's and MLE otherwise
 #' @family cat
@@ -114,11 +131,11 @@ cat.estimate.default <- function(cat.data){
     t <- estimate.theta.eap(u, cat.data$items$a, cat.data$items$b, cat.data$items$c)
   else
     t <- estimate.theta.mle(u, cat.data$items$a, cat.data$items$b, cat.data$items$c)
-  return(t)
+  return(list(theta=t))
 }
 
 #' @rdname cat.sim
-#' @return \code{cat.stop.default} returns a boolean value: TRUE to stop and FALSE to continue
+#' @return \code{cat.stop.default} returns a list with \code{stop} (TRUE to stop and FALSE to continue) and \code{output} (optional output) elements.
 #' @details 
 #' \code{cat.stop.default} evaluates one of the three criteria after reaching minimum lenght:
 #' (1) if \code{opts$stop.se} is set, then evalute if the se reaches the se threshold;
@@ -129,21 +146,22 @@ cat.estimate.default <- function(cat.data){
 cat.stop.default <- function(cat.data){
   n <- cat.data$len
   if(n < cat.data$opts$min)
-    return(FALSE)
+    return(list(stop=FALSE))
   else if(n >= cat.data$opts$max)
-    return(TRUE)
+    return(list(stop=TRUE))
   se <- cat.data$stats[n, "se"]
   lb <- cat.data$est - 1.96 * se
   ub <- cat.data$est + 1.96 * se
   mi <- max(info(irt(cat.data$est, cat.data$pool$a, cat.data$pool$b, cat.data$pool$c)))
   if(!is.null(cat.data$opts$stop.se))
-    return(se <= cat.data$opts$stop.se)
+    stop <- (se <= cat.data$opts$stop.se)
   else if (!is.null(cat.data$opts$stop.mi))
-    return(mi <= cat.data$opts$stop.mi)
+    stop <- (mi <= cat.data$opts$stop.mi)
   else if(!is.null(cat.data$opts$stop.cut))
-    return(lb > cat.data$opts$stop.cut | ub < cat.data$opts$stop.cut)
+    stop <- (lb > cat.data$opts$stop.cut | ub < cat.data$opts$stop.cut)
   else
     stop("no stopping rule parameters is set in options.")
+  return(list(stop=stop))
 }
 
 #' @rdname cat.sim
@@ -185,3 +203,44 @@ plot.cat <- function(x, ...){
     guides(size=F, alpha=F) + theme_bw() + theme(legend.key = element_blank())
 }
 
+#' @rdname cat.sim
+#' @description \code{cat.select.ccat} implements the constrained item slection algorithm described in Kingsbury & Zara (1989, 1991)
+#' @details 
+#' \code{cat.select.ccat}: set target content percentage using \code{ccat.target} in \code{options}. 
+#' Use \code{ccat.random} in \code{options} to allow the first k items to randomly draw next content domain.
+#' @family cat
+#' @export
+cat.select.ccat <- function(cat.data){
+  target <- cat.data$opts$ccat.target
+  if(is.null(target)) stop("ccat.target is not found in the options.")
+  random <- cat.data$opts$ccat.random
+  if(is.null(random)) random <- 0
+  
+  n.content <- length(target)
+  n.min <- cat.data$opts$min
+  n.max <- cat.data$opts$max
+  n.curr <- cat.data$len - 1
+  
+  if(n.curr < random){
+    nextdomain <- sample(1:n.content, 1)
+  } else {
+    if(nrow(cat.data$items) == 0)
+      curr.content <- rep(0, n.content)
+    else
+      curr.content <- freq(cat.data$items$content, 1:n.content)$p
+    nextdomain <- which.max(target - curr.content)
+  }
+  
+  pool <- cat.data$pool
+  pool$temp.id <- 1:nrow(pool)
+  pool <- pool[pool$content == nextdomain,]
+  information <- with(pool, info(irt(cat.data$est, a, b, c))[1,])
+  randomesque <- ifelse(is.null(cat.data$opts$select.random), 5, cat.data$opts$select.random)
+  randomesque <- min(randomesque, length(information))
+  index <- order(information, decreasing=TRUE)
+  index <- index[1:randomesque]
+  if(length(index) > 1) index <- sample(index, 1)
+  index <- pool$temp.id[index]
+  
+  return(list(item=cat.data$pool[index,], pool=cat.data$pool[-index,]))
+}

@@ -22,20 +22,23 @@
 #' @export
 #' @importFrom stats rnorm
 estimate.theta.mle <- function(u, a, b, c, init=NULL, iteration=15, delta=0.005, bound=3.5){
-  u <- as.matrix(u)
+  if(is.vector(u) && length(u) == length(b)) u <- matrix(u, nrow=1) else u <- as.matrix(u)
   n.peo <- nrow(u)
   n.item <- ncol(u)
   if(length(a) != n.item || length(b) != n.item || length(c) != n.item) stop("wrong length in item parameters. make sure response is a matrix.")
   if(!is.null(init)) t <- init else t <- rnorm(n.peo, 0, .1)
   if(length(t) != n.peo) stop("wrong length in initial values.")
   a.matrix <- matrix(rep(a, n.peo), ncol=n.item, byrow=T)
+  h <- rep(0, n.peo)
   
   for(i in 1:iteration){
     p <- prob(irt(t, a, b, c))
     p.star <- prob(irt(t, a, b, c=0))
     L.1 <- 1.7 * a.matrix * (u - p) * p.star / p
     L.2 <- (-1) * (1.7 * a.matrix * p.star / p)^2 * p * (1 - p)
+    h0 <- h
     h <- rowSums(L.1) / rowSums(L.2)
+    h <- ifelse(abs(h) > abs(h0), h * .2, h * 1.1)
     t <- ifelse(abs(t - h) > bound, t, t - h)
     if(mean(abs(h)) < delta) break
   }
@@ -59,7 +62,7 @@ estimate.theta.mle <- function(u, a, b, c, init=NULL, iteration=15, delta=0.005,
 #' @export
 #' @importFrom stats rnorm
 estimate.theta.map <- function(u, a, b, c, init=NULL, prior.mu=0, prior.sig=1, iteration=15, delta=0.005, bound=3.5){
-  u <- as.matrix(u)
+  if(is.vector(u) && length(u) == length(b)) u <- matrix(u, nrow=1) else u <- as.matrix(u)
   n.peo <- nrow(u)
   n.item <- ncol(u)
   if(length(a) != n.item || length(b) != n.item || length(c) != n.item) stop("wrong length in item parameters. make sure response is a matrix.")
@@ -93,7 +96,7 @@ estimate.theta.map <- function(u, a, b, c, init=NULL, prior.mu=0, prior.sig=1, i
 #' abline(a=0, b=1)
 #' @export
 estimate.theta.eap <- function(u, a, b, c){
-  u <- as.matrix(u)
+  if(is.vector(u) && length(u) == length(b)) u <- matrix(u, nrow=1) else u <- as.matrix(u)
   n.peo <- nrow(u)
   n.item <- ncol(u)
   if(length(a) != n.item || length(b) != n.item || length(c) != n.item) stop("wrong length in item parameters. make sure response is a matrix.")
@@ -133,7 +136,7 @@ estimate.theta.eap <- function(u, a, b, c){
 #' plot(x$items$c, y$parameters$c, xlim=c(0, .5), ylim=c(0, .5), pch=16, col=rgb(.8,.2,.2,.5))
 #' abline(a=0, b=1, lty=2)
 #' }
-#' @family calibration
+#' @family estimation
 #' @export
 #' @importFrom stats aggregate
 estimate.item.jmle <- function(u, theta, model="3PL", iteration=100, delta=0.01, a.bound=2.0, b.bound=3.5, c.bound=0.25, diagnose=FALSE){
@@ -146,8 +149,7 @@ estimate.item.jmle <- function(u, theta, model="3PL", iteration=100, delta=0.01,
   t <- unique(theta)
   n.t <- length(t)
   indices <- match(theta, t)
-  f <- freq(indices, 1:max(indices))
-  f <- as.vector(f[,-1])
+  f <- freq(indices, 1:max(indices))$n
   r <- aggregate(u, by=list(indices), FUN=sum)
   r <- as.matrix(r[,-1])
   
@@ -244,7 +246,7 @@ estimate.item.jmle <- function(u, theta, model="3PL", iteration=100, delta=0.01,
 #' plot(x$thetas, z, xlim=c(-5, 5), ylim=c(-5, 5), pch=16, col=rgb(.8,.2,.2,.5))
 #' abline(a=0, b=1, lty=2)
 #' }
-#' @family calibration
+#' @family estimation
 #' @export
 estimate.item.mmle <- function(u, model="3PL", iteration=100, delta=0.01, a.bound=2.0, b.bound=3.5, c.bound=0.25, diagnose=FALSE){
   # initial constants
@@ -360,10 +362,10 @@ estimate.item.mmle <- function(u, model="3PL", iteration=100, delta=0.01, a.boun
 #' plot(x$thetas, z, xlim=c(-5, 5), ylim=c(-5, 5), pch=16, col=rgb(.8,.2,.2,.5))
 #' abline(a=0, b=1, lty=2)
 #' }
-#' @family calibration
+#' @family estimation
 #' @export
 #' @importFrom stats runif rnorm
-estimate.item.bme <- function(u, model="3PL", a.mu=0, a.sig=0.2, b.mu=0, b.sig=1, c.alpha=5, c.beta=23, iteration=100, delta=0.01, a.bound=2.0, b.bound=3.5, c.bound=0.25, diagnose=FALSE){
+estimate.item.bme <- function(u, model="3PL", a.mu=0, a.sig=0.2, b.mu=0, b.sig=1, c.alpha=5, c.beta=43, iteration=100, delta=0.01, a.bound=2.0, b.bound=3.5, c.bound=0.25, diagnose=FALSE){
   # initial constants
   X <- hermite.gauss()$x
   A <- hermite.gauss()$wgt

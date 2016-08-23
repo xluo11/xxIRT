@@ -64,6 +64,7 @@
 #' x$rs.items
 #' with(y1, plot(irt(0, a, b, c), type="information"))
 #' with(y2, plot(irt(0, a, b, c), type="information"))
+#' @family ata
 #' @export
 #' @import lpSolveAPI
 ata <- function(pool, nform){
@@ -111,10 +112,11 @@ print.ata <- function(x, ...){
 #' \code{ata.obj.rel}: For maximization problem, if obj.fn > 0, maximize y while obj.fn - y >= 0.
 #' If obj.fn < 0, minimize y while obj.fn + y >= 0. For minimization problem, if obj.fn > 0,
 #' minimize y while obj.fn - y <= 0. If obj.fn < 0, maximize y while obj.fn + y <= 0. \cr
+#' @family ata
 #' @export
 ata.obj.rel <- function(x, value, mode, negative.obj=FALSE, forms=NULL){
   # validate
-  if(class(x) != "ata") stop("put the ata object in the first argument.")
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(is.null(forms)) forms <- 1:x$nform else if(any(!forms %in% 1:x$nform)) stop("invalid form index.")
   
   # values
@@ -161,10 +163,11 @@ ata.obj.rel <- function(x, value, mode, negative.obj=FALSE, forms=NULL){
 #' @param target the target value of the objective function
 #' @details 
 #' \code{ata.obj.abs} minimizes y while obj.fn + y >= target and obj.fn - y <= target. \cr
+#' @family ata
 #' @export
 ata.obj.abs <- function(x, value, target, forms=NULL){
   # validate
-  if(class(x) != "ata") stop("put the ata object in the first argument.")
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(is.null(forms)) forms <- 1:x$nform else if(any(!forms %in% 1:x$nform)) stop("invalid form index.")
   
   # values
@@ -197,10 +200,11 @@ ata.obj.abs <- function(x, value, target, forms=NULL){
 #' @param level a level value for categorical variable, and \code{NA} or \code{NULL} for continuous varialbe
 #' @param min the minimum value
 #' @param max the maximum value
+#' @family ata
 #' @export
 ata.constraint <- function(x, var, level, min, max, forms=NULL){
   # validate
-  if(class(x) != "ata") stop("put the ata object in the first argument.")
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(var != "len" && !var %in% colnames(x$pool)) stop("cannot find constraint variable in the pool.")
   if(min > max) stop("min is greater than max.")
   if(is.null(forms)) forms <- 1:x$nform else if(any(!forms %in% 1:x$nform)) stop("invalid form index.")
@@ -231,10 +235,11 @@ ata.constraint <- function(x, var, level, min, max, forms=NULL){
 #' @description \code{ata.maxselect} sets the maximum selection for items
 #' @param maxselect the maximum times of selection
 #' @param items a vector of item index
+#' @family ata
 #' @export
 ata.maxselect <- function(x, maxselect, items=NULL){
   # validate
-  if(class(x) != "ata") stop("put the ata object in the first argument.")
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(is.null(items)) items <- 1:x$nitem else if(any(!items %in% 1:x$nitem)) stop("invalid items input.")
   
   for(i in items){
@@ -247,9 +252,10 @@ ata.maxselect <- function(x, maxselect, items=NULL){
 
 #' @rdname ata
 #' @description \code{ata.fixitem} set a fixed value for items, e.g, 1 for selection and 0 for no selection
+#' @family ata
 #' @export
 ata.fixitem <- function(x, value, items, forms=NULL){
-  if(class(x) != "ata") stop("put the ata object in the first argument.")
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(any(!items %in% 1:x$nitem)) stop("invalid items input.")
   if(is.null(forms)) forms <- 1:x$nform
   if(length(value) == 1) value <- rep(value, length(items))
@@ -265,10 +271,11 @@ ata.fixitem <- function(x, value, items, forms=NULL){
 #' @description \code{ata.solve} solves the LP and returns results
 #' @details 
 #' In \code{ata.solve}, the \code{...} are additional \code{lp.control.options}
+#' @family ata
 #' @export
 ata.solve <- function(x, ...){
   # validate
-  if(class(x) != "ata") stop("put the ata object in the first argument.")
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(is.null(x$lp) || nrow(x$lp) == 0) stop("invalid lp object.")
   
   lp.control(x$lp, mip.gap=c(.10, .10), epsint=.10, presolve="lindep", timeout=15*60)

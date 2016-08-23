@@ -9,7 +9,8 @@
 #' \code{nstage} (number of stage), \code{nmodule} (number of modules), \code{npanel} (number of panels),
 #' \code{nroute} (number of routes), \code{module} (module information).
 #' @return \code{mst} returns a \code{mst} object
-#' @examples 
+#' @examples
+#' # generate an item pool
 #' pool <- gen.irt(1, 200)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 #' # 1-2-3 design with 2 parallel panels
@@ -64,6 +65,7 @@
 #' # may be solved in sequence within 1 minute
 #' x <- mst.assemble.sequence(x, timeout=60)
 #' plot(x, by.route=TRUE)
+#' @family mst
 #' @export
 #' @import lpSolveAPI
 mst <- function(pool, design, npanel){
@@ -123,9 +125,10 @@ print.mst <- function(x, ...){
 #' @param route a vector of module index, and check \code{route} table in a mst object for routes
 #' @param op "+" for adding a route and "-" for removing a route
 #' @param print TRUE to print intermediate results
+#' @family mst
 #' @export
 mst.route <- function(x, route, op, print=FALSE){
-  if(class(x) != "mst") stop("put a mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(length(route) != x$nstage || any(route > x$nmodule)) stop("invalid route.")
   index <- apply(x$route, 1, function(x){all(x == route)})
   if(op == "+"){
@@ -148,10 +151,11 @@ mst.route <- function(x, route, op, print=FALSE){
 #' @param thetas a vector of theta points where information targets are set
 #' @param target a single or vector of numeric values for targets, \code{Inf} for maximizing inforation
 #' @param routes a vector of route index to add objective functions, or \code{NULL} for all routes
+#' @family mst
 #' @export
 #' @import lpSolveAPI
 mst.objective <- function(x, thetas, target, routes=NULL){
-  if(class(x) != "mst") stop("put a mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(is.null(routes)) routes <- 1:x$nroute else if(any(routes > x$nroute)) stop("invalid routes.")
   
   n <- length(thetas)
@@ -194,13 +198,14 @@ mst.objective <- function(x, thetas, target, routes=NULL){
 #' @param level the constrained level for a categorical variable. \code{NA} or \code{NULL} for continuous variable
 #' @param min the minimum value
 #' @param max the maximum value
+#' @family mst
 #' @export
 #' @import lpSolveAPI
 mst.constraint <- function(x, var, level, min, max, routes=NULL){
-  if(class(x) != "mst") stop("put a mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(is.null(routes)) routes <- 1:x$nroute else if(any(routes > x$nroute)) stop("invalid routes.")
-  if(var != "len" && !var %in% colnames(x$pool)) stop("cannot find constraint variable in the pool.")
-  if(min > max) stop("min is greater than max.")
+  if(var != "len" && !var %in% colnames(x$pool)) stop("cannot find constraint variable in the pool: ", var)
+  if(min > max) stop("invalid min and max: ", min, " vs. ", max)
   
   # value
   if(var == "len")
@@ -233,12 +238,13 @@ mst.constraint <- function(x, var, level, min, max, routes=NULL){
 #' @rdname mst
 #' @description \code{mst.stagelength} sets the min/max length for a stage
 #' @param stage the stage being constrained
+#' @family mst
 #' @export
 #' @import lpSolveAPI
 mst.stagelength <- function(x, stage, min, max){
-  if(class(x) != "mst") stop("put the mst object in the first argument.")
-  if(stage < 1 || stage > x$nstage) stop("stage is out of bounds.")
-  if(min > max) stop("min cannot be greater than max.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
+  if(stage < 1 || stage > x$nstage) stop("stage is out of bounds: ", stage)
+  if(min > max) stop("invalid min and max: ", min, " vs. ", max)
   
   modules <- x$module$lower[stage]:x$module$upper[stage]
   value <- rep(1, x$nitem)
@@ -261,11 +267,12 @@ mst.stagelength <- function(x, stage, min, max){
 #' @rdname mst
 #' @description \code{mst.assemble} solves the LP object and assembles items
 #' @param ... further arugments passed to lp.control or choose if summarize results \code{by.route}
+#' @family mst
 #' @export
 #' @import lpSolveAPI
 mst.assemble <- function(x, ...){
   # validate
-  if(class(x) != "mst") stop("put the mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(is.null(x$lp) || nrow(x$lp) == 0) stop("invalid lp object.")
   
   nlp <- dim(x$lp)[2]
@@ -304,10 +311,11 @@ mst.assemble <- function(x, ...){
 #' @details 
 #' In \code{mst.summary}, passing \code{by.route=TRUE} to summarize results by routes;
 #' otherwise, by modules. A list, consisting of data and plot, is return.
+#' @family mst
 #' @export
 #' @import ggplot2
 mst.summary <- function(x, ...){
-  if(class(x) != "mst") stop("put the mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   opts <- list(...)
   by.route <- ifelse(is.null(opts$by.route), FALSE, opts$by.route)
   if(is.null(x$items)) stop("items haven't been assembled yet.")
@@ -350,9 +358,10 @@ plot.mst <- function(x, ...){
 #' @param panel the panel index
 #' @param module.index the module index
 #' @param route.index the route index
+#' @family mst
 #' @export
 mst.get <- function(x, panel, module.index=NULL, route.index=NULL){
-  if(class(x) != "mst") stop("put the mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(!is.null(module.index))
     index <- x$items$panel == panel & x$items$module == module.index
   if(!is.null(route.index))
@@ -370,10 +379,11 @@ mst.get <- function(x, panel, module.index=NULL, route.index=NULL){
 #' that has the largest information. Users can use any theta estimator from the Estimation module. 
 #' See \code{estimate.theta.mle}, \code{estimate.theta.map}, and \code{estimate.theta.eap}
 #' for example. When writing new estimator, make sure it takes arguments as \code{foo(u, a, b, c)}.
+#' @family mst
 #' @export
 #' @importFrom stats rnorm
 mst.sim <- function(x, theta, routing=NULL, estimator=estimate.theta.mle){
-  if(class(x) != "mst") stop("put the mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   
   rs <- list(panel=sample(1:x$npanel, 1), modules=rep(NA, x$nstage), true=theta, est=rnorm(1,0,.1), admins=NULL)
   panel <- x$items[x$items$panel == rs$panel, ]
@@ -411,10 +421,11 @@ mst.sim <- function(x, theta, routing=NULL, estimator=estimate.theta.mle){
 #' Use \code{mst.assemble.sequence} when the LP problem is too large to be solved in \code{mst.assemble}.
 #' The results will ievitably favor the panels assembled earlier than later. Try to run another round
 #' of \code{mst.assemble} using those assembled items (perhapse, plus a bit more randomly selected items)
-#' to reduce the unparallelism between panels.  
+#' to reduce the unparallelism between panels.
+#' @family mst  
 #' @export
 mst.assemble.sequence <- function(x, ...){
-  if(class(x) != "mst") stop("put the mst object in the first argument.")
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   x0 <- x
   pool <- x0$pool
   pool$id <- 1:x0$nitem

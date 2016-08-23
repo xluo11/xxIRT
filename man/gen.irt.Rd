@@ -6,7 +6,7 @@
 \usage{
 gen.irt(n.peo, n.item, thetas = NULL, a = NULL, b = NULL, c = NULL,
   theta.mu = 0, theta.sig = 1, a.mu = 0, a.sig = 0.15, b.mu = 0,
-  b.sig = 1, c.min = 0, c.max = 0.15)
+  b.sig = 1, c.alpha = 5, c.beta = 43)
 }
 \arguments{
 \item{n.peo}{the number of people to be generated}
@@ -33,9 +33,9 @@ gen.irt(n.peo, n.item, thetas = NULL, a = NULL, b = NULL, c = NULL,
 
 \item{b.sig}{the sd of the normal distribution from which b parameters are generated}
 
-\item{c.min}{the minumum of the uniform distribution from which c parameters are generated}
+\item{c.alpha}{the alpha parameter of the beta distribution from which c parameters are generated}
 
-\item{c.max}{the maximum of the uniform distribution from which c parameters are generated}
+\item{c.beta}{the beta parameter of the beta distribution from which c parameters are generated}
 }
 \value{
 an \code{irt} object
@@ -45,13 +45,16 @@ Create an IRT object with generated values
 }
 \details{
 In generation, thetas are drawn from the normal distribution, a parameters from the lognormal distribution,
-b parameters from the normal distribution, and c parameters from the uniform distribution.
+b parameters from the normal distribution, and c parameters from the beta distribution.
 When parameters are imported, they are not drawn from the distribution.
 }
 \examples{
-gen.irt(10, 5) # generate 10 people, 5 items
-gen.irt(10, 5, thetas=seq(.1, 1, length.out=10)) # generate data with given thetas
-gen.irt(10, 5, a=.588, c=0)  # generate data with given iteme parameters (Rasch items)
+# generate 10 people, 5 items
+gen.irt(10, 5)
+# generate data with given thetas
+gen.irt(10, 5, thetas=seq(.1, 1, length.out=10)) 
+# generate data with given iteme parameters (Rasch items)
+gen.irt(10, 5, a=.588, c=0)
 }
 \seealso{
 Other commons: \code{\link{irt}}, \code{\link{prob}}

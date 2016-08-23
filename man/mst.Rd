@@ -131,6 +131,7 @@ of \code{mst.assemble} using those assembled items (perhapse, plus a bit more ra
 to reduce the unparallelism between panels.
 }
 \examples{
+# generate an item pool
 pool <- gen.irt(1, 200)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 # 1-2-3 design with 2 parallel panels
