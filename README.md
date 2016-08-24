@@ -44,17 +44,17 @@ color <- rgb(.8,.2,.2,.5) # drawing color
 
 t <- with(x$items, estimate.theta.mle(x$rsp, a, b, c)) # ML estimation
 rmse(x$thetas, t)
-plot(x$thetas, t, xlim=c(0, 3), ylim=c(0, 3), pch=16, col=color, xlab="True", ylab="Estimate")
+plot(x$thetas, t, xlim=c(-3, 3), ylim=c(-3, 3), pch=16, col=color, xlab="True", ylab="Estimate")
 abline(0, 1, lty=2)
 
 t <- with(x$items, estimate.theta.eap(x$rsp, a, b, c)) # EAP estimation
 rmse(x$thetas, t)
-plot(x$thetas, t, xlim=c(0, 3), ylim=c(0, 3), pch=16, col=color, xlab="True", ylab="Estimate")
+plot(x$thetas, t, xlim=c(-3, 3), ylim=c(-3, 3), pch=16, col=color, xlab="True", ylab="Estimate")
 abline(0, 1, lty=2)
 
 t <- with(x$items, estimate.theta.map(x$rsp, a, b, c)) # MAP estimation
 rmse(x$thetas, t)
-plot(x$thetas, t, xlim=c(0, 3), ylim=c(0, 3), pch=16, col=color,  xlab="True", ylab="Estimate")
+plot(x$thetas, t, xlim=c(-3, 3), ylim=c(-3, 3), pch=16, col=color,  xlab="True", ylab="Estimate")
 abline(0, 1, lty=2)
 
 
