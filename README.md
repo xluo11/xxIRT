@@ -1,5 +1,5 @@
 # xxIRT: R Package for Item Response Theory
-######Author: [Xiao Luo](mailto:xluo1986@gmail.com) || Last Edit: August 09, 2016
+######Author: [Xiao Luo](mailto:xluo1986@gmail.com) || Last Edit: August 09, 2016 || Version: 1.0.2
 
 ######**Citation**: Luo, X. (2016). xxIRT: R Package for Item Response Theory (Version 2.0) [Software]. Retrieved from [https://github.com/xluo11/xxIRT](https://github.com/xluo11/xxIRT)
 
