@@ -1,17 +1,16 @@
-# library(shiny)
-# library(xxIRT)
-# library(DT)
-
 #' Graphical User Interface
-#' @description gui
+#' @description \code{catGUI} creates a shiny app for \code{cat.sim}
 #' @export
 #' @import shiny
-cat.gui <- function(){
+catGUI <- function(){
   ui <- shinyUI(fluidPage(
     # css theme
-    theme="paper.css",
+    tags$head(
+      tags$link(rel = "stylesheet", type = "text/css", href = "https://bootswatch.com/paper/bootstrap.min.css")
+    ),
+    
     # title
-    titlePanel("CAT Simulation"),
+    titlePanel(h5("CAT Simulation")),
     # layout               
     sidebarLayout(
       # sidebar panel
@@ -51,7 +50,7 @@ cat.gui <- function(){
   server <- shinyServer(function(input, output) {
     cat <- reactive({
       validate(
-        need(input$pool, "Please give me the item file."),
+        need(input$pool, "Please import the item file."),
         need(input$min > 0 && input$min <= input$max, "I couldn't understand the minimum and maximum lengths.")
       )
       
