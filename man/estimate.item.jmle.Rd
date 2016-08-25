@@ -13,7 +13,7 @@ estimate.item.mmle(u, model = "3PL", iteration = 100, delta = 0.01,
   a.bound = 2, b.bound = 3.5, c.bound = 0.25, diagnose = FALSE)
 
 estimate.item.bme(u, model = "3PL", a.mu = 0, a.sig = 0.2, b.mu = 0,
-  b.sig = 1, c.alpha = 5, c.beta = 23, iteration = 100, delta = 0.01,
+  b.sig = 1, c.alpha = 5, c.beta = 43, iteration = 100, delta = 0.01,
   a.bound = 2, b.bound = 3.5, c.bound = 0.25, diagnose = FALSE)
 }
 \arguments{

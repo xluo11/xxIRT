@@ -198,7 +198,7 @@ plot.cat <- function(x, ...){
     geom_point(aes_string(size="se"), alpha=.5) + 
     geom_hline(yintercept=x$true, linetype=3) + 
     geom_linerange(aes_string(ymin="lb",ymax="ub"), linetype=3) +
-    coord_cartesian(ylim=c(-3,3)) + scale_size(range=c(1, 4)) + 
+    coord_cartesian(ylim=c(-3,3), xlim=c(0, x$opts$max)) + scale_size(range=c(1, 4)) + 
     xlab("Position") + ylab("Estimated Ability") + 
     guides(size=F, alpha=F) + theme_bw() + theme(legend.key = element_blank())
 }

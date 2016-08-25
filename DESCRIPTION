@@ -1,8 +1,8 @@
 Package: xxIRT
 Type: Package
 Title: Item Response Theory
-Version: 1.0.1
-Date: 2016-08-12
+Version: 1.1.0
+Date: 2016-08-24
 Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.com"))
 Author: Xiao Luo [aut, cre]
 Maintainer: Xiao Luo <xluo1986@gmail.com>
