@@ -290,3 +290,18 @@ ata.solve <- function(x, ...){
   }
   return(x)
 }
+
+#' @rdname ata
+#' @description \code{ata.collapse} combine assmebly results from list to one data frame
+#' @family ata
+#' @export
+ata.collapse.rs <- function(x){
+  if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
+  if(is.null(x$rs.items)) stop("not solved yet.")
+  
+  items <- NULL
+  for(i in 1:length(x$rs.items))
+    items <- rbind(items, cbind(Form=i, x$rs.items[[i]]))
+  x$rs.items <- items
+  x
+}

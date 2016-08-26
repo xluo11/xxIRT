@@ -15,6 +15,7 @@ Imports:
     ggplot2, 
     reshape2, 
     lpSolveAPI,
+    shiny,
     stats,
     utils
 RoxygenNote: 5.0.1

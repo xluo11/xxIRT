@@ -2,6 +2,7 @@
 % Please edit documentation in R/assembly.R
 \name{ata}
 \alias{ata}
+\alias{ata.collapse.rs}
 \alias{ata.constraint}
 \alias{ata.fixitem}
 \alias{ata.maxselect}
@@ -26,6 +27,8 @@ ata.maxselect(x, maxselect, items = NULL)
 ata.fixitem(x, value, items, forms = NULL)
 
 ata.solve(x, ...)
+
+ata.collapse.rs(x)
 }
 \arguments{
 \item{pool}{an item pool (data.frame)}
@@ -73,6 +76,8 @@ ata.solve(x, ...)
 \code{ata.fixitem} set a fixed value for items, e.g, 1 for selection and 0 for no selection
 
 \code{ata.solve} solves the LP and returns results
+
+\code{ata.collapse} combine assmebly results from list to one data frame
 }
 \details{
 An \code{ata} object contains \code{pool} (item pool), \code{nitem} (number of items in the pool),

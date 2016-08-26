@@ -2,15 +2,19 @@
 #' @description \code{estimationGUI} creates a shiny app for parameter estimation
 #' @export
 #' @import shiny
+#' @importFrom utils write.table read.csv
 estimationGUI <- function(){
   ui <- shinyUI(fluidPage(
     # css theme
-    tags$head(
-      tags$link(rel = "stylesheet", type = "text/css", href = "https://bootswatch.com/paper/bootstrap.min.css")
-    ),
+    tags$head(tags$link(rel="stylesheet", type="text/css", href="https://bootswatch.com/paper/bootstrap.min.css")),
     
     # title
-    titlePanel(h5("Parameter Estimation")),
+    tags$div(
+      img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/resources/img/spaceship-png-icon-9.png", height=50, width=50),
+      span("Parameter Estimation", class="h4"),
+      a(" -- package: xxIRT || author: xiao luo", href="https://github.com/xluo11/xxIRT")
+    ),
+
     # layout               
     sidebarLayout(
       # sidebar panel
@@ -135,5 +139,3 @@ estimationGUI <- function(){
   
   shinyApp(ui=ui, server=server)  
 }
-
-estimationGUI()

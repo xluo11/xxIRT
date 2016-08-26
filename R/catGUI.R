@@ -2,15 +2,19 @@
 #' @description \code{catGUI} creates a shiny app for \code{cat.sim}
 #' @export
 #' @import shiny
+#' @importFrom utils write.table read.csv
 catGUI <- function(){
   ui <- shinyUI(fluidPage(
     # css theme
-    tags$head(
-      tags$link(rel = "stylesheet", type = "text/css", href = "https://bootswatch.com/paper/bootstrap.min.css")
-    ),
+    tags$head(tags$link(rel="stylesheet", type="text/css", href="https://bootswatch.com/paper/bootstrap.min.css")),
     
     # title
-    titlePanel(h5("CAT Simulation")),
+    tags$div(
+      img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/resources/img/spaceship-png-icon-9.png", height=50, width=50),
+      span("CAT Simulation", class="h4"),
+      a(" -- package: xxIRT || author: xiao luo", href="https://github.com/xluo11/xxIRT")
+    ),
+    
     # layout               
     sidebarLayout(
       # sidebar panel
@@ -26,7 +30,7 @@ catGUI <- function(){
         selectInput('select', 'Selection Rule', choices=list("Default"="cat.select.default", "C-CAT"="cat.select.ccat")),
         numericInput("randomesque", "Item Exposure Control", 1, min=1),
         conditionalPanel("input.select == 'cat.select.ccat'", 
-                         textInput('ccat.target', 'Content Distribution', ""),
+                         textInput('ccat.target', 'Content Distribution', "", placeholder="e.g., 0.5, 0.3, 0.2"),
                          numericInput('ccat.random', 'Random', 5, min=0)),
         hr(),
         selectInput('estimate', 'Estimation Rule', choices=list("Default"="cat.estimate.default")),
@@ -50,8 +54,8 @@ catGUI <- function(){
   server <- shinyServer(function(input, output) {
     cat <- reactive({
       validate(
-        need(input$pool, "Please import the item file."),
-        need(input$min > 0 && input$min <= input$max, "I couldn't understand the minimum and maximum lengths.")
+        need(input$pool, "Please import item pool file."),
+        need(input$min > 0 && input$min <= input$max, "Please check the minimum and maximum lengths.")
       )
       
       pool <- read.csv(input$pool$datapath, header=TRUE, as.is=TRUE)
@@ -86,7 +90,7 @@ catGUI <- function(){
     }, options=list(pageLength=30, dom='tip'))
     
     output$plot <- renderPlot({
-      plot(cat())
+      plot.cat(cat())
     })
   })
   
