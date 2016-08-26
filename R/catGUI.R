@@ -10,7 +10,7 @@ catGUI <- function(){
     
     # title
     tags$div(
-      img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/resources/img/spaceship-png-icon-9.png", height=50, width=50),
+      img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/res/img/logo.png", height=50, width=50),
       span("CAT Simulation", class="h4"),
       a(" -- package: xxIRT || author: xiao luo", href="https://github.com/xluo11/xxIRT")
     ),

@@ -9,7 +9,7 @@ ataGUI <- function(){
     tags$head(tags$link(rel="stylesheet", type="text/css", href="https://bootswatch.com/paper/bootstrap.min.css")),
     # title
     tags$div(
-      img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/resources/img/spaceship-png-icon-9.png", height=50, width=50),
+      img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/res/img/logo.png", height=50, width=50),
       span("Automated Test Assembly", class="h4"),
       a(" -- package: xxIRT || author: xiao luo", href="https://github.com/xluo11/xxIRT")
     ),
@@ -24,8 +24,8 @@ ataGUI <- function(){
         wellPanel(
           h6("Test Length"),
           fluidRow(
-            column(6, numericInput("minlength", "Min.", 0)),
-            column(6, numericInput("maxlength", "Max.", 0))
+            column(6, numericInput("minlength", "Min.", 10)),
+            column(6, numericInput("maxlength", "Max.", 10))
           )
         ),
         wellPanel(
@@ -39,8 +39,8 @@ ataGUI <- function(){
         wellPanel(
           h6("Add Constraint"),
           fluidRow(
-            column(6, textInput("constrvar", "Variable", "", placeholder="e.g., content")),
-            column(6, textInput("constrlevel", "Level", "NA"))
+            column(6, textInput("constrvar", "Variable", "")),
+            column(6, textInput("constrlevel", "Level", ""))
           ),
           fluidRow(
             column(6, numericInput("constrmin", "Lower Bound", value=0)),
@@ -96,18 +96,19 @@ ataGUI <- function(){
         return()
       }
       
-      if(input$objtype == 'abs'){
-        v$ata <- ata.obj.abs(v$ata, value, input$objtarget)
-      } else if (input$objtype == 'max'){
-        v$ata <- ata.obj.rel(v$ata, value, "max", input$objnegative)
-      } else if (input$objtype == 'min'){
-        v$ata <- ata.obj.rel(v$ata, value, "max", input$objnegative)
-      } else {
-        v$msg <- "Fail to set objective"
+      tryCatch({
+        if(input$objtype == 'abs'){
+          v$ata <- ata.obj.abs(v$ata, value, input$objtarget)
+        } else if (input$objtype == 'max'){
+          v$ata <- ata.obj.rel(v$ata, value, "max", input$objnegative)
+        } else if (input$objtype == 'min'){
+          v$ata <- ata.obj.rel(v$ata, value, "max", input$objnegative)
+        }        
+      }, error=function(e){
+        v$msg <- "Setting objective failed."
         return()
-      }
-      
-      v$msg <- "The objective is set."
+      })
+      v$msg <- "Setting objective succedded."
     })
     
     # add constraint
@@ -132,8 +133,15 @@ ataGUI <- function(){
         return()
       }
       
-      v$ata <- ata.constraint(v$ata, var, input$constrlevel, input$constrmin, input$constrmax)
-      v$msg <- "a constraint is added."      
+      level <- as.numeric(input$constrlevel)
+      
+      tryCatch({
+        v$ata <- ata.constraint(v$ata, var, level, input$constrmin, input$constrmax)
+      }, error=function(e){
+        v$msg <- "Adding constriant failed."
+        return()
+      })
+      v$msg <- "Adding constraint succeeded."
     })
     
     # assemble
@@ -148,20 +156,23 @@ ataGUI <- function(){
         return()
       }
       
-      v$ata <- ata.constraint(v$ata, "len", NA, input$minlength, input$maxlength)
-      v$ata <- ata.maxselect(v$ata, 1)
-      v$ata <- ata.solve(v$ata)
-      v$ata <- ata.collapse.rs(v$ata)
-
-      v$msg <- ifelse(is.null(v$ata$rs.items), "Assembly fails.", "Assembly succeeds.")
+      tryCatch({
+        v$ata <- ata.constraint(v$ata, "len", NA, input$minlength, input$maxlength)
+        v$ata <- ata.maxselect(v$ata, 1)
+        v$ata <- ata.solve(v$ata)
+        v$ata <- ata.collapse.rs(v$ata)
+      }, error=function(e){
+        v$msg <- "Assembly failed."
+      })
+      v$msg <- ifelse(is.null(v$ata$rs.items), "Assembly failed.", "Assembly succeeded.")
     })
 
     output$console <- renderPrint({
-      h6(v$msg)
+      paste("<p class='lead'>", v$msg, "</p>")
     })
     
     output$results <- renderDataTable({
-      v$ata$items
+      v$ata$rs.items
     }, options=list(pageLength=30, dom='tip'))
     
     output$download <- downloadHandler(
@@ -169,7 +180,7 @@ ataGUI <- function(){
         paste(input$pool$name, "_assembled_items.txt", sep="")
       },
       content=function(file){
-        write.table(v$ata$items, file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
+        write.table(v$ata$rs.items, file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }
     )
     

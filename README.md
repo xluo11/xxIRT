@@ -4,7 +4,10 @@
 ######**Citation**: Luo, X. (2016). xxIRT: R Package for Item Response Theory (Version 2.0) [Software]. Retrieved from [https://github.com/xluo11/xxIRT](https://github.com/xluo11/xxIRT)
 
 
+###Introduction
 xxIRT is a R package to conduct item response theory (IRT) analysis and research. It comprises of five modules: (1) commons & utilities, (2) computerized adaptive testing (CAT), (3) estimation, (4) automated test assembly (ATA), and (5) multistage testing (MST).
+
+This package is designed for both beginners and intermediate users to showcase IRT concepts and conduct research more efficiently. There are four GUIs (`catGUI()`, `estimationGUI()`, `ataGUI()`, `mstGUI()`) built on top of *Shiny* to give users a graphic interface to play round this package (with slightly reduced functionality). 
 
 ###Installation
 In R console, call `install.packages("xxIRT")` to install the stable version of the **xxIRT** package from CRAN. Use command `devtools::install_github("xluo11/xxIRT")` to install the nightly build version from [github.com](https://github.com/xluo11/xxIRT) which incorporates new features and revisions in a timely fashion. To enable github installation, make sure the *devtools* package is installed (e.g., `install.packages("devtools")`). 
