@@ -8,7 +8,7 @@ Author: Xiao Luo [aut, cre]
 Maintainer: Xiao Luo <xluo1986@gmail.com>
 Description: An implementation of Item Response Theory (IRT) in R, comprising of five modules:(1) common and utility functions, (2) estimation/calibration procedures, (3) computerized adaptive testing (CAT) framework, (4) automated test assembly (ATA) framework, and (5) multistage testing (MST) framework. See documentation at https://github.com/xluo11/xxIRT/blob/master/README.md.
 License: GPL (>= 2)
-Depends: R (>= 3.1.0), ggplot2 (>= 2.1.0), shiny (>= 0.13.2)
+Depends: R (>= 3.1.0)
 URL: https://github.com/xluo11/xxIRT
 BugReports: http://github.com/xluo11/xxIRT
 Imports: 

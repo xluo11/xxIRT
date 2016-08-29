@@ -9,4 +9,7 @@ catGUI()
 \description{
 \code{catGUI} creates a shiny app for \code{cat.sim}
 }
+\details{
+Imported item files and theta files must be comma-delimited and have headers
+}
 

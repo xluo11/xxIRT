@@ -188,7 +188,6 @@ print.cat <- function(x, ...){
 #' @export
 #' @import ggplot2
 plot.cat <- function(x, ...){
-  if(class(x) != "cat") stop("put a cat object in the first argument.")
   x$admin$lb <- x$admin$t - 1.96 * x$admin$se
   x$admin$ub <- x$admin$t + 1.96 * x$admin$se
   x$admin$pos <- 1:x$len
@@ -196,9 +195,12 @@ plot.cat <- function(x, ...){
   
   ggplot(data=x$admin, aes_string(x="pos",y="t",color="Response")) + 
     geom_point(aes_string(size="se"), alpha=.5) + 
-    geom_hline(yintercept=x$true, linetype=3) + 
+    #geom_hline(yintercept=x$true, linetype=3) + 
+    annotate("text", x=4, y=3, label=paste("true ability =", round(x$true, 2))) +
+    annotate("text", x=4, y=2.5, label=paste("est. ability =", round(x$est, 2))) +
     geom_linerange(aes_string(ymin="lb",ymax="ub"), linetype=3) +
-    coord_cartesian(ylim=c(-3,3), xlim=c(0, x$opts$max)) + scale_size(range=c(1, 4)) + 
+    coord_cartesian(ylim=c(-3,3), xlim=c(0, x$opts$max)) + 
+    #scale_size(range=c(1, 4)) + 
     xlab("Position") + ylab("Estimated Ability") + 
     guides(size=F, alpha=F) + theme_bw() + theme(legend.key = element_blank())
 }

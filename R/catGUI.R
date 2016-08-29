@@ -3,8 +3,9 @@
 #' @details 
 #' Imported item files and theta files must be comma-delimited and have headers
 #' @export
-#' @import shiny
+#' @import shiny ggplot2
 #' @importFrom utils write.table read.csv
+#' @importFrom stats cor sd
 catGUI <- function(){
   ui <- shinyUI(fluidPage(
     # css theme
@@ -64,7 +65,7 @@ catGUI <- function(){
       mainPanel(
         tabsetPanel(
           tabPanel("Console", 
-                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div(HTML("<i class='fa fa-spinner fa-spin fa-3x fa-fw'></i><span class='lead'><b>&nbsp;Simulating...</b></span>"))),
+                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div(HTML("<i class='fa fa-spinner fa-spin fa-5x fa-fw'></i>"))),
                    verbatimTextOutput("console")),
           tabPanel("Results",
                    fluidRow(
@@ -166,7 +167,7 @@ catGUI <- function(){
     output$plot <- renderPlot({
       validate(need(v$result, ""))
       x <- v$result[[v$index]]
-      plot(x)
+      plot.cat(x)
     })
     
     # download
@@ -194,8 +195,8 @@ catGUI <- function(){
       t.est  <- sapply(v$result, function(x){x$est})
       t.se <- sapply(v$result, function(x){x$stats[,"se"][x$len]})
       t <- data.frame(true=t.true, est=t.est, se=t.se)
-      ggplot(t, aes(x=true, y=est)) + 
-        geom_point(aes(color=1, alpha=.3, size=se)) + 
+      ggplot(t, aes_string(x="true", y="est")) + 
+        geom_point(aes_string(color=1, alpha=.3, size="se")) + 
         geom_smooth(linetype=2) +
         annotate("text", x=-3, y=3.8, label=paste("Corr. =", round(cor(t.true, t.est), 2))) +
         annotate("text", x=-3, y=3, label=paste("RMSE =", round(rmse(t.true, t.est), 2))) +
@@ -214,8 +215,8 @@ catGUI <- function(){
       t.len <- sapply(v$result, function(x){x$len})
       t.se <- sapply(v$result, function(x){x$stats[,"se"][x$len]})
       t <- data.frame(true=t.true, len=t.len, se=t.se)
-      ggplot(t, aes(x=true, y=len)) + 
-        geom_point(aes(color=1, alpha=.5, size=se)) + 
+      ggplot(t, aes_string(x="true", y="len")) + 
+        geom_point(aes_string(color=1, alpha=.5, size="se")) + 
         geom_smooth(linetype=2) +
         annotate("text", x=-3, y=max(t.len) - 2, label=paste("Mean =", round(mean(t.len), 2))) +
         annotate("text", x=-3, y=max(t.len) - 4, label=paste("SD =", round(sd(t.len), 2))) +

@@ -1,7 +1,7 @@
 #' Graphical User Interface
 #' @description \code{ataGUI} creates a shiny app for automated test assembly
 #' @export
-#' @import shiny
+#' @import shiny ggplot2
 #' @importFrom utils write.table read.csv
 ataGUI <- function(){
   ui <- shinyUI(fluidPage(
@@ -61,12 +61,14 @@ ataGUI <- function(){
       mainPanel(
         tabsetPanel(
           tabPanel("Console", 
-                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div("Assembly in process ...", class="alert alert-warning lead")),
+                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div(HTML("<i class='fa fa-spinner fa-spin fa-5x fa-fw'></i>"))),
                    htmlOutput("message"),
                    verbatimTextOutput("console")),
           tabPanel("Results", 
                    dataTableOutput("results"), 
-                   downloadButton("download"))
+                   downloadButton("download")),
+          tabPanel("Plots",
+                   plotOutput("plots"))
         )# end of tabsetPanel
       ) # end of mainPanel
     ) # end of sidebarLayout
@@ -86,7 +88,7 @@ ataGUI <- function(){
       colnames(pool) <- tolower(colnames(pool))
       nform <- input$nform
       v$ata <- ata(pool, nform)
-      v$msg <- "An ATA task is created."
+      v$msg <- "An ATA task was created."
     })
     
     # set objective
@@ -96,11 +98,11 @@ ataGUI <- function(){
         return()
       }
       
-      if(input$objvalue == ""){
+      if(!grepl("^[0-9a-zA-Z.-]+$", input$objvalue)){
         v$msg <- "Please enter an objective variable."
         return()
       }
-      value <- tolower(gsub("\\s", "", input$objvalue))
+      value <- tolower(input$objvalue)
       if(!is.na(as.numeric(value))){
         value <- as.numeric(value)
       } else if(!value %in% colnames(v$ata$pool)){
@@ -111,16 +113,14 @@ ataGUI <- function(){
       tryCatch({
         if(input$objtype == 'abs'){
           v$ata <- ata.obj.abs(v$ata, value, input$objtarget)
-        } else if (input$objtype == 'max'){
-          v$ata <- ata.obj.rel(v$ata, value, "max", input$objnegative)
-        } else if (input$objtype == 'min'){
-          v$ata <- ata.obj.rel(v$ata, value, "max", input$objnegative)
-        }        
+        } else if (input$objtype %in% c('max', 'min')){
+          v$ata <- ata.obj.rel(v$ata, value, input$objtype, input$objnegative)
+        }
+        v$msg <- "Added an objective function."
       }, error=function(e){
-        v$msg <- "Setting objective failed."
+        v$msg <- "Failed to add an objective function."
         return()
       })
-      v$msg <- "Setting objective succeeded."
     })
     
     # add constraint
@@ -130,11 +130,11 @@ ataGUI <- function(){
         return()
       }
       
-      if(input$constrvar == ""){
+      if(!grepl("^[0-9a-zA-Z.-]+$", input$constrvar)){
         v$msg <- "Please enter a constraint variable."
         return()
       }
-      var <- tolower(gsub("\\s","", input$constrvar))
+      var <- tolower(input$constrvar)
       if(!var %in% colnames(v$ata$pool)){
         v$msg <- "Constraint variable is not found in the item pool."
         return()
@@ -149,11 +149,11 @@ ataGUI <- function(){
       
       tryCatch({
         v$ata <- ata.constraint(v$ata, var, level, input$constrmin, input$constrmax)
+        v$msg <- "Added a constraint."
       }, error=function(e){
-        v$msg <- "Adding constriant failed."
+        v$msg <- "Failed to add a constriant."
         return()
       })
-      v$msg <- "Adding constraint succeeded."
     })
     
     # assemble
@@ -173,10 +173,10 @@ ataGUI <- function(){
         v$ata <- ata.maxselect(v$ata, 1)
         v$ata <- ata.solve(v$ata)
         v$ata <- ata.collapse.rs(v$ata)
+        v$msg <- ifelse(is.null(v$ata$rs.items), "Assembly failed.", "Assembly succeeded.")
       }, error=function(e){
         v$msg <- "Assembly failed."
       })
-      v$msg <- ifelse(is.null(v$ata$rs.items), "Assembly failed.", "Assembly succeeded.")
     })
 
     # message
@@ -206,6 +206,26 @@ ataGUI <- function(){
         write.table(v$ata$rs.items, file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }
     )
+    
+    # plot: TIFs
+    output$plots <- renderPlot({
+      validate(need(v$ata$rs.items, "No results."))
+      t <- round(seq(-3, 3, .1), 1)
+      nform <- input$nform
+      items <- v$ata$rs.items
+      results <- NULL
+      for(i in 1:nform){
+        x <- items[items$Form == i, ]
+        information <- info(irt(t, x$a, x$b, x$c), summary=1, fun=sum)
+        x <- data.frame(t=t, info=information, form=i)
+        results <- rbind(results, x)
+      }
+      results$Form <- as.factor(results$form)
+      ggplot(results, aes_string(x="t", y="info", color="Form", group="Form")) + 
+        geom_line() + 
+        xlab(expression(theta)) + ylab("Information") +
+        theme_bw() + theme(legend.key=element_blank())
+    })
     
   })
   

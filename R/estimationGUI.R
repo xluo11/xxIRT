@@ -1,8 +1,9 @@
 #' Graphical User Interface
 #' @description \code{estimationGUI} creates a shiny app for parameter estimation
 #' @export
-#' @import shiny
+#' @import shiny ggplot2
 #' @importFrom utils write.table read.csv
+#' @importFrom stats sd
 estimationGUI <- function(){
   ui <- shinyUI(fluidPage(
     # css theme
@@ -54,10 +55,17 @@ estimationGUI <- function(){
       mainPanel(
         tabsetPanel(
           tabPanel("Console", 
-                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div("Estimation in process ...", class="alert alert-warning lead")),
+                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div(HTML("<i class='fa fa-spinner fa-spin fa-5x fa-fw'></i>"))),
                    verbatimTextOutput("console")),
-          tabPanel("Items", dataTableOutput("items"), downloadButton("downloaditems")),
-          tabPanel("Thetas", dataTableOutput("thetas"), downloadButton("downloadthetas"))
+          tabPanel("Results",
+                   dataTableOutput("items"), 
+                   downloadButton("downloaditems", "Download Items"),
+                   dataTableOutput("thetas"), 
+                   downloadButton("downloadthetas", "Donwload Thetas")),
+          tabPanel("Summary",
+                   dataTableOutput("stats"),
+                   plotOutput("residual")
+                   )
         )# end of tabsetPanel
       ) # end of mainPanel
     ) # end of sidebarLayout
@@ -113,7 +121,7 @@ estimationGUI <- function(){
     output$items <- renderDataTable({
       x <- round(getItem(), 3)
       cbind(ID=1:nrow(x), x)
-    }, options=list(pageLength=20, dom='tip'))
+    }, options=list(pageLength=10, dom='tip'))
     
     # table: thetas
     output$thetas <- renderDataTable({
@@ -122,7 +130,7 @@ estimationGUI <- function(){
       information <- info(irt(thetas, items$a,items$b, items$c), summary=1, fun=sum)
       se <- 1 / sqrt(information)
       round(data.frame(ID=1:length(thetas), theta=thetas, se=se), 3)
-    }, options=list(pageLength=50, dom='tip'))
+    }, options=list(pageLength=10, dom='tip'))
     
     # download: items
     output$downloaditems <- downloadHandler(
@@ -148,6 +156,45 @@ estimationGUI <- function(){
         write.table(rs, file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }
     )
+    
+    # plot: stats
+    output$stats <- renderDataTable({
+      rsp <- as.matrix(getRsp())
+      thetas <- getTheta()
+      items <- getItem()
+      
+      stat.item <- apply(items, 2, function(x){c(mean(x), sd(x), min(x), max(x))})
+      stat.theta <- c(mean(thetas), sd(thetas), min(thetas), max(thetas))
+      stat <- t(cbind(stat.item, theta=stat.theta))
+      stat <- round(stat, 3)
+      stat <- as.data.frame(stat)
+      stat <- cbind(par=rownames(stat), stat)
+      colnames(stat) <- c("Parameter", "Mean", "SD", "Min.", "Max")
+      stat
+    }, options=list(dom='tip'))
+
+    # plot: residual
+    output$residual <- renderPlot({
+      rsp <- as.matrix(getRsp())
+      thetas <- getTheta()
+      items <- getItem()
+      
+      x <- irt(thetas, items$a, items$b, items$c)
+      res <- rsp - prob(irt(thetas, items$a, items$b, items$c))
+      res <- res^2
+      res.item <- sqrt(colMeans(res))
+      res.theta <- sqrt(rowMeans(res))
+      x <- rbind(data.frame(x=items$b, res=res.item, type="Items"),
+                 data.frame(x=thetas, res=res.theta, type="Thetas"))
+      
+      ggplot(x, aes_string(x="x", y="res", color="type")) + 
+        geom_point(alpha=.5) + facet_wrap(~type) +
+        xlab(expression(paste("b/",theta," parameter"))) + 
+        ylab("Residuals (RMSEs)") + 
+        coord_cartesian(xlim=c(-4, 4)) +
+        guides(color=FALSE, alpha=FALSE) +
+        theme_bw() + theme(legend.key=element_blank())
+    })
     
   })
   

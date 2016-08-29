@@ -87,10 +87,15 @@ mstGUI <- function(){
       mainPanel(
         tabsetPanel(
           tabPanel("Console", 
-                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div("Assembly in process...", class="alert alert-warning lead")),
+                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div(HTML("<i class='fa fa-spinner fa-spin fa-5x fa-fw'></i>"))),
                    htmlOutput("message"), 
                    verbatimTextOutput("console")),
-          tabPanel("Results", dataTableOutput("results"), downloadButton("download")),
+          tabPanel("Results", 
+                   dataTableOutput("results"), 
+                   downloadButton("download")),
+          tabPanel("Plots",
+                   plotOutput("plotroutes"),
+                   plotOutput("plotmodules")),
           tabPanel("Simulation", 
                    wellPanel(numericInput("truetheta", "True Ability", 0, step=0.1)),
                    verbatimTextOutput("simtable"))
@@ -119,7 +124,7 @@ mstGUI <- function(){
       design <- as.integer(unlist(strsplit(input$design, "-")))
       # create mst
       v$mst <- mst(pool, design, input$npanel)
-      v$msg <- "A MST is created."
+      v$msg <- "A MST object was created."
     })
     
     # route mangement
@@ -135,9 +140,9 @@ mstGUI <- function(){
       routename <- as.integer(unlist(strsplit(input$routename, "-")))
       tryCatch({
         v$mst <- mst.route(v$mst, routename, input$routeop)
-        v$msg <- "Operation succeeded."
+        v$msg <- "Added/removed a route."
       }, error = function(e){
-       v$msg <- "Operation failed: Could add route that has already existed or remove route that does not exist."
+       v$msg <- "Failed to add/remove a route."
       })
     })
     
@@ -152,7 +157,6 @@ mstGUI <- function(){
     # render objroutes
     output$objroutesui <- renderUI({
       r <- getRoutes()
-      #r$All <- 0
       r <- c(r, All=0)
       selectInput("objroute", "Routes", choices=r)
     })
@@ -160,7 +164,6 @@ mstGUI <- function(){
     # render constrroutes
     output$constrroutesui <- renderUI({
       r <- getRoutes()
-      #r$All <- 0
       r <- c(r, All=0)
       selectInput("constrroute", "Routes", choices=r)
     })
@@ -289,7 +292,20 @@ mstGUI <- function(){
         write.table(v$mst$items, file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }
     )
+    
+    # plot: route tifs
+    output$plotroutes <- renderPlot({
+      validate(need(v$mst$items, "No results."))
+      plot.mst(v$mst, by.route=TRUE)
+    })
 
+    # plot: module tifs
+    output$plotmodules <- renderPlot({
+      validate(need(v$mst$items, "No results."))
+      plot.mst(v$mst, by.route=FALSE)
+    })
+    
+    # table: simulation results
     output$simtable <- renderPrint({
       validate(need(v$mst$items, "Please assembl MST first."))
       mst.sim(v$mst, input$truetheta[1])
