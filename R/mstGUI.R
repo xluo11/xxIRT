@@ -10,28 +10,32 @@ mstGUI <- function(){
     # title
     tags$div(
       img(src="https://raw.githubusercontent.com/xluo11/xxIRT/master/res/img/logo.png", height=50, width=50),
-      span("Automated Test Assembly", class="h4"),
+      span("Multistage Testing", class="h4"),
       a(" -- package: xxIRT || author: xiao luo", href="https://github.com/xluo11/xxIRT")
     ),
     # layout               
     sidebarLayout(
       # sidebar panel
-      mainPanel(width=4,
+      mainPanel(
+        width=4,
+        # pool and design
         wellPanel(
           fileInput("pool", "Item Pool", accept="text/plain"),
           fluidRow(
-            column(6, textInput("design", "MST Structure", "1-2-3")),
+            column(6, textInput("design", "MST Structure", "", placeholder="1-2-3")),
             column(6, numericInput("npanel", "# of Panels", 1, min=1))
           )
         ),
+        # route management
         wellPanel(
           h6("Route Management"),
           fluidRow(
-            column(6, textInput("routename", "Route", "1-2-6")),
+            column(6, textInput("routename", "Route", "", placeholder="1-2-6")),
             column(6, selectInput("routeop", "Operation", choices=list("Add"="+", "Remove"="-")))
           ),
           actionButton("btnroute", "Update")
         ),
+        # test length
         wellPanel(
           h6("Test Length"),
           fluidRow(
@@ -39,27 +43,31 @@ mstGUI <- function(){
             column(6, numericInput("maxlength", "Max.", 30))
           )
         ),
+        # objectives
         wellPanel(
           h6("Objective"),
           fluidRow(
-            column(4, textInput("objtheta", "Theta", "")),
-            column(4, textInput("objtarget", "Target", "Inf")),
-            column(4, textInput("objroute", "Route Index", "All"))
+            column(6, textInput("objtheta", "Theta", "")),
+            column(6, textInput("objtarget", "Target", "Inf"))
           ),
+          uiOutput("objroutesui"),
           actionButton("btnobj", "Set")
         ),
+        # constraints
         wellPanel(
           h6("Constraint"),
           fluidRow(
-            column(6, textInput("constrvar", "Variable", "", placeholder="e.g., content")),
-            column(6, textInput("constrlevel", "Level", "NA"))
+            column(6, textInput("constrvar", "Variable", "")),
+            column(6, textInput("constrlevel", "Level", ""))
           ),
           fluidRow(
             column(6, numericInput("constrmin", "Lower Bound", value=0)),
             column(6,  numericInput("constrmax", "Upper Bound", value=0))
           ),
+          uiOutput("constrroutesui"),
           actionButton("btnconstr", "Set")
         ),
+        # stage
         wellPanel(
           h6("Stage Size"),
           fluidRow(
@@ -69,19 +77,23 @@ mstGUI <- function(){
           ),
           actionButton("btnstage", "Set")
         ),
+        # assembly
         wellPanel(
           checkboxInput("parallelassemble", "Simulataneous Assembly?", TRUE),
-          actionButton("assemble", "Assemble")
+          tags$button(id="assemble", class="btn action-button btn-primary", HTML("<span class='glyphicon glyphicon-shopping-cart'></span>&nbsp;&nbsp;Assemble!"))
         )
       ), # end of sidebar panel
       # main panel
       mainPanel(
         tabsetPanel(
-          tabPanel("Console", htmlOutput("console"), tableOutput("routetable")),
+          tabPanel("Console", 
+                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div("Assembly in process...", class="alert alert-warning lead")),
+                   htmlOutput("message"), 
+                   verbatimTextOutput("console")),
           tabPanel("Results", dataTableOutput("results"), downloadButton("download")),
           tabPanel("Simulation", 
                    wellPanel(numericInput("truetheta", "True Ability", 0, step=0.1)),
-                   dataTableOutput("simtable"))
+                   verbatimTextOutput("simtable"))
         )# end of tabsetPanel
       ) # end of mainPanel
     ) # end of sidebarLayout
@@ -89,16 +101,23 @@ mstGUI <- function(){
   
   server <- shinyServer(function(input, output) {
     v <- reactiveValues(msg=NULL, mst=NULL)
-    
+  
     # initiate mst object
     observeEvent({input$pool; input$design; input$npanel}, {
-      if(is.null(input$pool)){
+      #item pool
+      if(is.null(input$pool)) {
         v$msg <- "Please import item pool file."
         return()
       }
       pool <- read.csv(input$pool$datapath, header=TRUE, as.is=TRUE)
       colnames(pool) <- tolower(colnames(pool))
-      design <- as.integer(unlist(strsplit(gsub("\\s","",input$design), "-")))
+      # mst design
+      if(!grepl("^[0-9]+(-[0-9]+)+$", input$design)) {
+        v$msg <- "Please enter a MST design: e.g., 1-2-3."
+        return()
+      }
+      design <- as.integer(unlist(strsplit(input$design, "-")))
+      # create mst
       v$mst <- mst(pool, design, input$npanel)
       v$msg <- "A MST is created."
     })
@@ -109,13 +128,41 @@ mstGUI <- function(){
         v$msg <- "Please import the item file to create a MST."
         return()
       }
-      routename <- as.integer(unlist(strsplit(gsub("\\s", "", input$routename), "-")))
+      if(!grepl("^[0-9]+(-[0-9]+)+$", input$routename)) {
+        v$msg <- "Please enter a valid route: e.g., 1-2-6."
+        return()
+      }
+      routename <- as.integer(unlist(strsplit(input$routename, "-")))
       tryCatch({
         v$mst <- mst.route(v$mst, routename, input$routeop)
+        v$msg <- "Operation succeeded."
       }, error = function(e){
-       v$msg <- "Operation failed: Could add route that has already existed or remove route that does not exist."   
+       v$msg <- "Operation failed: Could add route that has already existed or remove route that does not exist."
       })
-      v$msg <- "Operation succeeded."
+    })
+    
+    getRoutes <- reactive({
+      validate(need(v$mst, "No MST object."))
+      r <- apply(v$mst$route, 1, paste, sep="", collapse="-")
+      r.list <- 1:length(r)
+      names(r.list) <- r
+      r.list      
+    })
+    
+    # render objroutes
+    output$objroutesui <- renderUI({
+      r <- getRoutes()
+      #r$All <- 0
+      r <- c(r, All=0)
+      selectInput("objroute", "Routes", choices=r)
+    })
+    
+    # render constrroutes
+    output$constrroutesui <- renderUI({
+      r <- getRoutes()
+      #r$All <- 0
+      r <- c(r, All=0)
+      selectInput("constrroute", "Routes", choices=r)
     })
     
     # set objective
@@ -125,39 +172,26 @@ mstGUI <- function(){
         return()
       }
       
-      if(input$objtheta == ""){
+      if(!grepl("^[0-9.-]+( *, *[0-9.-]+)*$", input$objtheta)){
         v$msg <- "Please enter theta for setting objective."
         return()
       }
       theta <- as.numeric(unlist(strsplit(gsub("\\s", "", input$objtheta), ",")))
 
-      if(input$objtarget == ""){
+      if(!grepl("^([0-9.-]+)|Inf$", input$objtarget)){
         v$msg <- "Please enter target for setting objective."
         return()
       }
-      target <- tolower(gsub("\\s", "", input$objtarget))
-      if(target == "all")
-        target <- Inf
-      else
-        target <- as.numeric(target)
+      target <- as.numeric(input$objtarget)
       
-      if(input$objroute == ""){
-        v$msg <- "Please enter route index for setting objective."
-        return()
-      }
-      route <- tolower(gsub("\\s", "", input$objroute))
-      if(route == "all") 
-        route <- NULL
-      else
-        route <- as.integer(unlist(strsplit(route, ",")))
+      route <- ifelse(input$objroutes == 0, NULL, input$objroutes)
       
       tryCatch({
         v$mst <- mst.objective(v$mst, theta, target, route)
+        v$msg <- "Setting objective succeeded."
       }, error=function(e){
         v$msg <- "Setting objective failed."
-        return()
       })
-      v$msg <- "Setting objective succeeded."
     })
     
     # add constraint
@@ -183,14 +217,14 @@ mstGUI <- function(){
       }
       
       level <- as.numeric(input$constrlevel)
+      route <- ifelse(input$constrroutes == 0, NULL, input$constrroutes)
       
       tryCatch({
-        v$mst <- mst.constraint(v$mst, var, level, input$constrmin, input$constrmax)
+        v$mst <- mst.constraint(v$mst, var, level, input$constrmin, input$constrmax, route)
+        v$msg <- "Adding constraint succeeded."
       }, error=function(e){
         v$msg <- "Adding constriant failed."
-        return()
       })
-      v$msg <- "Adding constraint succeeded."
     })
     
     # stage
@@ -202,11 +236,10 @@ mstGUI <- function(){
       
       tryCatch({
         v$mst <- mst.stagelength(v$mst, input$stageindex, input$stagemin, input$stagemax)
+        v$msg <- "Setting stage size succeeded."
       }, error=function(e){
         v$msg <- "Setting stage size failed."
-        return()
       })
-      v$msg <- "Setting stage size succeeded."
     })
     
     # assemble
@@ -224,25 +257,30 @@ mstGUI <- function(){
       tryCatch({
         v$mst <- mst.constraint(v$mst, "len", NA, input$minlength, input$maxlength)
         v$mst <- mst.assemble(v$mst)
+        v$msg <- "Assembly succeeded."
       }, error=function(e){
         v$msg <- "Assembly failed."
-        return()
       })
-      v$msg <- "Assembly succeeded."
     })
     
-    output$console <- renderPrint({
+    # message
+    output$message <- renderPrint({
       tags$p(v$msg, class="lead")
     })
     
-    output$routetable <- renderTable({
-      v$mst$route
+    # console
+    output$console <- renderPrint({
+      validate(need(v$mst, "No MST object."))
+      v$mst
     })
     
+    # table: results
     output$results <- renderDataTable({
+      validate(need(v$mst$items, "No results."))
       v$mst$items
     }, options=list(pageLength=30, dom='tip'))
     
+    # download: items
     output$download <- downloadHandler(
       filename=function(){
         paste(input$pool$name, "_assembled_mst.txt", sep="")
@@ -251,14 +289,13 @@ mstGUI <- function(){
         write.table(v$mst$items, file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }
     )
-    
-    output$simtable <- renderDataTable({
+
+    output$simtable <- renderPrint({
       validate(need(v$mst$items, "Please assembl MST first."))
-      mst.sim(v$mst, input$truetheta)
+      mst.sim(v$mst, input$truetheta[1])
     })
     
   })
   
   shinyApp(ui=ui, server=server)  
 }
-

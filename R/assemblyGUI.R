@@ -16,11 +16,14 @@ ataGUI <- function(){
     # layout               
     sidebarLayout(
       # sidebar panel
-      mainPanel(width=4,
+      mainPanel(
+        width=4,
+        # items
         wellPanel(
           fileInput("pool", "Item Pool", accept="text/plain"),
           numericInput("nform", "Number of Forms", 1, min=1)
         ),
+        # test length
         wellPanel(
           h6("Test Length"),
           fluidRow(
@@ -28,14 +31,16 @@ ataGUI <- function(){
             column(6, numericInput("maxlength", "Max.", 10))
           )
         ),
+        # objectives
         wellPanel(
           h6("Set Objective"),
           selectInput("objtype", "Objective", choices=list("Approach Targets"="abs", "Maximization"="max", "Minimization"="min")),
-          textInput("objvalue", "Variable", "", placeholder="E.g, -0.5 or b"),
+          textInput("objvalue", "Variable", "", placeholder="e.g, -0.5 or b"),
           conditionalPanel("input.objtype == 'abs'", numericInput("objtarget", "Target Value", 0, step=0.1)),
           conditionalPanel("input.objtype == 'min' || input.objtype =='max'", checkboxInput("objnegative", "Expect a negative optimal value?")),
           actionButton("addobj", "Set Objective")
         ),
+        # constraints
         wellPanel(
           h6("Add Constraint"),
           fluidRow(
@@ -48,13 +53,20 @@ ataGUI <- function(){
           ),
           actionButton("addconstr", "Add Constraint")
         ),
-        actionButton("assemble", "Assemble")
+        wellPanel(
+          tags$button(id="assemble", class="btn action-button btn-primary", HTML("<span class='glyphicon glyphicon-shopping-cart'></span>&nbsp;&nbsp;Assemble!"))
+        )
       ), # end of sidebar panel
       # main panel
       mainPanel(
         tabsetPanel(
-          tabPanel("Console", htmlOutput("console")),
-          tabPanel("Results", dataTableOutput("results"), downloadButton("download"))
+          tabPanel("Console", 
+                   conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div("Assembly in process ...", class="alert alert-warning lead")),
+                   htmlOutput("message"),
+                   verbatimTextOutput("console")),
+          tabPanel("Results", 
+                   dataTableOutput("results"), 
+                   downloadButton("download"))
         )# end of tabsetPanel
       ) # end of mainPanel
     ) # end of sidebarLayout
@@ -108,7 +120,7 @@ ataGUI <- function(){
         v$msg <- "Setting objective failed."
         return()
       })
-      v$msg <- "Setting objective succedded."
+      v$msg <- "Setting objective succeeded."
     })
     
     # add constraint
@@ -167,14 +179,25 @@ ataGUI <- function(){
       v$msg <- ifelse(is.null(v$ata$rs.items), "Assembly failed.", "Assembly succeeded.")
     })
 
-    output$console <- renderPrint({
-      paste("<p class='lead'>", v$msg, "</p>")
+    # message
+    output$message <- renderPrint({
+      tags$p(v$msg, class="lead")
     })
     
+    # console
+    output$console <- renderPrint({
+      validate(need(v$ata, "No ATA object."))
+      v$ata$lp
+      v$ata
+    })
+    
+    # table: results
     output$results <- renderDataTable({
+      validate(need(v$ata$rs.items, "No results."))
       v$ata$rs.items
     }, options=list(pageLength=30, dom='tip'))
     
+    # download: items
     output$download <- downloadHandler(
       filename=function(){
         paste(input$pool$name, "_assembled_items.txt", sep="")

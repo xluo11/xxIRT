@@ -132,10 +132,10 @@ mst.route <- function(x, route, op, print=FALSE){
   if(length(route) != x$nstage || any(route > x$nmodule)) stop("invalid route.")
   index <- apply(x$route, 1, function(x){all(x == route)})
   if(op == "+"){
-    if(any(TRUE)) stop("the route is already included.")
+    if(any(index == TRUE)) stop("the route is already included.")
     x$route <- rbind(x$route, route)
   }else if(op == "-"){
-    if(all(FALSE)) stop("the route is not included.")
+    if(all(index == FALSE)) stop("the route is not included.")
     x$route <- x$route[!index,]
   }else{
     stop("cannot recognise the operation.")

@@ -456,4 +456,3 @@ estimate.item.bme <- function(u, model="3PL", a.mu=0, a.sig=0.2, b.mu=0, b.sig=1
 
 
 
-
