@@ -157,7 +157,7 @@ plot.irt <- function(x, ...){
 #' prob(gen.irt(10, 5), summary=1, fun=prod)
 #' @family commons
 #' @export
-prob <- function(x, summary=NULL, fun=NULL){
+prob <- function(x, summary=NULL, fun=NULL, ...){
   if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
   if(is.null(summary) != is.null(fun)) stop("summary and fun are not both on/off.")
   theta <- x$thetas
@@ -166,7 +166,7 @@ prob <- function(x, summary=NULL, fun=NULL){
   c <- x$items$c
   rs <- c + (1 - c) / (1 + exp(1.7 * a * outer(b, theta, "-")))
   rs <- t(rs)
-  if(!is.null(summary)) rs <- apply(rs, summary, fun)
+  if(!is.null(summary)) rs <- apply(rs, summary, fun, ...)
   return(rs)
 }
 
@@ -181,7 +181,7 @@ prob <- function(x, summary=NULL, fun=NULL){
 #' info(gen.irt(10, 5), summary=2, fun=sum)
 #' @family commons
 #' @export
-info <- function(x, summary=NULL, fun=NULL){
+info <- function(x, summary=NULL, fun=NULL, ...){
   if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
   if(is.null(summary) != is.null(fun)) stop("summary and fun are not both on/off.")
   n.peo <- length(x$thetas)
@@ -189,7 +189,7 @@ info <- function(x, summary=NULL, fun=NULL){
   a <- matrix(rep(x$item$a, n.peo), nrow=n.peo, byrow=T)
   c <- matrix(rep(x$item$c, n.peo), nrow=n.peo, byrow=T)
   rs <- (1.7 * a * (p - c) / (1 - c)) ^ 2 * (1 - p) / p
-  if(!is.null(summary)) rs <- apply(rs, summary, fun)
+  if(!is.null(summary)) rs <- apply(rs, summary, fun, ...)
   return(rs)
 }
 
@@ -203,7 +203,7 @@ info <- function(x, summary=NULL, fun=NULL){
 #' likelihood(gen.rsp(gen.irt(10, 5)), summary=1, fun=sum, log=TRUE)
 #' @family commons
 #' @export
-likelihood <- function(x, summary=NULL, fun=NULL, log=FALSE){
+likelihood <- function(x, summary=NULL, fun=NULL, log=FALSE, ...){
   if(class(x) != "irt") stop("not an 'irt' object: ", class(x))
   if(is.null(summary) != is.null(fun)) stop("summary and fun are not both on/off.")
   if(is.null(x$rsp)) stop("rsp is not found in the object.")
@@ -213,7 +213,7 @@ likelihood <- function(x, summary=NULL, fun=NULL, log=FALSE){
   u <- x$rsp
   rs <- p^u * (1-p)^(1-u)
   if(log) rs <- log(rs)
-  if(!is.null(summary)) rs <- apply(rs, summary, fun)
+  if(!is.null(summary)) rs <- apply(rs, summary, fun, ... )
   return(rs)
 }
 

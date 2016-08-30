@@ -37,7 +37,7 @@ estimate.theta.mle <- function(u, a, b, c, init=NULL, iteration=15, delta=0.005,
     L.1 <- 1.7 * a.matrix * (u - p) * p.star / p
     L.2 <- (-1) * (1.7 * a.matrix * p.star / p)^2 * p * (1 - p)
     h0 <- h
-    h <- rowSums(L.1) / rowSums(L.2)
+    h <- rowSums(L.1, na.rm=TRUE) / rowSums(L.2, na.rm=TRUE)
     h <- ifelse(abs(h) > abs(h0), h * .2, h * 1.1)
     t <- ifelse(abs(t - h) > bound, t, t - h)
     if(mean(abs(h)) < delta) break
@@ -73,8 +73,10 @@ estimate.theta.map <- function(u, a, b, c, init=NULL, prior.mu=0, prior.sig=1, i
   
   for(i in 1:iteration){
     p <- prob(irt(t, a, b, c))
-    L.1 <- rowSums((1.7 * a.matrix) * (p - c.matrix) / (p * (1 - c.matrix)) * (u - p)) - (t - prior.mu) / prior.sig
-    L.2 <- rowSums((-1) * (1.7 * a.matrix * (p - c.matrix) / (1 - c.matrix))^2 * (1 - p) / p) - 1 / prior.sig^2
+    L.1 <- (1.7 * a.matrix) * (p - c.matrix) / (p * (1 - c.matrix)) * (u - p)
+    L.1 <- rowSums(L.1, na.rm=TRUE) - (t - prior.mu) / prior.sig
+    L.2 <- (-1) * (1.7 * a.matrix * (p - c.matrix) / (1 - c.matrix))^2 * (1 - p) / p
+    L.2 <- rowSums(L.2, na.rm=TRUE) - 1 / prior.sig^2
     h <- L.1 / L.2
     t <- ifelse(abs(t - h) > bound, t, t - h)
     if(mean(abs(h)) < delta) break
@@ -102,9 +104,11 @@ estimate.theta.eap <- function(u, a, b, c){
   if(length(a) != n.item || length(b) != n.item || length(c) != n.item) stop("wrong length in item parameters. make sure response is a matrix.")
   X <- hermite.gauss()$x
   A <- hermite.gauss()$wgt
-  L <- sapply(X, function(x){likelihood(irt(rep(x, n.peo), a, b, c, u), summary=1, fun=prod)})
-  L.up <- rowSums(L * matrix(rep(A * X, n.peo), nrow=n.peo, byrow=T))
-  L.down <- rowSums(L * matrix(rep(A, n.peo), nrow=n.peo, byrow=T))
+  L <- sapply(X, function(x){likelihood(irt(rep(x, n.peo), a, b, c, u), summary=1, fun=prod, na.rm=TRUE)})
+  L.up <- L * matrix(rep(A * X, n.peo), nrow=n.peo, byrow=T)
+  L.up <- rowSums(L.up, na.rm=TRUE)
+  L.down <- L * matrix(rep(A, n.peo), nrow=n.peo, byrow=T)
+  L.down <- rowSums(L.down, na.rm = TRUE)
   t <- L.up / L.down
   return(t)
 }
@@ -150,7 +154,7 @@ estimate.item.jmle <- function(u, theta, model="3PL", iteration=100, delta=0.01,
   n.t <- length(t)
   indices <- match(theta, t)
   f <- freq(indices, 1:max(indices))$n
-  r <- aggregate(u, by=list(indices), FUN=sum)
+  r <- aggregate(u, by=list(indices), FUN=sum, na.rm=TRUE)
   r <- as.matrix(r[,-1])
   
   # initial item parameters and learning rates
@@ -271,11 +275,12 @@ estimate.item.mmle <- function(u, model="3PL", iteration=100, delta=0.01, a.boun
   for(i in 1:iteration){
     cat(".")
     # f and r
-    L <- sapply(X, function(x){likelihood(irt(rep(x, n.peo), a, b, c, u), summary=1, fun=prod)})
+    L <- sapply(X, function(x){likelihood(irt(rep(x, n.peo), a, b, c, u), summary=1, fun=prod, na.rm=TRUE)})
     P <- L * matrix(rep(A, n.peo), nrow=n.peo, byrow=T)
     P <- P / rowSums(P)
     f <- colSums(P)
-    r <- t(P) %*% u
+    # r <- t(P) %*% u
+    r <- t(P) %*% ifelse(is.na(u), 0, u)
     
     # p, p.star, a.matrix, b.matrix, and c.matrix
     p <- prob(irt(X, a, b, c))
@@ -388,11 +393,12 @@ estimate.item.bme <- function(u, model="3PL", a.mu=0, a.sig=0.2, b.mu=0, b.sig=1
   for(i in 1:iteration){
     cat(".")
     # f and r
-    L <- sapply(X, function(x){likelihood(irt(rep(x, n.peo), a, b, c, u), summary=1, fun=prod)})
+    L <- sapply(X, function(x){likelihood(irt(rep(x, n.peo), a, b, c, u), summary=1, fun=prod, na.rm=TRUE)})
     P <- L * matrix(rep(A, n.peo), nrow=n.peo, byrow=T)
     P <- P / rowSums(P)
     f <- colSums(P)
-    r <- t(P) %*% u
+    # r <- t(P) %*% u
+    r <- t(P) %*% ifelse(is.na(u), 0, u)
     
     # p, p.star, a.matrix, b.matrix, and c.matrix
     p <- prob(irt(X, a, b, c))
