@@ -6,11 +6,11 @@
 \alias{prob}
 \title{Common Computations}
 \usage{
-prob(x, summary = NULL, fun = NULL)
+prob(x, summary = NULL, fun = NULL, ...)
 
-info(x, summary = NULL, fun = NULL)
+info(x, summary = NULL, fun = NULL, ...)
 
-likelihood(x, summary = NULL, fun = NULL, log = FALSE)
+likelihood(x, summary = NULL, fun = NULL, log = FALSE, ...)
 }
 \arguments{
 \item{x}{an IRT object}

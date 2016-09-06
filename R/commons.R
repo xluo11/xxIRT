@@ -149,6 +149,7 @@ plot.irt <- function(x, ...){
 #' @param x an IRT object 
 #' @param summary the direction of summarizing results: 1 by row (over items) and 2 by column (over people)
 #' @param fun the summarizing function
+#' @param ... other arguments
 #' @return a matrix or vector (when summarized) results
 #' @examples
 #' # probabilities

@@ -26,6 +26,7 @@
 #' # generate an item pool
 #' pool <- gen.irt(1, 100)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
+#' pool$time <- round(exp(rnorm(nrow(pool), log(60), .4)))
 #' # cat simulation: 10-30 items
 #' opts <- list(min=10, max=30, stop.se=.3)
 #' x <- cat.sim(0.1, pool, opts)
@@ -39,6 +40,16 @@
 #' opts <- list(min=10, max=30, stop.se=.3, ccat.target=c(.5,.3,.2), ccat.random=5)
 #' x <- cat.sim(0.1, pool, opts, cat.select=cat.select.ccat)
 #' freq(x$items$content, 1:3)
+#' # cat simulation with shadow test
+#' constr <- data.frame(name="content", level=1, min=10, max=10, stringsAsFactors=FALSE)
+#' constr <- rbind(constr, c("content", 2, 10, 10))
+#' constr <- rbind(constr, c("content", 3, 10, 10))
+#' constr <- rbind(constr, c("time", NA, 70*30, 80*30))
+#' opts <- list(min=30, max=30, stop.se=.03, shadow.constraints=constr)
+#' x <- cat.sim(0, pool, opts, cat.select=cat.select.shadow)
+#' freq(x$items$content, 1:3)
+#' sum(x$items$time)
+#' plot(x)
 #' @family cat
 #' @export
 #' @importFrom stats runif
@@ -237,7 +248,7 @@ cat.select.ccat <- function(cat.data){
   pool$temp.id <- 1:nrow(pool)
   pool <- pool[pool$content == nextdomain,]
   information <- with(pool, info(irt(cat.data$est, a, b, c))[1,])
-  randomesque <- ifelse(is.null(cat.data$opts$select.random), 5, cat.data$opts$select.random)
+  randomesque <- ifelse(is.null(cat.data$opts$select.random), 1, cat.data$opts$select.random)
   randomesque <- min(randomesque, length(information))
   index <- order(information, decreasing=TRUE)
   index <- index[1:randomesque]
@@ -246,3 +257,59 @@ cat.select.ccat <- function(cat.data){
   
   return(list(item=cat.data$pool[index,], pool=cat.data$pool[-index,]))
 }
+
+#' @rdname cat.sim
+#' @description \code{cat.select.shadow} implements the shadow test algorithm described in van der Linden (2010)
+#' @details 
+#' \code{cat.select.shadow}: pass all constraints as a data frame with columns as such \code{variable, level, min, max}
+#' to \code{shadow.constraints} in \code{options}. 
+#' @family cat
+#' @export
+cat.select.shadow <- function(cat.data){
+  constraints <- cat.data$opts$shadow.constraints
+  if(is.null(constraints)) stop("shadow.constraints is not found in the options.")
+  
+  pool <- cat.data$pool
+  pool$temp.id <- 1:nrow(pool)
+  theta <- cat.data$est
+  items <- cat.data$items
+  n.min <- cat.data$opts$min
+  n.max <- cat.data$opts$max
+  n.curr <- cat.data$len - 1
+  
+  x <- ata(pool, 1)
+  x <- ata.maxselect(x, 1)
+  x <- ata.obj.rel(x, theta, "max")
+  x <- ata.constraint(x, "len", NA, n.min - n.curr, n.max - n.curr)
+  for(i in 1:nrow(constraints)){
+    constr <- unlist(constraints[i,])
+    constr.name <- constr[1]
+    constr.level <- ifelse(constr[2] == "NA", NA, as.numeric(constr[2]))
+    constr.min <- as.numeric(constr[3])
+    constr.max <- as.numeric(constr[4])
+    if(nrow(items) == 0){
+      constr.curr <- 0
+    } else {
+      if(is.na(constr.level))
+        constr.curr <- sum(items[,constr.name])
+      else
+        constr.curr <- sum(items[,constr.name] == constr.level)
+    }
+    x <- ata.constraint(x, constr.name, constr.level, constr.min-constr.curr, constr.max-constr.curr)
+  }
+  x <- ata.solve(x)
+  
+  if(is.null(x$rs.items)) stop("no solutions.")
+  shadow <- x$rs.items[[1]]
+  
+  information <- with(shadow, info(irt(theta, a, b, c))[1,])
+  randomesque <- ifelse(is.null(cat.data$opts$select.random), 1, cat.data$opts$select.random)
+  randomesque <- min(randomesque, length(information))
+  index <- order(information, decreasing=TRUE)
+  index <- index[1:randomesque]
+  if(length(index) > 1) index <- sample(index, 1)
+  index <- shadow$temp.id[index]
+
+  return(list(item=cat.data$pool[index,], pool=cat.data$pool[-index,]))
+}
+

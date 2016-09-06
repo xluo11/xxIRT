@@ -4,6 +4,7 @@
 \alias{cat.estimate.default}
 \alias{cat.select.ccat}
 \alias{cat.select.default}
+\alias{cat.select.shadow}
 \alias{cat.sim}
 \alias{cat.stop.default}
 \alias{plot.cat}
@@ -25,6 +26,8 @@ cat.stop.default(cat.data)
 \method{plot}{cat}(x, ...)
 
 cat.select.ccat(cat.data)
+
+cat.select.shadow(cat.data)
 }
 \arguments{
 \item{theta}{the true value of theta parameter}
@@ -60,6 +63,8 @@ cat.select.ccat(cat.data)
 \code{cat.sim} simulates CAT sessions with user-defined algorithms
 
 \code{cat.select.ccat} implements the constrained item slection algorithm described in Kingsbury & Zara (1989, 1991)
+
+\code{cat.select.shadow} implements the shadow test algorithm described in van der Linden (2010)
 }
 \details{
 All inputs are combined into a list called \code{cat.data} which is passed to 
@@ -87,11 +92,15 @@ If a \code{output} element is included in the returning list, it'll be added to 
 
 \code{cat.select.ccat}: set target content percentage using \code{ccat.target} in \code{options}. 
 Use \code{ccat.random} in \code{options} to allow the first k items to randomly draw next content domain.
+
+\code{cat.select.shadow}: pass all constraints as a data frame with columns as such \code{variable, level, min, max}
+to \code{shadow.constraints} in \code{options}.
 }
 \examples{
 # generate an item pool
 pool <- gen.irt(1, 100)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
+pool$time <- round(exp(rnorm(nrow(pool), log(60), .4)))
 # cat simulation: 10-30 items
 opts <- list(min=10, max=30, stop.se=.3)
 x <- cat.sim(0.1, pool, opts)
@@ -105,5 +114,15 @@ plot(x)
 opts <- list(min=10, max=30, stop.se=.3, ccat.target=c(.5,.3,.2), ccat.random=5)
 x <- cat.sim(0.1, pool, opts, cat.select=cat.select.ccat)
 freq(x$items$content, 1:3)
+# cat simulation with shadow test
+constr <- data.frame(name="content", level=1, min=10, max=10, stringsAsFactors=FALSE)
+constr <- rbind(constr, c("content", 2, 10, 10))
+constr <- rbind(constr, c("content", 3, 10, 10))
+constr <- rbind(constr, c("time", NA, 70*30, 80*30))
+opts <- list(min=30, max=30, stop.se=.03, shadow.constraints=constr)
+x <- cat.sim(0, pool, opts, cat.select=cat.select.shadow)
+freq(x$items$content, 1:3)
+sum(x$items$time)
+plot(x)
 }
 
