@@ -24,7 +24,7 @@
 #' x$probability(x)
 #' x$information(x)
 #' x$likelihood(x)
-#' @importFrom stats rnorm runif
+#' @importFrom stats rnorm runif rbeta
 #' @export
 irt.model.3pl <- function(people=NULL, items=NULL, responses=NULL){
   # validation: 1. column names; 2. value range
@@ -92,7 +92,7 @@ irt.model.3pl <- function(people=NULL, items=NULL, responses=NULL){
     if(is.null(people))
       people <- data.frame(theta=rnorm(n.people, theta.mu, theta.sig))
     if(is.null(items))
-      items <- data.frame(a=exp(rnorm(n.items, a.mu, a.sig)), b=rnorm(n.items, b.mu, b.sig), c=runif(n.items, c.alpha, c.beta))
+      items <- data.frame(a=exp(rnorm(n.items, a.mu, a.sig)), b=rnorm(n.items, b.mu, b.sig), c=rbeta(n.items, c.alpha, c.beta))
     n.people <- nrow(people)
     n.items <- nrow(items)
     y <- irt.model.3pl(people, items, NULL)

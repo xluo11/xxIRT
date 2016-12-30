@@ -3,17 +3,11 @@
 \name{estimate.items}
 \alias{estimate.items}
 \alias{estimate.items.3pl.bme}
-\alias{estimate.items.3pl.check.input}
-\alias{estimate.items.3pl.init.par}
 \alias{estimate.items.3pl.jmle}
 \alias{estimate.items.3pl.mmle}
 \title{Estimation of Item Parameters}
 \usage{
 estimate.items(responses, model = "3pl", method = "jmle", ...)
-
-estimate.items.3pl.check.input(responses, people)
-
-estimate.items.3pl.init.par(fix, init, n.items)
 
 estimate.items.3pl.jmle(responses, people, fix = list(), iter = 30,
   conv = 0.01, bound = list(a = 2, b = 3.5, c = 0.25), init = list(a = 1,
@@ -41,15 +35,13 @@ estimate.items.3pl.bme(responses, fix = list(), iter = 30, conv = 0.01,
 
 \item{fix}{a list of fixed item parameters}
 
-\item{init}{a list of initial item parameters}
-
-\item{n.items}{the number of items}
-
 \item{iter}{the maximum iterations}
 
 \item{conv}{the convergence criterion}
 
 \item{bound}{the bounds of item parameters}
+
+\item{init}{a list of initial item parameters}
 
 \item{debug}{\code{TRUE} to turn on debug mode}
 
@@ -58,18 +50,10 @@ estimate.items.3pl.bme(responses, fix = list(), iter = 30, conv = 0.01,
 \value{
 a data frame of estimated item parameters
 
-a list of validated \code{responses} and \code{people}
-
-a list of three initial parameters and three boolean vectors (whether fixed or not)
-
 estimated item parameters and diagnosis data if debug mode is on
 }
 \description{
 \code{estimate.items} is a wrapper function for estimating item parameters
-
-\code{estimate.items.3pl.check.input} is a helper function for validating inputs
-
-\code{estimate.items.3pl.init.par} is a helper function for initiating item parameters
 
 \code{estimate.items.3pl.jmle} calibrates item parameters with knwon thetas using joint maximum likelihood.
 

@@ -2,24 +2,18 @@
 % Please edit documentation in R/module2_estimations.R
 \name{estimate.people}
 \alias{estimate.people}
-\alias{estimate.people.3pl.check.input}
 \alias{estimate.people.3pl.eap}
 \alias{estimate.people.3pl.map}
 \alias{estimate.people.3pl.mle}
-\alias{quadrature}
 \title{Estimation of People Parameters}
 \usage{
 estimate.people(responses, items, model = "3pl", method = "mle", ...)
-
-estimate.people.3pl.check.input(responses, items)
 
 estimate.people.3pl.mle(responses, items, init = 0, iter = 30,
   conv = 0.01, bound = 3.5, debug = FALSE)
 
 estimate.people.3pl.map(responses, items, prior.mu = 0, prior.sig = 1,
   init = 0, iter = 15, conv = 0.01, bound = 3.5, debug = FALSE)
-
-quadrature()
 
 estimate.people.3pl.eap(responses, items)
 }
@@ -50,19 +44,13 @@ estimate.people.3pl.eap(responses, items)
 }
 \value{
 a data frame of estimated people parameters
-
-a list of validated \code{responses} and \code{items}
 }
 \description{
 \code{estimate.people} is a wrapper function for estimating people parameters
 
-\code{estimate.people.3pl.check.input} is a helper function for validating inputs
-
 \code{estimate.people.3pl.mle} estimates people parameters with known item parameters using maximum likelihood estimation.
 
 \code{estimate.people.3pl.map} estimates people parameters with known item parameters using maximum a posterior.
-
-\code{quadrature} is a helper fucntion for getting hermite gauss quadrature points
 
 \code{estimate.3pl.theta.eap} estimates people parameters with known item parameters using expected a posterior.
 }
@@ -71,8 +59,6 @@ The debug mode draws a convergence curve. \cr
 For the maximum likelihood estimation, refer to Baker and Kim (2004), pp. 66-69.
 
 For the maximum a posteriori estimation, refer to Baker and Kim (2004), pp. 192.
-
-\code{qudrature} was originally intended to call \code{gaussquad::hermite.h.quadrature.rules(12)[[12]]}
 
 For the expected a posteriori, refer to Baker and Kim (2004), pp. 193.
 }

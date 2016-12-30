@@ -2,7 +2,7 @@
 % Please edit documentation in R/module0_gui_ata.R
 \name{gui.ata}
 \alias{gui.ata}
-\title{Graphical User Interface}
+\title{Graphical User Interface for Automated Test Assembly}
 \usage{
 gui.ata()
 }

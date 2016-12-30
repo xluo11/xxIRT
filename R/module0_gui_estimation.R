@@ -127,7 +127,8 @@ gui.estimation <- function(){
 
     # output: console
     output$console <- renderPrint({
-      irt.model(get.people(), get.items())
+      rsp <- get.responses()
+      irt.model(get.people(), get.items(), rsp)
     })
     
     # output: items
@@ -155,7 +156,7 @@ gui.estimation <- function(){
     # download: items
     output$downloaditems <- downloadHandler(
       filename=function(){
-        paste(input$response$name, "_est_items.txt", sep="")
+        paste("gui_estimation_items.txt", sep="")
       }, content=function(file) {
         write.table(results.items(), file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }
@@ -186,7 +187,7 @@ gui.estimation <- function(){
     # download: people
     output$downloadpeople <- downloadHandler(
       filename=function(){
-        paste(input$response$name, "_estimated_thetas.txt", sep="")
+        paste("gui_estimation_thetas.txt", sep="")
       }, content=function(file){
         write.table(results.people(), file, sep=",", quote=FALSE, row.names=FALSE, col.names=TRUE)
       }

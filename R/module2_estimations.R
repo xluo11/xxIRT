@@ -37,8 +37,10 @@ estimate.people <- function(responses, items, model="3pl", method="mle", ...){
          )
 }
 
-#' @rdname estimate.people
+#' @rdname quadrature
 #' @description \code{estimate.people.3pl.check.input} is a helper function for validating inputs
+#' @param responses the responses data
+#' @param items the item parameters
 #' @return a list of validated \code{responses} and \code{items}
 estimate.people.3pl.check.input <- function(responses, items){
   # convert vector to data.frame
@@ -177,7 +179,7 @@ estimate.people.3pl.map <- function(responses, items, prior.mu=0, prior.sig=1, i
   return(output)
 }
 
-#' @rdname estimate.people
+#' Helper Functions for Parameter Estimation
 #' @description \code{quadrature} is a helper fucntion for getting hermite gauss quadrature points
 #' @details 
 #' \code{qudrature} was originally intended to call \code{gaussquad::hermite.h.quadrature.rules(12)[[12]]}
@@ -267,8 +269,9 @@ estimate.items <- function(responses, model="3pl", method="jmle", ...){
   )
 }
 
-#' @rdname estimate.items
+#' @rdname quadrature
 #' @description \code{estimate.items.3pl.check.input} is a helper function for validating inputs
+#' @param people the people parameters
 #' @return a list of validated \code{responses} and \code{people}
 estimate.items.3pl.check.input <- function(responses, people){
   # convert vector to data frame
@@ -283,9 +286,11 @@ estimate.items.3pl.check.input <- function(responses, people){
   return(list(responses=responses, people=people))
 }
 
-#' @rdname estimate.items
+#' @rdname quadrature
 #' @description \code{estimate.items.3pl.init.par} is a helper function for initiating item parameters
 #' @param n.items the number of items
+#' @param fix the fixed values of parameters
+#' @param init the initial values of parameters
 #' @return a list of three initial parameters and three boolean vectors (whether fixed or not)
 estimate.items.3pl.init.par <- function(fix, init, n.items){
   if(is.null(fix$a)){

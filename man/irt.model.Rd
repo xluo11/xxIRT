@@ -119,8 +119,7 @@ x
 x$probability(x)
 x$information(x)
 x$likelihood(x)
-# generate 
-# Generate Rasch model
+# Generate Rasch items
 irt.model(model="3pl")$gen.data(20, 5, a.mu=0, a.sig=0, c.alpha=0, c.beta=0)
 # Generate an 3PL item pool
 irt.model(model="3pl")$gen.data(1, 100)$items

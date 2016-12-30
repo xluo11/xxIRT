@@ -428,7 +428,8 @@ mst.sim <- function(x, theta.true){
     # estimate ability
     theta.est <- estimate.people.3pl.mle(response, items)$people[1,]
   }
-  return(list(panel=items.panel, items=items, response=response, true=theta.true, est=theta.est, route=route))
+  items <- data.frame(response=response, items)
+  return(list(panel=items.panel, items=items, true=theta.true, est=theta.est, route=route))
 }
 
 

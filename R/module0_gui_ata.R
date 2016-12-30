@@ -1,4 +1,4 @@
-#' Graphical User Interface
+#' Graphical User Interface for Automated Test Assembly
 #' @description \code{gui.ata} is a shiny app for automated test assembly
 #' @export
 #' @import shiny
@@ -93,9 +93,10 @@ gui.ata <- function(){
     
     # set objective
     observeEvent(input$addobj, {
+      validate(need(v$ata, "No ata object"))
+      validate(need(grepl("^[0-9a-zA-Z.-]+$", input$objcoef), "Improper objective coefficients"))
       coef <- tolower(input$objcoef)
       if(!is.na(as.numeric(coef))) coef <- as.numeric(coef)
-   
       if(input$objtype == 'absolute'){
         v$ata <- ata.obj.absolute(v$ata, coef, input$objtarget)
         v$objectives <- rbind(v$objectives, data.frame(type="abs", coef=coef, value=input$objtarget))
@@ -107,6 +108,8 @@ gui.ata <- function(){
     
     # add constraint
     observeEvent(input$addcons, {
+      validate(need(v$ata, "No ata object"))
+      validate(need(grepl("^[0-9a-zA-Z.-]+$", input$consname), "Improper constraint variable name"))
       coef <- tolower(input$consname)
       level <- ifelse(input$conslevel == "", NULL, as.numeric(input$conslevel))
       v$ata <- ata.constraint(v$ata, coef, input$consmin, input$consmax, level=level)
@@ -115,21 +118,20 @@ gui.ata <- function(){
     
     # assemble
     observeEvent(input$assemble, {
+      validate(need(v$ata, "No ata object"))
       v$ata <- ata.solve(v$ata)
       if(!is.null(v$ata$result)) v$items <- ata.get.items(v$ata)
     })
 
     # console0: ata objectives
     output$console0 <- renderPrint({
-      validate(need(v$ata, ""))
-      validate(need(grepl("^[0-9a-zA-Z.-]+$", input$objcoef), "Improper objective coefficients"))
+      validate(need(v$objectives, "No objectives yet"))
       v$objectives
     })
     
     # console1: ata constraints
     output$console1 <- renderPrint({
-      validate(need(v$ata, ""))
-      validate(need(grepl("^[0-9a-zA-Z.-]+$", input$consname), "Improper constraint variable name"))
+      validate(need(v$constraints, "No objectives yet"))
       v$constraints
     })
 
@@ -174,3 +176,4 @@ gui.ata <- function(){
   
   shinyApp(ui=ui, server=server)  
 }
+

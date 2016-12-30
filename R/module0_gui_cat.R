@@ -86,7 +86,7 @@ gui.cat <- function(){
           tabPanel("Console", 
                    conditionalPanel(condition="$('html').hasClass('shiny-busy')", tags$div(HTML("<i class='fa fa-spinner fa-spin fa-5x fa-fw'></i>"))),
                    verbatimTextOutput("console0"),
-                   verbatimTextOutput("console")),
+                   verbatimTextOutput("console1")),
           tabPanel("Results",
             tags$div(class="pull-right",
                  tags$button(id="prev", class="btn btn-sm action-button btn-default", HTML("<span class='glyphicon glyphicon-chevron-left'></span>")),
@@ -108,7 +108,7 @@ gui.cat <- function(){
 
     # get item parameters (pool)
     get.items <- reactive({
-      validate(need(input$poolfile, "Please import item parameters."))
+      validate(need(input$poolfile, "Please import the item pool"))
       read.csv(input$poolfile$datapath, header=TRUE, as.is=TRUE)
     })
     
@@ -175,16 +175,17 @@ gui.cat <- function(){
       opts <- c(opts, get.stop.options())
       
       # simulation
-      results <- list()
+      v$result <- list()
       for(i in 1:length(people)){
         x <- cat.sim(people[i], items, opts, 
                      cat.select=match.fun(input$selectmethod), 
                      cat.estimate=match.fun(input$estimatemethod), 
                      cat.stop=match.fun(input$stopmethod))
-        results[[i]] <- x
+        v$result[[i]] <- x
+        v$index <- i
       }
       v$max <- i
-      return(results)
+      v$index <- 1
     })
     
     # buttons to add constraints to shadow-test selection method
@@ -199,7 +200,7 @@ gui.cat <- function(){
     
     # 'submit' button: nullify results and run simulations
     observeEvent(input$submit, {
-      v$result <- cat()
+      cat()
     })
     
     # 'prev' button: flip to previous simulation results
@@ -217,15 +218,16 @@ gui.cat <- function(){
       HTML(paste("&nbsp;&nbsp;<b>#", v$index, "/", v$max, "</b>&nbsp;&nbsp;", sep=""))
     })
 
-    # html: console output
+    # console0: cat constraints
     output$console0 <- renderPrint({
       validate(need(v$constraints, "No Constraints"))
       v$constraints
     })
     
-    # html: console output
-    output$console <- renderPrint({
-      validate(need(v$result, "No Results."))
+    # console1: results
+    output$console1 <- renderPrint({
+      get.items()
+      validate(need(v$result, "No results yet"))
       v$result[[v$index]]
     })
     
