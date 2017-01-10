@@ -6,7 +6,7 @@ Date: 2016-12-11
 Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.com"))
 Author: Xiao Luo [aut, cre]
 Maintainer: Xiao Luo <xluo1986@gmail.com>
-Description: An implementiontion of item response theory (IRT) and computer-based testing in R. It is designed for bridging the gap between theorectical advancements in psychometric research and their applications in practice. Currently, it consists of five modules: (1) common IRT functions, (2) estimation procedures, (3) automated test assembly framework, (4) computerized adaptive testing framework, (5) multistage testing framework. See detailed documentation at https://github.com/xluo11/xxIRT/blob/master/README.md.
+Description: An implementation of item response theory (IRT) and computer-based testing in R. It is designed for bridging the gap between theoretical advancements in psychometric research and their applications in practice. Currently, it consists of five modules: (1) common IRT functions, (2) estimation procedures, (3) automated test assembly framework, (4) computerized adaptive testing framework, (5) multistage testing framework. See detailed documentation at <https://github.com/xluo11/xxIRT/blob/master/README.md>.
 License: GPL (>= 2)
 Depends: R (>= 3.1.0)
 URL: https://github.com/xluo11/xxIRT
