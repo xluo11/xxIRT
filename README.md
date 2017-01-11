@@ -1,5 +1,5 @@
 # xxIRT: Item Response Theory and Computer-based Testing in R
-###### Author: [Xiao Luo](mailto:xluo1986@gmail.com) || Last Edit: December 31, 2016 || Version: 2.0.1
+###### Author: [Xiao Luo](mailto:xluo1986@gmail.com) || Last Edit: December 31, 2016 || Version: 2.0.2
 
 ###### **Citation**: Luo, X. (2016). xxIRT: Item Response Theory and Computer-based Testing in R (Version 2.0) [Software]. Retrieved from [https://github.com/xluo11/xxIRT](https://github.com/xluo11/xxIRT)
 

@@ -241,6 +241,9 @@ cat.select.ccat <- function(cat.data){
 cat.select.shadow <- function(cat.data){
   cons <- cat.data$opts$shadow.constraints
   if(is.null(cons)) stop("The constraints of shadow-test selection algorithm is not found in options")
+  if(!all(colnames(cons) %in% c("name", "level", "min", "max"))) stop("make sure the column names of the contraints data frame are 'name', 'level', 'min', 'max'")
+  if(is.factor(cons$name)) cons$name <- levels(cons$name)[cons$name]
+  if(is.factor(cons$level)) cons$level <- levels(cons$level)[cons$level]
   
   pool <- cat.data$pool
   pool$temp.id <- 1:nrow(pool)

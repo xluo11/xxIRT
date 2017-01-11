@@ -86,7 +86,7 @@ irt.model.3pl <- function(people=NULL, items=NULL, responses=NULL){
     l <- p^u * (1-p)^(1-u)
     return(l)
   }
-  x$gen.data <- function(n.people=NULL, n.items=NULL, people=NULL, items=NULL, theta.mu=0, theta.sig=1, a.mu=0, a.sig=0.2, b.mu=0, b.sig=1, c.alpha=0, c.beta=.2){
+  x$gen.data <- function(n.people=NULL, n.items=NULL, people=NULL, items=NULL, theta.mu=0, theta.sig=1, a.mu=0, a.sig=0.2, b.mu=0, b.sig=1, c.alpha=5, c.beta=42){
     if(is.null(n.people) && is.null(people)) stop("Pass in either the number of people or the actual people parameters")
     if(is.null(n.items) && is.null(items)) stop("Pass in either the number of items or the actual item pamaraters")
     if(is.null(people))
