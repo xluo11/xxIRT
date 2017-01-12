@@ -1,7 +1,7 @@
 Package: xxIRT
 Type: Package
 Title: Practical Item Response Theory and Computer-Based Testing in R
-Version: 2.0.0
+Version: 2.0.1
 Date: 2016-12-11
 Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.com"))
 Author: Xiao Luo [aut, cre]
