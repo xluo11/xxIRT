@@ -1,38 +1,55 @@
-xxIRT: Item Response Theory and Computer-Based Testing in R
-================
+---
+title: "xxIRT: Item Response Theory and Computer-Based Testing in R"
+output: github_document
+---
 
-###### Author: [Xiao Luo](mailto:xluo1986@gmail.com) || Last Edit: 2017-01-18 || Version: 0.0.1
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-###### **Citation**: Luo, X. (2016). xxIRT: Item Response Theory and Computer-based Testing in R \[Computer Software\]. Retrieved from <https://github.com/xluo11/xxIRT>
+###### Author: [Xiao Luo](mailto:xluo1986@gmail.com) || Last Edit: `r Sys.Date()` || Version: 0.0.1
+
+###### **Citation**: Luo, X. (2016). xxIRT: Item Response Theory and Computer-based Testing in R [Computer Software]. Retrieved from [https://github.com/xluo11/xxIRT](https://github.com/xluo11/xxIRT)
+
 
 ### Table of Contents
+**1. [Installation](#installation)**  
+**2. [Introduction](#introduction)**  
+**3. [Module 0: IRT Models](#module-0-irt-models)**  
+**4. [Module 1: Commons & Utils](#module-1-commons-utils)**  
+**5. [Module 2: Estimation](#module-2-estimation)**  
+**6. [Module 3: Automate Test Assembly](#module-3-automated-test-assembly)**  
+**7. [Module 4: Computerized Adaptive Testing](#module-4-computerized-adaptive-testing)**  
+**8. [Module 5: Multistage Testing](#module-5-multistage-testing)**  
+**9. [Graphical User Interfaces](#graphical-user-interfaces)**  
 
-**1. [Installation](#installation)**
-**2. [Introduction](#introduction)**
-**3. [Module 0: IRT Models](#module-0-irt-models)**
-**4. [Module 1: Commons & Utils](#module-1-commons-utils)**
-**5. [Module 2: Estimation](#module-2-estimation)**
-**6. [Module 3: Automate Test Assembly](#module-3-automated-test-assembly)**
-**7. [Module 4: Computerized Adaptive Testing](#module-4-computerized-adaptive-testing)**
-**8. [Module 5: Multistage Testing](#module-5-multistage-testing)**
-**9. [Graphical User Interfaces](#graphical-user-interfaces)**
 
 ### Installation
-
 To install a stable version from [CRAN](https://cran.r-project.org/package=xxIRT), type `install.packages("xxIRT")` in R console. To install the most recent version from [github](https://github.com/xluo11/xxIRT), type `devtools::install_github("xluo11/xxIRT")` in R console (if *devtools* package has not been installed yet, install it first). The package is updated frequently on github to add new features and revisions. When it is deemed a significant upgrade from the previous version, I will submit it to CRAN. To remove the installed package, call `remove.packages("xxIRT")` in R console.
 
+
 ### Introduction
+*xxIRT* is a R package that intends to bring latest advancements in psychometric research, especially in the areas of item response theory and computer-based testing, into easily accessible implementations to facilitate practical research and practice. It is my hope that this package becomes a medium that bridges the gap between psychometric theories and practice and benefits the parties on the both sides by creating a common language in between. That is, the implementations of theories allows the idea to be tested and refined by practitioners, and in the meanwhile, the new ideas/demands generated in practice drive researchers to explore better solutions and methodologies. 
 
-*xxIRT* is a R package that intends to bring latest advancements in psychometric research, especially in the areas of item response theory and computer-based testing, into easily accessible implementations to facilitate practical research and practice. It is my hope that this package becomes a medium that bridges the gap between psychometric theories and practice and benefits the parties on the both sides by creating a common language in between. That is, the implementations of theories allows the idea to be tested and refined by practitioners, and in the meanwhile, the new ideas/demands generated in practice drive researchers to explore better solutions and methodologies.
+The current version of this package consists of six modules: (0) measurment models, (1) item response theory (IRT), (2) parameter estimation, (3) automated test assembly (ATA), (4) computerized adaptive testing (CAT), and (5) computerized multistage testing (MST). The application programming interface, or API, is for intermediate R users who are comfortable with the R programming language. Additionally, several graphical user interfaces, or GUIs, are developed for novice users who are not necessarily familiar with R. GUIs are more user-friendly and include most, but not all, of the key functionalities available in the API. 
 
-The current version of this package consists of six modules: (0) measurment models, (1) item response theory (IRT), (2) parameter estimation, (3) automated test assembly (ATA), (4) computerized adaptive testing (CAT), and (5) computerized multistage testing (MST). The application programming interface, or API, is for intermediate R users who are comfortable with the R programming language. Additionally, several graphical user interfaces, or GUIs, are developed for novice users who are not necessarily familiar with R. GUIs are more user-friendly and include most, but not all, of the key functionalities available in the API.
 
 ### Module 0: IRT Models
+The 3-parameter-logistic (3PL) model is a model introduced by Birnaum [^1] in which an item is characterized with the a (discrimination), b (difficulty), and c (pseudo-guessing) parameters and a test taker with the $\theta$ parameter. The probability of a correct response is given by:
+$$p=c+\frac{1-c}{1+e^{-1.7a(\theta-b)}}$$
 
-The 3-parameter-logistic (3PL) model is a model introduced by Birnaum [1] in which an item is characterized with the a (discrimination), b (difficulty), and c (pseudo-guessing) parameters and a test taker with the \(\theta\) parameter. The probability of a correct response is given by: \[p=c+\frac{1-c}{1+e^{-1.7a(\theta-b)}}\]
+The implementation:
+1. object includes data & functions
+2. compute P, I, L
+
+
+
+
+[^1]: Birnbaum, A. (1968). Some latent trait models. In F.M. Lord & M.R. Novick, (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
+
+
 
 ### Module I: Item Response Theory (IRT)
-
 Item response theory (IRT) parameterizes the characteristics of test takers and testing items, and use these parameters to build statistical models that describes the mechanisms underlying observed responses. IRT includes a wide variety of models, and it is commonly used in practice to develop modern assessment instruments. This module includes common IRT computations and graphing, and it is a foundation for other more advanced IRT applications in this package. At the heart of this module is the `irt.model` object which contains the name of the model (*string*), people parameters (*data.frame*), items parameters (*data.frame*) and responses (*data.frame*). In addition, the object contains the functions for computing probability, information and likelihood and the function for generating data from the model. The probability is the model-based probability of getting a correct response given the people and item parameters. The information indicates the conference or error associated with the estimated people parameters. And the likelihood is the probability of the observed responses. Currently, only the **3pl** model has been implemented. Polytomous models is the next step.
 
 To create a *3pl* object, call `irt.model.3pl` and pass people and item parameters and responses. All arguments are allowed to be `NULL` if they are unknown. If required parameters are `NULL`, some computation may be unavailable. Users can also call `irt.model.3pl()$gen.data` to generate 3PL data. The people parameters will be drawn from a normal distribution with mean (`theta.mu`) and SD (`theta.sig`) equal to 0 and 1 by default. The a-parameters will be drawn from a log-normal distribution with log-mean (`a.mu`) and log-SD (`a.sig`) equal to 0 and .2 by default, the b-parameters from a log-normal distribution with mean (`b.mu`) and SD (`b.sig`) equal to 0 and 1 by default, and the c-parameters from a beta distribution with alpha (`c.alpha`) and beta (`c.beta`) equal to 5 and 42. Change the above parameters to draw parameters from a user-defined distribution. Users can also pass people and/or item parameters to fix those parameters.
@@ -40,8 +57,7 @@ To create a *3pl* object, call `irt.model.3pl` and pass people and item paramete
 After creating a `3pl` object, call `probability`, `information`, and `likelihood` functions to compute those statistics which return a matrix of resulting values. Call `plot` to draw graphs. Use the `stats` argument to control which statistic to draw and use `total` argument to draw test or item level statistic. For example, `stats='probability', total=FALSE` draws multiple item characteristic curves, where `stats='probability', total=TRUE` draws a test character curve. When drawing `likelihood` or `loglikelihood`, make sure the object has only one person's data.
 
 ##### Code Sample
-
-``` r
+```r
 # create a 3pl model with manual inputs
 people <- data.frame(theta=c(-1,0,1))
 items <- data.frame(a=c(.5,1,1.5,1,1,1,1), b=c(0,0,0,-1,1,0,0), c=c(0,0,0,0,0,.1,.2))
@@ -59,13 +75,12 @@ x$information(x)
 x$likelihood(x)
 ```
 
-Some wrapper functions are provide to establish a common interface for all `irt.model` objects. For example, call `irt.model` function and use `model` argument to create a specific new `irt.model` object. Call `irt.stats` function and use `stats` argument to compute statistics. Also, use `summary` and `fun` arguments to summarize results for people or items if needed. In addition, call `irt.select` to subset data, and call `irt.sample` to sample from data. The generic methods `print` and `plot` are overridden for `irt.model` objects too.
+Some wrapper functions are provide to establish a common interface for all `irt.model` objects. For example, call `irt.model` function and use `model` argument to create a specific new `irt.model` object.  Call `irt.stats` function and use `stats`  argument to compute statistics. Also, use `summary` and `fun` arguments to summarize results for people or items if needed. In addition, call `irt.select` to subset data, and call `irt.sample` to sample from data. The generic methods `print` and `plot` are overridden for `irt.model` objects too.
 
 In addition, several helper and utility functions are developed to simplify coding. For example, the function `irt.model.3pl.init` is a helper function for creating a 3pl object from vectors instead of data frames. The function `irt.model.rescale.3pl` is a helper function for rescaling parameters of a 3pl object. The function `freq` is a utility function for computing frequencies in given categories, and `rmse` is a utility function for computing root mean square errors.
 
 ##### Code Samples
-
-``` r
+```r
 # create a 3PL model with manual inputs
 people <- data.frame(theta=c(-1,0,1))
 items <- data.frame(a=c(.5,1,1.5,1,1,1,1), b=c(0,0,0,-1,1,0,0), c=c(0,0,0,0,0,.1,.2))
@@ -129,14 +144,12 @@ irt.stats(y, "probability")
 ```
 
 ### Module II: Parameter Estimation
-
-People and item parameters are main ingredients in IRT analyses and applications. However, they are usually unknown and have to be estimated in practice. This modules provides an interface for estimating people and items parameters using a variety of methods for the 3PL model.
+People and item parameters are main ingredients in IRT analyses and applications. However, they are usually unknown and have to be estimated in practice. This modules provides an interface for estimating people and items parameters using a variety of methods for the 3PL model. 
 
 When people parameters are estimaTed with known item parameters, users can choose to use the maximum likelihood estimation (MLE; `estimate.people.3pl.mle`), maximum a posteriori (MAP; `estimate.people.3pl.map`), or expected a posteriori (EAP; `estimate.people.3pl.eap`) methods. A wrapper function `estimate.people` is created to provide a common interface. Except for the EAP method, the debugging mode is on when `debug=TRUE` which draws the convergence progress over iterations.
 
 ##### Code Samples
-
-``` r
+```r
 # data generation
 data <- irt.model(model="3pl")$gen.data(500, 50)
 # MLE
@@ -153,11 +166,11 @@ cor(data$people$theta, x$people$theta)
 plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
 ```
 
-When item parameters are estimated with known people parameters, users can choose to use the joint maximum likelihood estimation (JMLE; `estimate.items.3pl.jmle`), marginal maximum likelihood estimation (MMLE; `estimate.items.3pl.jmle`), and bayesian (`estimate.items.3pl.bme`) methods. All functions takes the `fix` argument, which is a list of fixed parameters. For instance, set `fix=list(c=0)` to calibrate a 2PL model, and set `fix=list(a=.5882, c=0)` to calibrate a Rasch model. A wrapper function `estimate.items` is created to provide a common interface. When the debugging mode is on (`debug=TRUE`), it draws the convergence progress and returns diagnosis data.
+When item parameters are estimated with known people parameters, users can choose to use the joint maximum likelihood estimation (JMLE; `estimate.items.3pl.jmle`), marginal maximum likelihood estimation (MMLE; `estimate.items.3pl.jmle`), and bayesian (`estimate.items.3pl.bme`) methods. All functions takes the `fix` argument, which is a list of fixed parameters. For instance, set `fix=list(c=0)` to calibrate a 2PL model, and set `fix=list(a=.5882, c=0)` to calibrate a Rasch model.
+A wrapper function `estimate.items` is created to provide a common interface. When the debugging mode is on (`debug=TRUE`), it draws the convergence progress and returns diagnosis data.
 
 ##### Code Samples
-
-``` r
+```r
 # data generation
 data <- irt.model(model="3pl")$gen.data(2000, 50)
 # JMLE
@@ -180,23 +193,28 @@ plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, xlab="True",
 plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
 ```
 
-There are times that none of people or item parameters is available. In this case, the `estimate.3pl` function calibrates item parameters using MMLE first and estimates people parameters using MLE afterwards.
+There are times that none of people or item parameters is available. In this case, the `estimate.3pl`  function calibrates item parameters using MMLE first and estimates people parameters using MLE afterwards. 
+
 
 ### Module III: Automated Test Assembly (ATA)
 
-Test assembly is very common in practice, in which items are selected from the item pool to construct forms that meets certain criteria and conditions. Apparently it is astronomically daunting job to manually assemble tests to meet a number of complicated constraints from a large item pool. Automated test assembly is a technique that applies modern computing technology and advanced mathematical optimization algorithm to assemble test. Technically, the goal of ATA is to optimize the objective functions and be subject to constraints at the same time. Objective functions can be set in the relative (i.e., maximization or minimization) or absolute (i.e., targeting a value) sense. This module provides an interface for automated test assembly. It is built upon the open-source mixed integer linear programming solver *[lp\_solve](http://lpsolve.sourceforge.net)* and its R interface package *[lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI)*.
+this module provides a conveineint interface
+however, how to specify or set up the problem is up to the user and requires decent amount of knowledge about IRT and ATA
 
-To start off, use `ata` to create an *ata* object and set up a mixed integer linear programming (MILP) object for assembling *k* forms from a *n*-item pool. Afterwards, use `ata.obj.relative` to add a relative objective function or `ata.obj.absolute` to add an absolute objective function. The `ata.obj.relative` requires a `coef` argument (a variable name, a vector of theta points or a vector of *n* given values) as well as a `mode` argument (`max` for maximization and `min` for minimization). If the expected value of the objective function is a negative value, then set `negative=TRUE`. If it aims to have a flat test information function (TIF) over theta points in the objective functions, use the `flatten` argument to repress the peak. The `ata.obj.absolute` requires a `target` argument which is the targeted sum of the objective function. Both functions takes a `compensate` argument. When `compensate=TRUE`, it means coefficients are compensatory across objectives. For example, when `coef=c(-0.5, 0.5)` and `compensate=TRUE`, it means optimize the summed information at -0.5 and 0.5 altogether as opposed to independently. Other common arguments are `forms` and `collapse`. When `forms=NULL`, objective functions are set for all forms; otherwise set `forms` to a vector of form indices. When `collapse=TRUE`, the objective functions are collapsed across forms into one objective function.
+
+Test assembly is very common in practice, in which items are selected from the item pool to construct forms that meets certain criteria and conditions. Apparently it is astronomically daunting job to manually assemble tests to meet a number of complicated constraints from a large item pool. Automated test assembly is a technique that applies modern computing technology and advanced mathematical optimization algorithm to assemble test. Technically, the goal of ATA is to optimize the objective functions and be subject to constraints at the same time. Objective functions can be set in the relative (i.e., maximization or minimization) or absolute (i.e., targeting a value) sense. This module provides an interface for automated test assembly. It is built upon the open-source mixed integer linear programming solver *[lp_solve](http://lpsolve.sourceforge.net)* and its R interface package *[lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI)*.  
+
+To start off, use `ata` to create an *ata* object and set up a mixed integer linear programming (MILP) object for assembling *k* forms from a *n*-item pool. Afterwards, use `ata.obj.relative` to add a relative objective function or `ata.obj.absolute` to add an absolute objective function. The `ata.obj.relative` requires a `coef` argument (a variable name, a vector of theta points or a vector of *n* given values) as well as a `mode` argument (`max` for maximization and `min` for minimization). If the expected value of the objective function is a negative value, then set `negative=TRUE`. If it aims to have a flat test information function (TIF) over theta points in the objective functions, use the `flatten` argument to repress the peak. The `ata.obj.absolute` requires a `target` argument which is the targeted sum of the objective function. Both functions takes a `compensate` argument. When `compensate=TRUE`, it means coefficients are compensatory across objectives. For example, when `coef=c(-0.5, 0.5)` and `compensate=TRUE`, it means optimize the summed information at -0.5 and 0.5 altogether as opposed to independently.  Other common arguments are `forms` and `collapse`. When `forms=NULL`, objective functions are set for all forms; otherwise set `forms` to a vector of form indices. When `collapse=TRUE`, the objective functions are collapsed across forms into one objective function. 
 
 Use `ata.constraint` to add constraints. This function requires a `coef` argument as well which can be a constant, a vector of *n* given values, or a variable name. The `level` argument is needed when the constraint is based on a categorial variable (e.g., content area). When `level=NULL` or `level=NA`, the function assumes the constraint is on a quantitative variable (e.g., response time). Use the `min` and/or `max` argument to set the lower- and/or upper-bound of the constraint. This function also takes the `forms` and `collapse` arguments.
 
 In addition, use `ata.item.maxselect` to set maximum times of selection for items, use `ata.item.enemy` to set enemy relationship between items, and `ata.item.fix` to fix values for items.
 
-After setting up all objectives and constraints, use `ata.solve` to solve the MILP object inside the *ata* object. If the MILP object is solved successfully, a binary matrix named `result` will be added to the *ata* object. The rows of the matrix represent items and columns forms and the binary value indicates whether the item is assembled into the form or not. Use `ata.get.items` to extract selected items from a solved `ata` object which is expected to be more user-friendly. The generic method `plot` is overridden to draw TIFs of assembled forms.
+After setting up all objectives and constraints, use `ata.solve` to solve the MILP object inside the *ata* object. If the MILP object is solved successfully, a binary matrix named `result` will be added to the *ata* object. The rows of the matrix represent items and columns forms and the binary value indicates whether the item is assembled into the form or not.
+Use `ata.get.items` to extract selected items from a solved `ata` object which is expected to be more user-friendly. The generic method `plot` is overridden to draw TIFs of assembled forms.
 
 ##### Code Samples
-
-``` r
+```r
 # ex. 1: 2 forms, 10 items, maximize b parmaters
 items <- irt.model(model="3pl")$gen.data(1, 100)$items
 items$content <- sample(1:3, nrow(items), replace=TRUE)
@@ -257,8 +275,7 @@ plot(irt.model.3pl(items=y[[2]]), stats="information", total=TRUE)
 ```
 
 ### Module IV: Computerized Adaptive Testing (CAT)
-
-CAT is an innovative application of IRT on top of modern computing technology. CAT takes advantage of immense computing power in modern computers to customize the test for the test taker in the real time. The adaptivity in CAT reduces the administration of non-informative items so that the test length can be shorted without scarifying the measurement quality.
+CAT is an innovative application of IRT on top of modern computing technology. CAT takes advantage of immense computing power in modern computers to customize the test for the test taker in the real time. The adaptivity in CAT reduces the administration of non-informative items so that the test length can be shorted without scarifying the measurement quality. 
 
 A working CAT algorithm consists of three imperative components: the selection rule, the estimation rule, and the termination rule. The selection rule delineates how to select the next item given the status quo of the test taker. The estimation rule is a method of ability estimation. And the termination rule determines whether it is appropriate to exit the repetitive "seletion-estimation" cycles and terminate the test. A CAT research is usually about inventing a new rule within the general "selection-estimation-termination" workflow. Therefore, this module provides a framework for CAT simulation using user-defined rules. Some common rules are provided in the package and are readily available to use. If the user wants to try a new rule, only that particular rule needs to be written and passed into the `cat.sim` function. This approach allows users t write minimal code to get a CAT simulation up and running.
 
@@ -273,8 +290,7 @@ When `debug=TRUE` is set in `cat.sim`, debugging information will be printed on 
 Once a simulation is complete, it returns a `cat` object including a data frame of unused items (`pool`), a data frame of used items (`items`), responses and theta history (`stats`), administration history (`admin`), test length (`len`), true theta (`true`), and estimated theta (`eat`). The generic method `plot` is overridden to draw the simulation result.
 
 ##### Code Samples
-
-``` r
+```r
 # generate an item pool
 pool <- irt.model()$gen.data(1,200)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
@@ -322,18 +338,16 @@ x <- cat.sim(0.1, pool, opts, cat.stop=cat.stop.projection, debug=TRUE)
 ```
 
 ### Module V: Multistage Testing (MST)
-
 MST is another adaptive testing model that has recently drawn a great deal of attention from practitioners. A MST consists of multiple testing phases, and in each stage a test taker will be administered with a pre-assembled *module*. The adaptivity takes place between stages and route the test taker to the module that best matches the test taker's ability in the next stage. When modules are connected with certain routing rules across stages, they constitute a *panel*. A common practice is to have multiple parallel and interchangeable panels in place for administration. One panel will randomly selected for administration in order to control the item exposure. With reduced adaptivity, it is difficult for MST to surmount CAT in terms of measurement quality. However, all modules are assembled in house prior to administration, and thus MST allows the preview and quality control opportunities to inspect both content and psychometric properties before the tests are published. This module provides an interface for designing, assembling and simulating a MST.
 
-To start off, call `mst` to initiate a *mst* object and set up an *MILP* object for assembling *k* panels (the `npanel` argument) using the given item pool (the `pool` argument). The `mst` function requires the `design` and `method` arguments. The design is a numeric vector with each element representing the number of modules in that stage. For example, `c(1,2,3)` represents a 1-2-3 MST design (3 stages, 6 modules) and `c(1, 4)` represents a 1-4 MST design (2 stages, 5 modules). Internally, the modules will be indexed sequentially from the first to the last stage. A module-index map is constructed to illustrate the correspondence between index and stage-module position. A route map is also constructed to show all permissible routes. Use `mst.route` to remove an existing route or add a new route. In practice, routes with radical changes are oftentimes prohibited.
+To start off, call `mst` to initiate a *mst* object and set up an *MILP* object for assembling *k* panels (the `npanel` argument) using the given item pool (the `pool` argument). The `mst` function requires the `design` and `method` arguments. The design is a numeric vector with each element representing the number of modules in that stage. For example, `c(1,2,3)` represents a 1-2-3 MST design (3 stages, 6 modules) and `c(1, 4)` represents a 1-4 MST design (2 stages, 5 modules). Internally, the modules will be indexed sequentially from the first to the last stage. A module-index map is constructed to illustrate the correspondence between index and stage-module position. A route map is also constructed to show all permissible routes. Use `mst.route` to remove an existing route or add a new route. In practice, routes with radical changes are oftentimes prohibited. 
 
-The method can be `topdown` or `bottomup`. With the top-down approach, objectives and constraints are imposed on routes, and with the bottom-up, objectives and constraints are imposed on modules. For the top-down method, test-level objectives and constraints are set directly, whereas for the bottom-up method, objectives and constraints have to be broken down into stages. Use `mst.objective` to set TIF objectives, and use `mst.constraint` to impose constraints. Both functions takes a `indices` argument. It is a vector of module indices for the bottom-up design and route indices for the top-down design method. For the top-down method, an additional constraint is needed to regulate the minimum length in stages; otherwise the ATA is likely to cumulate all items into the final stage to achieve the optimum.
+The method can be `topdown` or `bottomup`. With the top-down approach, objectives and constraints are imposed on routes, and with the bottom-up, objectives and constraints are imposed on modules. For the top-down method, test-level objectives and constraints are set directly, whereas for the bottom-up method, objectives and constraints have to be broken down into stages. Use `mst.objective` to set TIF objectives, and use `mst.constraint` to impose constraints. Both functions takes a `indices` argument. It is a vector of module indices for the bottom-up design and route indices for the top-down design method. For the top-down method, an additional constraint is needed to regulate the minimum length in stages; otherwise the ATA is likely to cumulate all items into the final stage to achieve the optimum. 
 
-After setting up all objectives and constraints, use `mst.assemble` to assemble items into panels, and results are added the object in the name of `items`. Use `mst.get.items` to extract items for a panel, module or a route. The function `mst.sim` simulate the administration of the assembled MST for the given `true.theta`. The generic method `plot` is overridden to draw TIFs of modules. When the argument `byroute=FALSE`, the plot is in a panel-by-stage grid. When the argument `byroute=TRUE`, the plot draws TIFs of each route in each panel.
+After setting up all objectives and constraints, use `mst.assemble` to assemble items into panels, and results are added the object in the name of `items`. Use `mst.get.items` to extract items for a panel, module or a route. The function `mst.sim` simulate the administration of the assembled MST for the given `true.theta`. The generic method `plot` is overridden to draw TIFs of modules. When the argument `byroute=FALSE`, the plot is in a panel-by-stage grid. When the argument `byroute=TRUE`, the plot draws TIFs of each route in each panel. 
 
-##### Code Samples
-
-``` r
+##### Code Samples 
+```r
 # ex. 1: 1-2-2 MST, 2 panels, topdown, 20 items, content = c(10, 5, 5)
 # maximize information at -1 for easy routes and 1 for hard routes
 pool <- irt.model()$gen.data(1,300)$items
@@ -423,10 +437,8 @@ mst.sim(x, .2)
 mst.sim(x, -.2)
 mst.sim(x, -1)
 ```
-
 ### Module 0: Graphic User Interfaces (GUIs)
-
-Call `gui.irt()` to launch a shiny app for generating data and computing and drawing IRT statistics. Users can choose to generate parameters and data or import from file. When importing people parameters, make sure it is a csv file with the proper column name (e.g., *theta* for 3PL model). When importing item parameters, make sure it is a csv file with proper column names (e.g., *a*, *b*, *c* for 3PL model). To download files, select the data and hit the "Download" button.
+Call `gui.irt()` to launch a shiny app for generating data and computing and drawing IRT statistics. Users can choose to generate parameters and data  or import from file. When importing people parameters, make sure it is a csv file with the proper column name (e.g., *theta* for 3PL model). When importing item parameters, make sure it is a csv file with proper column names (e.g., *a*, *b*, *c* for 3PL model). To download files, select the data and hit the "Download" button.
 
 Call `gui.estimation()` to launch a shiny app for estimating parameters. After uploading a response file in cvs format, users can choose to import or estimate people and item parameters. When importing people parameter file, make sure it is a cvs file and has a column named *theta*. When estimating people parameters, choose an estimation method. When importing item parameters, make sure it is a csv file and has three columns named *a*, *b*, and *c*. When estimating item parameters, choose an estimation method. Click "Download" button in the *people* and *items* tabs to download people or item parameters.
 
@@ -437,7 +449,4 @@ Call `gui.cat()` to launch a shiny app for CAT simulation. First, upload an item
 Call `gui.mst()` to launch a shiny app for MST simulation. First, upload an item pool file. Make sure it is a cvs file and has three columns named *a*, *b*, and *c*. The route map, the module map, and the ATA object will be shown in the *console* tab. Use *Route Management* to add or remove allowable routes in the MST. Make sure type in the correct route index connected by hyphen (e.g., 1-2-4). When setting objectives, leave the *target* empty if it is to maximize the objective. When setting constraints, leave the *level* empty if it is a quantitative variable. Objectives and constraints will be printed for monitoring in the *console* tab. Don't forget to test length constraint and the stage length constraint (for the top-down method). Click "Assemble" button to assemble MST. Go to *Simulation* tab to run a simulation using the assembled MST.
 
 ### Ending
-
 This is an early version of an ongoing project. Please send your comments, questions, feature request and bug reporting to the author [Xiao Luo](mailto:xluo1986@gmail.com).
-
-[1] Birnbaum, A. (1968). Some latent trait models. In F.M. Lord & M.R. Novick, (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
