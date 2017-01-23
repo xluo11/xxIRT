@@ -75,34 +75,26 @@ b parameters a normal prior distribution, and c parameters a beta prior distribu
 \examples{
 \dontrun{
 # data generation
+library(ggplot2)
+library(reshape2)
+library(dplyr)
 data <- irt_model("3pl")$gendata(2000, 50)
-# JMLE
-x <- estimate_items(data$responses, model="3pl", method="jmle", people=data$people, debug=TRUE)
-cor(data$items, x$items)
-plot(data$items$a, x$items$a, xlim=c(0, 2), ylim=c(0, 2), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-# MMLE
-x <- estimate_items(data$responses, model="3pl", method="mmle", debug=TRUE)
-cor(data$items, x$items)
-plot(data$items$a, x$items$a, xlim=c(0, 2), ylim=c(0, 2), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-# BME
-x <- estimate_items(data$responses, model="3pl", method="bme", debug=TRUE)
-cor(data$items, x$items)
-plot(data$items$a, x$items$a, xlim=c(0, 2), ylim=c(0, 2), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
+
+# Estimate item parameters: JMLE
+x.jmle <- estimate_items(data$responses, "3pl", "jmle", people=data$people)
+# Estimate item parameters: MMLE
+x.mmle <- estimate_items(data$responses, "3pl", "mmle")
+# Estimate item parameters: BME
+x.bme <- estimate_items(data$responses, "3pl", "bme")
+# Comparison with true parameters
+sapply(list(jmle=x.jmle, mmle=x.mmle, bme=x.bme), function(x) diag(cor(x$items, data$items)))
+sapply(list(jmle=x.jmle, mmle=x.mmle, bme=x.bme), function(x) rmse(x$items, data$items))
+x <- rbind(data.frame(method="jmle", melt(x.jmle$items), true=melt(data$items)$value),
+           data.frame(method="mmle", melt(x.mmle$items), true=melt(data$items)$value),
+           data.frame(method="bme", melt(x.bme$items), true=melt(data$items)$value))
+ggplot(data=x, aes(x=true, y=value, color=method)) + geom_point(pch=1) +
+  facet_grid(variable ~ method, scales="free") + xlab("True") + ylab("Est.") +
+  theme_bw() + theme(legend.key=element_blank())
 }
 }
 

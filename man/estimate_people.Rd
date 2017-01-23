@@ -65,22 +65,24 @@ For the expected a priori (EAP), refer to Baker and Kim (2004), pp. 193.
 \examples{
 \dontrun{
 # data generation
+library(ggplot2)
+library(reshape2)
+library(dplyr)
 data <- irt_model("3pl")$gendata(500, 50)
-# MLE
-x <- estimate_people(data$responses, data$items, "3pl", "mle", debug=TRUE)
-cor(data$people$theta, x$people$theta)
-plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
-# MAP
-x <- estimate_people(data$responses, data$items, "3pl", "map", debug=TRUE)
-cor(data$people$theta, x$people$theta)
-plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
-# EAP
-x <- estimate_people(data$responses, data$items, "3pl", "eap")
-cor(data$people$theta, x$people$theta)
-plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), 
-xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
+
+# Estimate people parameters: MLE
+x.mle <- estimate_people(data$responses, data$items, "3pl", "mle")
+# Estimate people parameters: MAP
+x.map <- estimate_people(data$responses, data$items, "3pl", "map")
+# Estimate people parameters: EAP
+x.eap <- estimate_people(data$responses, data$items, "3pl", "eap")
+# Comparison with true parameters
+x <- data.frame(true=data$people$theta, mle=x.mle$people$theta, map=x.map$people$theta, eap=x.eap$people$theta)
+round(t(apply(x, 2, function(v) c(R=cor(v, x$true), RMSE=rmse(v, x$true)))), 2)
+melt(x, id.vars="true") \%>\% 
+  ggplot(aes(x=true, y=value, color=variable)) + geom_point(pch=1) +
+  facet_wrap(~variable, nrow=2) + xlab("True") + ylab("Est.") +
+  theme_bw() + theme(legend.key=element_blank())
 }
 }
 

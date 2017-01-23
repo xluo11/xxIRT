@@ -1,13 +1,11 @@
 ---
 title: "xxIRT: Item Response Theory and Computer-Based Testing in R"
+author: Xiao Luo
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(xxIRT)
 library(reshape2)
 library(dplyr)
@@ -21,15 +19,16 @@ set.seed(1988324)
 
 
 ### Table of Contents
-**1. [Installation](#installation)**   
-**2. [Introduction](#introduction)**   
-**3. [Module 0: IRT Models](#module-0-irt-models)**   
-**4. [Module 1: IRT Utils](#module-1-irt-utils)**   
-**5. [Module 2: Estimation](#module-2-estimation)**   
-**6. [Module 3: Automate Test Assembly](#module-3-automated-test-assembly)**   
-**7. [Module 4: Computerized Adaptive Testing](#module-4-computerized-adaptive-testing)**   
-**8. [Module 5: Multistage Testing](#module-5-multistage-testing)**   
-**9. [Graphical User Interfaces](#graphical-user-interfaces)**   
+**1. [Installation](#installation)**
+**2. [Introduction](#introduction)**
+**3. [Module 0: IRT Models](#module-0-irt-models)**
+**4. [Module 1: IRT Utils](#module-1-irt-utils)** 
+**5. [Module 2: Estimation](#module-2-estimation)**
+**6. [Module 3: Automate Test Assembly](#module-3-automated-test-assembly)**
+**7. [Module 4: Computerized Adaptive Testing](#module-4-computerized-adaptive-testing)**
+**8. [Module 5: Multistage Testing](#module-5-multistage-testing)**
+**9. [Graphical User Interfaces](#graphical-user-interfaces)**
+**10. [Ending](#ending)**
 
 
 ### Installation
@@ -152,7 +151,7 @@ To estimate people and item parameters simultaneously, use `estimate_3pl(respons
 [^2]: Baker, F. B., & Kim, S. H. (Eds.). (2004). Item response theory: Parameter estimation techniques. CRC Press.   
 
 ##### Code Samples
-```r
+```{r}
 # data generation
 data <- irt_model("3pl")$gendata(500, 50)
 # Estimate people parameters: MLE
@@ -183,8 +182,13 @@ sapply(list(jmle=x.jmle, mmle=x.mmle, bme=x.bme), function(x) rmse(x$items, data
 x <- rbind(data.frame(method="jmle", melt(x.jmle$items), true=melt(data$items)$value),
            data.frame(method="mmle", melt(x.mmle$items), true=melt(data$items)$value),
            data.frame(method="bme", melt(x.bme$items), true=melt(data$items)$value))
-ggplot(data=x, aes(x=true, y=value, color=method)) + geom_point(pch=1) +
-  facet_grid(variable ~ method, scales="free") + xlab("True") + ylab("Est.") +
+filter(x, variable == "a") %>% 
+  ggplot(aes(x=true, y=value, color=method)) + geom_point(pch=1) +
+  facet_wrap(~ method, nrow=2) + xlab("True") + ylab("Est.") +
+  theme_bw() + theme(legend.key=element_blank())
+filter(x, variable == "b") %>% 
+  ggplot(aes(x=true, y=value, color=method)) + geom_point(pch=1) +
+  facet_wrap(~ method, nrow=2) + xlab("True") + ylab("Est.") +
   theme_bw() + theme(legend.key=element_blank())
 ```
 
@@ -263,173 +267,162 @@ plot(x)
 ```
 
 
+### Module 4: Computerized Adaptive Testing
+Computerized adaptive testing (CAT) is a computer-based testing (CBT) model that proactively customizes the test form in real time to match the test taker's ability. The test adaptation in CAT avoids overly difficulty or easy items and hence improves the testing efficiency. An operational CAT algorithm often comprises three important sub-algorithms: the item selection rule, the ability estimation rule, and the stopping rule. The selection rule delineates how to select the next item given the status quo of the test taker. The estimation rule estimates the ability parameter using the responses that have been collected so far. And the stopping rule determines how to exit the repetitive "seletion-estimation" cycles in order to finish the test.  
 
+This module provides a flexible framework for simulating CAT by utilizing user-defined rules. If a user wants to expeirment a new algorithm, that particular rule is the only part that needs to be programmed. This minimizes the work on the user side which, according to my own experience, would grealty expedite the process. Moreover, this module provides, and will keep adding, popular algorithms as well--for example, the maximum information selection, C-CAT selection rule, the shadow test rule, the standard error stopping rule, the minimal information stopping rule, the confidence interval stopping, the projection-based stopping rule, etc.  
 
+Call `cat_sim(true.theta, pool, opts, select.rule, estimate.rule, stop.rule)` to conduct a CAT simulation. The default selection rule `cat_select_default(...)` is the maximum information rule that selects the item with largest information for the next administration. This rule, sometimes, would overexpose certain items. Thus, it is useful to set a `opts$randomesque` value to randomly select an item from the top *k* most information items. The C-CAT selection rule[^8] (`cat_select_ccat(...)`) selects the most infomrative items under the content-balancing constraint. To properly use this rule, pass a vecotr of the target percentage of content distribution to `opts$ccat.target`. To add some randomness of content area selection in the first *k* administrations, give a value to `opts$ccat.random`. The shadow test selection rule (`cat_select_shadow(...)`) is a good algorithm for addressing complex constraints. It assembles a *shadow test* that maximizes the test information at current $/theta$ while subject to all constraints, and selects an item with largest information from the shadow test. To use it, pass a data frame of constraints to `opts$shadow.constraints` which should have four columns named *name* (variable name), *level* (`NA` for quantitative variable), *min* (lower-bound value), and *max* (upper-bound value). 
 
-### Module IV: Computerized Adaptive Testing (CAT)
-CAT is an innovative application of IRT on top of modern computing technology. CAT takes advantage of immense computing power in modern computers to customize the test for the test taker in the real time. The adaptivity in CAT reduces the administration of non-informative items so that the test length can be shorted without scarifying the measurement quality. 
+[^8]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4(3), 241-261.
 
-A working CAT algorithm consists of three imperative components: the selection rule, the estimation rule, and the termination rule. The selection rule delineates how to select the next item given the status quo of the test taker. The estimation rule is a method of ability estimation. And the termination rule determines whether it is appropriate to exit the repetitive "seletion-estimation" cycles and terminate the test. A CAT research is usually about inventing a new rule within the general "selection-estimation-termination" workflow. Therefore, this module provides a framework for CAT simulation using user-defined rules. Some common rules are provided in the package and are readily available to use. If the user wants to try a new rule, only that particular rule needs to be written and passed into the `cat.sim` function. This approach allows users t write minimal code to get a CAT simulation up and running.
+The default estimation rule (`cat_estimate_default(...)`) applies the EAP method to estimate the test taker's ability when the responses are all correct or all incorrect; otherwise, applies the MLE method.
 
-The default selection rule (`cat.select.default`) selects the most informative item for the next administration. To add some randomness to appease the item overexposure, set a `options$randomesque` value to randomly select an item from the *k* most informative ones. The constrained-CAT selection rule (`cat.select.ccat`) selects item under the content-balancing constraint. It first identifies the content domain with largest discrepancy from the target (`options$ccat.target`) and then select the most informative item from that content domain. Set a `options$cat.random` value to add some randomness to initial content domain sequence. The shadow test selection rule (`cat.select.shadow`) implements the shadow test algorithm. Set `options$shadow.constraints` to a data frame of constraints with four columns: `name` (variable name), `level` (`NA` for a quantitative variable), `min` and `max`.
+The default stopping rule (`cat_stop_default(...)`) is a trifold rule. Before the test reaches the minimum length (`opts$min`), it never stops the test, and when the test reaches the maximum length (`opts$max`) it always stops the test. Between the minimum and maximum length, it stops the test: (1) when the standard error (SE) threshold (`options$stop.se`) is reached; (2) when none of items in the pool exceeds the minimum information (MI) threshold (`options$stop.mi`); or (3) when a clear pass/fail decision is available against the cut score (`options$stop.cut`). The projection-based stopping rule (`cat_stop_projection(...)`) stops the test when the projected ability range under the constraints (`optioins$projection.constraints`) is clearly above or below the cut score (`options$projection.cut`) using the given projection method (`options$projection.method`).
 
-The default estimation rule (`cat.estimate.default`) applies the EAP method to estimate the test taker's ability when the responses are all correct or all incorrect; otherwise, applies the MLE method.
+In addition, users have the option to set `debug=TRUE` in `cat_sim(...)` to turn on the debugging mode which prints detailed information of the simulation on the R console in order to facilitate troubleshooting or understanding of the internal process.
 
-The default stopping rule (`cat.stop.default`) is a trifold rule. Before the test reaches the minimum length (`options$min`), it never stops the test, and when the test reaches the maximum length (`options$max`) it always stops the test. Between the minimum and maximum length, it stops the test: (1) when the SE threshold (`options$stop.se`) is reached; (2) when none of items in the pool exceeds the MI threshold (`options$stop.mi`); or (3) when a clear pass/fail decision is available against the cut score (`options$stop.cut`). The projection-based stopping rule (`cat.stop.projection`) stops the test when the projected ability range under the constraints (`optioins$projection.constraints`) is clearly above or below the cut score (`options$projection.cut`) using the given projection method (`options$projection.method`).
+Once a simulation is completed, `cat_sim(...)` returns a *cat* object, inclusive of a unused items in the pool (`pool`), used items in the administration (`items`), responses and theta history (`stats`), administration history (`admin`), test length (`len`), true theta (`true`), and estimated theta (`eat`). Use `plot(...)` to visualize the cat simulaiton data.
 
-When `debug=TRUE` is set in `cat.sim`, debugging information will be printed on the console to help troubleshooting and understand the internal process of the simulation.
-
-Once a simulation is complete, it returns a `cat` object including a data frame of unused items (`pool`), a data frame of used items (`items`), responses and theta history (`stats`), administration history (`admin`), test length (`len`), true theta (`true`), and estimated theta (`eat`). The generic method `plot` is overridden to draw the simulation result.
-
-##### Code Samples
-```r
-# generate an item pool
-pool <- irt.model()$gen.data(1,200)$items
+##### Code Sample
+```{r}
+# generate a 200-item pool
+pool <- irt_model("3pl")$gendata(1,200)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-# cat simulation: 10-30 items, default rules, stop criterion: se = .3
+
+# ex. 1: 10-30 items, MI selection rule, SE stopping rule (se=.3)
 opts <- list(min=10, max=30, stop.se=.3)
-x <- cat.sim(0.1, pool, opts)
+x <- cat_sim(0.1, pool, opts)
 x$admin
 plot(x)
-# cat simulation: 10-30 items, default rules, stop criterion: mi = .3
+
+# ex. 2: 10-30 items, MI selection rule, MI stopping rule (mi=.3)
 opts <- list(min=10, max=30, stop.mi=.8)
-x <- cat.sim(0.1, pool, opts, debug=TRUE)
-# cat simulation: 10-30 items, default rules, stop criterion: cut = -.5
-opts <- list(min=10, max=30, stop.cut=-0.5)
-x <- cat.sim(0.1, pool, opts, debug=TRUE)
-# cat simulation: 10-30 items, default rules, stop criterion: se = .3, randomesque=10
+x <- cat_sim(0.1, pool, opts)
+x$admin
+plot(x)
+
+# ex. 3: 10-30 items, MI selection rule, CI stopping rule (cut=0)
+opts <- list(min=10, max=30, stop.cut=0)
+x <- cat_sim(0.1, pool, opts)
+x$admin
+plot(x)
+
+# ex. 4: 10-30 items, MI selection rules, SE stopping rule (se=.3), randomesque=5
 opts <- list(min=10, max=30, stop.se=.3, randomesque=5)
-x <- cat.sim(0.1, pool, opts)
-x
+x <- cat_sim(0.1, pool, opts)
+x$admin
 plot(x)
-# cat simulation: 10-30 items, c-cat selection rule, first 10 random
-opts <- list(min=30, max=60, stop.cut=0, ccat.target=c(.5,.25,.25), ccat.random=10)
-x <- cat.sim(0.1, pool, opts, cat.select=cat.select.ccat)
-x
+
+# ex. 5: 10-30 items, c-cat selection rule, first 10 content areas is random
+opts <- list(min=30, max=60, stop.cut=0, ccat.target=c(.50,.25,.25), ccat.random=10)
+x <- cat_sim(0.1, pool, opts, cat.select=cat_select_ccat)
+x$admin
+plot(x)
 freq(x$admin$content, 1:3)
-plot(x)
-# cat simulation with shadow test
-cons <- data.frame(name="content", level=1, min=10, max=10, stringsAsFactors=FALSE)
-cons <- rbind(cons, c("content", 2, 10, 10))
-cons <- rbind(cons, c("content", 3, 10, 10))
+
+# ex. 6: 30 items, shadow test selection rule
+cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10),
+                   max=c(10, 10, 10), stringsAsFactors=FALSE)
 cons <- rbind(cons, c("time", NA, 55*30, 65*30))
 opts <- list(min=30, max=30, stop.se=.03, shadow.constraints=cons)
-x <- cat.sim(0.1, pool, opts, cat.select=cat.select.shadow, debug=TRUE)
-x
-freq(x$admin$content, 1:3)
-sum(x$items$time)
+x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow)
+x$admin
 plot(x)
-# cat simulation using the projection-based stopping rule
-cons <- data.frame(name="content", level=1, min=10, max=10, stringsAsFactors=FALSE)
-cons <- rbind(cons, c("content", 2, 10, 10))
-cons <- rbind(cons, c("content", 3, 10, 10))
+freq(x$admin$content, 1:3)
+mean(x$items$time)
+
+# ex. 7: 10-30 items,  simulation using the projection-based stopping rule
+cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10),
+                   max=c(30, 30, 30), stringsAsFactors=FALSE)
 opts <- list(min=10, max=30, projection.cut=0, projection.constraints=cons,
 projection.method="information")
-x <- cat.sim(0.1, pool, opts, cat.stop=cat.stop.projection, debug=TRUE)
+x <- cat_sim(0.1, pool, opts, cat.stop=cat_stop_projection)
+x$admin
+plot(x)
 ```
 
-### Module V: Multistage Testing (MST)
-MST is another adaptive testing model that has recently drawn a great deal of attention from practitioners. A MST consists of multiple testing phases, and in each stage a test taker will be administered with a pre-assembled *module*. The adaptivity takes place between stages and route the test taker to the module that best matches the test taker's ability in the next stage. When modules are connected with certain routing rules across stages, they constitute a *panel*. A common practice is to have multiple parallel and interchangeable panels in place for administration. One panel will randomly selected for administration in order to control the item exposure. With reduced adaptivity, it is difficult for MST to surmount CAT in terms of measurement quality. However, all modules are assembled in house prior to administration, and thus MST allows the preview and quality control opportunities to inspect both content and psychometric properties before the tests are published. This module provides an interface for designing, assembling and simulating a MST.
 
-To start off, call `mst` to initiate a *mst* object and set up an *MILP* object for assembling *k* panels (the `npanel` argument) using the given item pool (the `pool` argument). The `mst` function requires the `design` and `method` arguments. The design is a numeric vector with each element representing the number of modules in that stage. For example, `c(1,2,3)` represents a 1-2-3 MST design (3 stages, 6 modules) and `c(1, 4)` represents a 1-4 MST design (2 stages, 5 modules). Internally, the modules will be indexed sequentially from the first to the last stage. A module-index map is constructed to illustrate the correspondence between index and stage-module position. A route map is also constructed to show all permissible routes. Use `mst.route` to remove an existing route or add a new route. In practice, routes with radical changes are oftentimes prohibited. 
+### Module 5: Multistage Testing
+Multistage testing (MST) is another adaptive CBT model that has recently drawn a great deal of attention from practitioners. A MST consists of multiple testing stages, and in each stage a test taker is administered with a pre-assembled *module*. The adaptivity takes place between stages by routing test takers to the module that best matches the demonstrated abilities of test takers. Thus, a stage, except for the first stage, usually includes multiple modules with different difficulties. When modules are connected across stages by routing rules, they constitute a *panel*. A common practice is to have multiple parallel and interchangeable panels in place for administration. One panel will be randomly selected for a test taker to alleviate the item exposure rate. 
 
-The method can be `topdown` or `bottomup`. With the top-down approach, objectives and constraints are imposed on routes, and with the bottom-up, objectives and constraints are imposed on modules. For the top-down method, test-level objectives and constraints are set directly, whereas for the bottom-up method, objectives and constraints have to be broken down into stages. Use `mst.objective` to set TIF objectives, and use `mst.constraint` to impose constraints. Both functions takes a `indices` argument. It is a vector of module indices for the bottom-up design and route indices for the top-down design method. For the top-down method, an additional constraint is needed to regulate the minimum length in stages; otherwise the ATA is likely to cumulate all items into the final stage to achieve the optimum. 
+With reduced adaptivity, it is difficult for MST to surmount CAT in terms of measurement quality and efficiency. However, because all tests are assembled in house before administration, the test can be reviewed to ensure both content and psychometric 
+properties before the tests are published. Designing a MST invovles a plethora of interdependent decisions. This module provides an interface for designing, assembling and simulating a MST.
 
-After setting up all objectives and constraints, use `mst.assemble` to assemble items into panels, and results are added the object in the name of `items`. Use `mst.get.items` to extract items for a panel, module or a route. The function `mst.sim` simulate the administration of the assembled MST for the given `true.theta`. The generic method `plot` is overridden to draw TIFs of modules. When the argument `byroute=FALSE`, the plot is in a panel-by-stage grid. When the argument `byroute=TRUE`, the plot draws TIFs of each route in each panel. 
+Call `mst(pool, design, npanel, method)` to initiate a *mst* object. The design is the structural design of the MST. For instance, `design=c(1, 2, 2)` means a 1-2-2 MST with 3 stages, 5 modules, and 4 routes, and `design=c(1, 2, 3)` means a 1-2-3 MST with 3 stages, 6 modules, and 6 routes. When `method='bottomup'`, the bottom-up design approach is used, meaning objectives  and constraints are set for modules directly. This is a very practical approach and has been commonly used in practice and research. When `method='topdown'`, objectives and constraints are set for permissible routes. The top-down approach automatically finds an optimal way to allocate objectives, constraints, and items across stages, but it is a relatively new approach. Internally, each module will be given a across-panel unique index and with-in-panel unique index. The former is used for ATA to recognize each form, and the latter is for users to find a module in a given panel. Modules will be indexed sequentially from the first to the last stage. The `module` data frame in a *mst* object illustrates the mapping between index and stage-module position. A route map is also provided to illustrate all permissible routes. Use `mst_route(mst, route, op)` to add new routes or remove existing routes. In practice, routes with dramatic changes are oftentimes prohibited. 
+
+Use `mst_objective(mst, theta, indicies, target, flatten, ...)` to set the objective TIFs. Use the `target` argument to set a target value at given `theta` points. Otherwise, maximize the information at given `theta` points. Use the `flatten` argument to have a flat TIF. Use `mst_constraint(mst, coef, min, max, level, indicies)` to add constraints. The `min` and `max` arguments are allowed to be `NA`. With the top-down approach, it is quite likely to put all items assembled in the last stage only to achieve the optimum. To circumvent this situation, use `mst_stage_length(mst, stages, min, max)` to regulate the test length in earlier stages. Finally, use `mst_assemble(mst)` to attempt to assemble the MST. If assembled successfully, the *mst* object adds a data frame named `items` which has a few extra columns to indicate the *panel* index, *module* index, within-panel *index*, and overall *form* index.  Use `mst_get_items(mst, panel, stage, module, route)` to retrieve items from an assembled MST. To visualize the assembly results, call `plot(mst, byroute)`. When `byroute=FALSE`, it draws the TIFs of modules in a panel-by-stage grid. When `byroute=TRUE`, it draws the TIFs of routes in each panel.
+
+Use `mst_sim(mst, true.theta)` to conduct a simulation on an assembled MST. 
 
 ##### Code Samples 
-```r
-# ex. 1: 1-2-2 MST, 2 panels, topdown, 20 items, content = c(10, 5, 5)
-# maximize information at -1 for easy routes and 1 for hard routes
-pool <- irt.model()$gen.data(1,300)$items
+```{r}
+# generate a 300-item pool
+pool <- irt_model("3pl")$gendata(1,300)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-x <- mst(pool, design=c(1,2,2), npanel=2, method='topdown')
+
+# ex. 1: 1-2-2 MST, 2 panels, topdown, 20 items, content = c(10, 5, 5)
+# maximize information at -1 and 1 for easy and hard routes
+x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown')
 x$route
-x <- mst.objective(x, theta=-1, indices=1:2)
-x <- mst.objective(x, theta=1, indices=3:4)
-x <- mst.constraint(x, 1, 20, 20)
-x <- mst.constraint(x, "content", 10, 10, level=1)
-x <- mst.constraint(x, "content", 5, 5, level=2)
-x <- mst.constraint(x, "content", 5, 5, level=3)
-x <- mst.stage.length(x, c(1,2,3), min=5)
-x <- mst.assemble(x)
-freq(mst.get.items(x, panel=1,route=1)$content, 1:3)$n
-freq(mst.get.items(x, panel=2,route=4)$content, 1:3)$n
+x <- mst_objective(x, theta=-1, indices=1:2)
+x <- mst_objective(x, theta= 1, indices=3:4)
+x <- mst_constraint(x, coef=1, min=20, max=20)
+x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
+x <- mst_constraint(x, coef="content", min=5, max=5, level=2)
+x <- mst_constraint(x, coef="content", min=5, max=5, level=3)
+x <- mst_stage_length(x, stages=c(1, 2, 3), min=5)
+x <- mst_assemble(x, timeout=60)
 plot(x)
 plot(x, byroute=TRUE)
-mst.sim(x, 1)
-mst.sim(x, -1)
-# ex. 2: 1-2-2 MST, 2 panels, bottomup, 10 items per stage, content = c(4, 3, 3)
-# maximize information at -1 for easy modules, 0 for medium modules and 1 for hard modules
-x <- mst(pool, design=c(1,2,2), npanel=2, method='bottomup')
-x$module
-x <- mst.objective(x, theta=0, indices=1)
-x <- mst.objective(x, theta=-1, indices=c(2,4))
-x <- mst.objective(x, theta=1, indices=c(3,5))
-x <- mst.constraint(x, 1, 10, 10)
-x <- mst.constraint(x, "content", 4, 4, level=1)
-x <- mst.constraint(x, "content", 3, 3, level=2)
-x <- mst.constraint(x, "content", 3, 3, level=3)
-x <- mst.assemble(x)
-freq(mst.get.items(x, panel=1,route=1)$content, 1:3)$n
-freq(mst.get.items(x, panel=2,route=4)$content, 1:3)$n
-plot(x)
-plot(x, byroute=TRUE)
-mst.sim(x, 1)
-mst.sim(x, -1)
-# ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items,
-# content = c(10, 10, 10), prohibit routes with radical changes
-# maximize information at -1 for easy, 0 for medium and 1 for hard routes
-x <- mst(pool, design=c(1,2,3), npanel=2, method='topdown')
-x <- mst.route(x, c(1,2,6), "-")
-x <- mst.route(x, c(1,3,4), "-")
+freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
+freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
+
+# ex. 2: 1-2-3 MST, 2 panels, bottomup, 10 items per stage, content = c(4, 3, 3)
+# maximize information at -1, 0 and 1 for easy, medium, and hard modules
+x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup')
+x <- mst_route(x, c(1, 2, 6), "-")
+x <- mst_route(x, c(1, 3, 4), "-")
 x$route
-x <- mst.objective(x, -1, indices=1)
-x <- mst.objective(x,  0, indices=2:3)
-x <- mst.objective(x,  1, indices=4)
-x <- mst.constraint(x, 1, 30, 30)
-x <- mst.constraint(x, "content", 10, 10, level=1)
-x <- mst.constraint(x, "content", 10, 10, level=2)
-x <- mst.constraint(x, "content", 10, 10, level=3)
-x <- mst.stage.length(x, c(1,2,3), min=3)
-x <- mst.assemble(x, timeout=5*60)
-freq(mst.get.items(x, panel=1,route=1)$content, 1:3)$n
-freq(mst.get.items(x, panel=2,route=4)$content, 1:3)$n
-plot(x)
-plot(x, byroute=TRUE)
-mst.sim(x, 1)
-mst.sim(x, .2)
-mst.sim(x, -.2)
-mst.sim(x, -1)
-# ex. 4: 1-2-3 MST, 2 panels, bottomup, 10 items per stage,
-# content = c(4, 3, 3), prohibit routes with radical changes
-# target information at 6 (theta=-1) for easy, 6 (theta=0) for medium
-# and 6 (theta=1) for hard modules
-x <- mst(pool, design=c(1,2,3), npanel=2, method='bottomup')
-x <- mst.route(x, c(1,2,6), "-")
-x <- mst.route(x, c(1,3,4), "-")
 x$module
-x <- mst.objective(x, -1, indices=c(2,4), target=6)
-x <- mst.objective(x,  0, indices=c(1,5), target=6)
-x <- mst.objective(x,  1, indices=c(3,6), target=6)
-x <- mst.constraint(x, 1, 10, 10)
-x <- mst.constraint(x, "content", 4, 4, level=1)
-x <- mst.constraint(x, "content", 3, 3, level=2)
-x <- mst.constraint(x, "content", 3, 3, level=3)
-x <- mst.stage.length(x, c(1,2,3), min=3)
-x <- mst.assemble(x, timeout=5*60)
-freq(mst.get.items(x, panel=1,route=1)$content, 1:3)$n
-freq(mst.get.items(x, panel=2,route=4)$content, 1:3)$n
+x <- mst_objective(x, theta= 0, indices=1)
+x <- mst_objective(x, theta=-1, indices=c(2,4))
+x <- mst_objective(x, theta= 1, indices=c(3,5))
+x <- mst_constraint(x, coef=1, min=10, max=10)
+x <- mst_constraint(x, coef="content", min=4, max=4, level=1)
+x <- mst_constraint(x, coef="content", min=3, max=3, level=2)
+x <- mst_constraint(x, coef="content", min=3, max=3, level=3)
+x <- mst_assemble(x, timeout=60)
 plot(x)
 plot(x, byroute=TRUE)
-mst.sim(x, 1)
-mst.sim(x, .2)
-mst.sim(x, -.2)
-mst.sim(x, -1)
+freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
+freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
+
+# ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items, 10 items in each content area
+# target information at 18 at -1, 0, and 1 for easy, medium and hard routes
+x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown')
+x <- mst_route(x, c(1, 2, 6), "-")
+x <- mst_route(x, c(1, 3, 4), "-")
+x$route
+x <- mst_objective(x, theta=-1, indices=1, target=16)
+x <- mst_objective(x, theta= 0, indices=2:3, target=16)
+x <- mst_objective(x, theta= 1, indices=4, target=16)
+x <- mst_constraint(x, coef=1, min=30, max=30)
+x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
+x <- mst_constraint(x, coef="content", min=10, max=10, level=2)
+x <- mst_constraint(x, coef="content", min=10, max=10, level=3)
+x <- mst_stage_length(x, stages=c(1, 2, 3), min=3)
+x <- mst_assemble(x, timeout=5*60)
+plot(x)
+plot(x, byroute=TRUE)
+freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
+freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
 ```
-### Module 0: Graphic User Interfaces (GUIs)
+
+
+### Graphic User Interfaces
 Call `gui.irt()` to launch a shiny app for generating data and computing and drawing IRT statistics. Users can choose to generate parameters and data  or import from file. When importing people parameters, make sure it is a csv file with the proper column name (e.g., *theta* for 3PL model). When importing item parameters, make sure it is a csv file with proper column names (e.g., *a*, *b*, *c* for 3PL model). To download files, select the data and hit the "Download" button.
 
 Call `gui.estimation()` to launch a shiny app for estimating parameters. After uploading a response file in cvs format, users can choose to import or estimate people and item parameters. When importing people parameter file, make sure it is a cvs file and has a column named *theta*. When estimating people parameters, choose an estimation method. When importing item parameters, make sure it is a csv file and has three columns named *a*, *b*, and *c*. When estimating item parameters, choose an estimation method. Click "Download" button in the *people* and *items* tabs to download people or item parameters.
