@@ -42,7 +42,7 @@
 #' x <- model_3pl()$gendata(10, 5)
 #' x
 #' x$P(x)
-#' x$In(x)
+#' x$I(x)
 #' x$L(x)
 #' @importFrom stats rnorm runif rbeta
 #' @export

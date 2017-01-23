@@ -1,9 +1,13 @@
 #' ATA Helper Functions
-#' @name ataHelper
+#' @name ataHelpers
 NULL
 
-#' @rdname ataHelper
-#' @description \code{ata.get.forms} converts input forms into actual form indeces in LP
+
+#' @rdname ataHelpers
+#' @description \code{ata_get_forms} converts input forms into actual form indeces in LP
+#' @param x the ata object
+#' @param forms the forms indices
+#' @param collapse \code{TRUE} to collapse forms
 #' @details 
 #' \code{forms} input can be \code{NULL} (all forms) or a vector of form indicies. 
 #' When \code{collapse=TRUE}, the function returns a row vector; otherwise, a column vector.
@@ -18,8 +22,11 @@ ata_get_forms <- function(x, forms, collapse){
   return(forms)
 }
 
-#' @rdname ataHelper
-#' @description \code{ata.obj.coefficients} processes input coefficients for setting objective functions
+
+#' @rdname ataHelpers
+#' @description \code{ata_obj_coef} processes input coefficients for setting objective functions
+#' @param coef the coefficients
+#' @param compensate \code{TRUE} to combine coefficients
 #' @details
 #' \code{coef} can be a variable name, a vector of theta points, or a n-element vector. 
 #' When \code{compensate=TRUE}, add coefficients up. The function rounds results to 2 decimal places and returns a matrix.
@@ -38,13 +45,15 @@ ata_obj_coef <- function(x, coef, compensate){
   return(coef)
 }
 
-#' @rdname ataHelper
+
+#' @rdname ataHelpers
 #' @description \code{ata_constraint_coef} processes input coefficients for adding constraints
+#' @param level the level of the categorial variable
 #' @details
 #' \code{coef} can be a variable name, a constant, or a n-element vector. 
 #' When \code{level=NULL}, assume it's quantitaive variable; otherwise, a categorical variable.
 #' Results are rounded to 2 decimal places.
-ata_constraint_coef <- function(x, coef){
+ata_constraint_coef <- function(x, coef, level){
   if(is.numeric(coef)){
     if(length(coef) == 1){
       coef <- rep(coef, x$nitem)

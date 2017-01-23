@@ -19,66 +19,50 @@
 #' items <- irt_model("3pl")$gendata(1, 100)$items
 #' items$content <- sample(1:3, nrow(items), replace=TRUE)
 #' items$time <- round(rlnorm(nrow(items), log(60), .2), 0)
-#' # ex. 1a: 4 forms, 10 items, maximize b parmaters
-#' x <- ata(items, 4, debug=TRUE)
+#' # ex. 1: 4 forms, 10 items, maximize b parmaters
+#' x <- ata(items, 4, len=10, maxselect=1)
 #' x <- ata_obj_relative(x, "b", "max")
-#' x <- ata_constraint(x, 1, 10, 10)
-#' x <- ata_item_maxselect(x, 1)
 #' x <- ata_solve(x)
 #' plot(x)
-#' ata_get_items(x) %>% group_by(form) %>% summarize(a=mean(a), b=mean(b), c=mean(c))
-#' # ex. 1b: 4 forms, 10 items, maximize b parameters while controlling a parameters
-#' x <- ata(items, 4, debug=TRUE)
-#' x <- ata_obj_relative(x, items$a^2 * items$b, "max")
-#' x <- ata_constraint(x, 1, 10, 10)
-#' x <- ata_item_maxselect(x, 1)
+#' ata_get_items(x) %>% group_by(form) %>% 
+#'   summarize(a=mean(a), b=mean(b), c=mean(c))
+#' # ex. 2: 4 forms, 10 items, minimize b parmaeters
+#' x <- ata(items, 4, len=10, maxselect=1)
+#' x <- ata_obj_relative(x, "b", "min", negative=TRUE)
 #' x <- ata_solve(x)
 #' plot(x)
-#' ata_get_items(x) %>% group_by(form) %>% summarize(a=mean(a), b=mean(b), c=mean(c))
-#' # ex. 2: 2 forms, 10 items, minimize b parmaeters
-#' x <- ata(items, 2, len=10, maxselect=1, debug=TRUE)
-#' x <- ata.obj.relative(x, "b", "min", negative=TRUE)
-#' x <- ata.solve(x)
-#' plot(x)
-#' y <- ata.get.items(x, as.list=TRUE)
-#' mean(y[[1]]$b)
-#' mean(y[[2]]$b)
-#' # ex. 3: 2 forms, 10 items, maximize information at -0.5 and 0.5
+#' ata_get_items(x) %>% group_by(form) %>% 
+#'   summarize(a=mean(a), b=mean(b), c=mean(c))
+#' # ex. 3: 4 forms, 10 items, maximize information at -1 and 1
 #' # content distribution: 3, 3, 4; response time: avg. 55--65s
-#' x <- ata(items, 2, len=10, maxselect=1, debug=TRUE)
-#' x <- ata.obj.relative(x, c(-0.5, 0.5), "max")
-#' x <- ata.constraint(x, "content", 3, 3, 1)
-#' x <- ata.constraint(x, "content", 3, 3, 2)
-#' x <- ata.constraint(x, "content", 4, 4, 3)
-#' x <- ata.constraint(x, "time", 55*10, 65*10)
-#' x <- ata.solve(x)
+#' x <- ata(items, 4, len=10, maxselect=1) %>%
+#'      ata_obj_relative(c(-1, 1), "max") %>%
+#'      ata_constraint("content", min=3, max=3, level=1) %>%
+#'      ata_constraint("content", min=3, max=3, level=2) %>%
+#'      ata_constraint("content", min=4, max=4, level=3) %>%
+#'      ata_constraint("time", min=55*10, max=65*10) %>%
+#'      ata_solve()
 #' plot(x)
-#' y <- ata.get.items(x, TRUE)
-#' freq(y[[1]]$content, 1:3)$n
-#' mean(y[[1]]$time)
-#' freq(y[[2]]$content, 1:3)$n
-#' mean(y[[2]]$time)
-#' # ex. 4: 2 forms, 10 items, mean(b) = 0.5, sd(b) = 1.0, content = (3, 3, 4)
-#' x <- ata(items, 2, len=10, maxselect=1, debug=TRUE)
-#' x <- ata.obj.absolute(x, "b", 0.5 * 10)
-#' x <- ata.obj.absolute(x, (x$pool$b - 0.5)^2, 1.0 * 10)
-#' x <- ata.constraint(x, "content", 3, 3, 1)
-#' x <- ata.constraint(x, "content", 3, 3, 2)
-#' x <- ata.constraint(x, "content", 4, 4, 3)
-#' x <- ata.solve(x)
+#' ata_get_items(x) %>% group_by(form) %>% 
+#'   summarize(a=mean(a), b=mean(b), c=mean(c),
+#'   cont1=sum(content==1), cont2=sum(content==2), cont3=sum(content==3))
+#' # ex. 4: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
+#' x <- ata(items, 2, len=10, maxselect=1) %>%
+#'      ata_obj_absolute(x$pool$b, 0 * 10) %>%
+#'      ata_obj_absolute((x$pool$b - 0)^2, 1 * 10) %>%
+#'      ata_constraint("content", min=3, max=3, level=1) %>%
+#'      ata_constraint("content", min=3, max=3, level=2) %>%
+#'      ata_constraint("content", min=4, max=4, level=3) %>%
+#'      ata_solve(timeout=30)
 #' plot(x)
-#' y <- ata.get.items(x, TRUE)
-#' c(mean(y[[1]]$b), sd(y[[1]]$b))
-#' freq(y[[1]]$content, 1:3)$n
-#' c(mean(y[[2]]$b), sd(y[[2]]$b))
-#' freq(y[[2]]$content, 1:3)$n
+#' ata_get_items(x) %>% group_by(form) %>% 
+#'   summarize(b_mean=mean(b), b_sd=sd(b),
+#'   cont1=sum(content==1), cont2=sum(content==2), cont3=sum(content==3))
 #' # ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
-#' x <- ata(items, 2, len=10, maxselect=1, debug=TRUE)
-#' x <- ata.obj.relative(x, seq(-1, 1, .5), "max", negative=FALSE, flatten=.1)
-#' x <- ata.solve(x)
-#' y <- ata.get.items(x, TRUE)
-#' plot(irt.model.3pl(items=y[[1]]), stats="information", total=TRUE)
-#' plot(irt.model.3pl(items=y[[2]]), stats="information", total=TRUE)
+#' x <- ata(items, 2, len=10, maxselect=1) %>%
+#'      ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.1) %>%
+#'      ata_solve(timeout=30)
+#' plot(x)
 #' }
 #' @import lpSolveAPI
 #' @export
@@ -123,6 +107,7 @@ ata <- function(pool, nform=1, len=NULL, maxselect=NULL, debug=FALSE){
   return(x)
 }
 
+
 #' @rdname ata
 #' @param x the ata object
 #' @param ... further arguments
@@ -133,6 +118,7 @@ print.ata <- function(x, ...){
   cat("Results are ", ifelse(is.null(x$result), "not", ""), " available.")
   invisible(x)
 }
+
 
 #' @rdname ata
 #' @import ggplot2
@@ -166,26 +152,27 @@ plot.ata <- function(x, ...){
 
 
 #' @rdname ata
-#' @description \code{ata.obj.relative} adds relative (maximize/minimize) objectives to LP
+#' @description \code{ata_obj_relative} adds relative (maximize/minimize) objectives to LP
 #' @param coef the coefficients added to the LP
-#' @param mode the optimzation mode (i.e. 'max' for maximization or 'min' for minimization)
+#' @param mode the optimzation mode. 'max' for maximization and 'min' for minimization
 #' @param negative \code{TRUE} when the expected value of the objective function is negative
 #' @param compensate \code{TRUE} when objective functions are compensatory to one another
-#' @param flatten the flatten parameter
+#' @param flatten the flatten parameter to make the objective function smooth
 #' @param forms the forms to which objectives are added. \code{NULL} for all forms
 #' @param collapse \code{TRUE} to collapse all forms into one objective
 #' @details 
-#' For the function \code{ata.obj.relative} and \code{ata.obj.absolute}, 
-#' when \code{coef} is a pool-size numeric vector, coefficients are used directly.
-#' When \code{coef} is a variable name in the pool, values of that variable are used as coefficients.
-#' When \code{coef} is a numeric vector which is unequal to pool size, information at those theta points 
-#' are used as coefficients.\cr
-#' When the expected value of the objective function is negative, set the \code{negative} argument to \code{TRUE}.\cr
+#' When \code{coef} is a pool-size numeric vector, coefficients are used directly.
+#' When \code{coef} is a variable name, variable values are used as coefficients.
+#' When \code{coef} is a numeric vector unequal to pool size, information at those points are used as coefficients.\cr
+#' 
+#' When the expected value of the objective function is negative, set the \code{negative=TRUE}.\cr
+#' 
 #' The \code{compensate} argument controls whether objective functions are compensatory. 
 #' For example, the ATA job wants to maximize information at -0.5 and 0.5.
-#' When \code{compensate} is \code{TRUE}, the LP assembles a test maximizing the sum of information at -0.5 and 0.5.
-#' When \code{compensate} is \code{FALSE}, the LP assembles a test maximizing information at each point, but not necessarily a maxmized total.\cr
-#' \code{ata.obj.relative} is to maximize or minimize the objectives. There are four scenarios.
+#' When \code{compensate=TRUE}, the LP assembles a test maximizing the sum of information at -0.5 and 0.5.
+#' When \code{compensate=FALSE}, the LP assembles a test maximizing information at each point, but not necessarily a maxmized total.\cr
+#' 
+#' \code{ata_obj_relative} is to maximize or minimize the objectives. There are four scenarios.
 #' (1) For a maximization job with postive expected value, maximize y while sum(x) - y >= 0 and <= F (flatten).
 #' (2) For a maximization job with negative expected value, minimize y while sum(x) + y >= 0 and <= F.
 #' (3) For a minimization job with postive expected value, minimize y while sum(x) + y <= 0 and >= F.
@@ -224,11 +211,12 @@ ata_obj_relative <- function(x, coef, mode, negative=FALSE, flatten=NULL, compen
   return(x)
 }
 
+
 #' @rdname ata
 #' @description \code{ata_obj_absolute} adds absolute objectives to LP
 #' @param target the targeted value of the objective function
 #' @details 
-#' \code{ata.obj.absolute} minimizes y while sum(x) + y >= target and sum(x) - y <= target. \cr
+#' \code{ata_obj_absolute} minimizes y while sum(x) + y >= target and sum(x) - y <= target. \cr
 #' @import lpSolveAPI
 #' @export
 ata_obj_absolute <- function(x, coef, target, compensate=FALSE, forms=NULL, collapse=FALSE){
@@ -254,25 +242,26 @@ ata_obj_absolute <- function(x, coef, target, compensate=FALSE, forms=NULL, coll
   return(x)    
 }
 
+
 #' @rdname ata
-#' @description \code{ata.constraint} adds a constraint to LP
+#' @description \code{ata_constraint} adds a constraint to LP
 #' @param level the level value for categorical variable
 #' @param min the minimum value of the constraint
 #' @param max the maximum value of the constraint
 #' @details 
-#' For \code{ata.constraint}, set \code{coef} to a variable name 
+#' For \code{ata_constraint}, set \code{coef} to a variable name 
 #' in the pool and \code{level} a level value of that variable to 
 #' add a categorical constraint. Set \code{coef} to a variable name and
 #' leave \code{level} to default value (\code{NULL} or \code{NA}) to add
 #' a quantitative constraint. Set \code{coef} to a number or a vector to 
-#' directly add a constraint.\cr
+#' add a constraint directly.\cr
 #' @import lpSolveAPI
 #' @export
 ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, collapse=FALSE){
   if(class(x) != "ata") stop("not an 'ata' object: ", class(x))
   if(!is.na(min) && !is.na(max) && min > max) stop("min is greater than max.")
   forms <- ata_get_forms(x, forms, collapse)
-  coef <- ata_constraint_coef(x, coef)
+  coef <- ata_constraint_coef(x, coef, level)
 
   for(i in 1:nrow(forms)){
     f <- forms[i,]
@@ -295,8 +284,9 @@ ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, coll
   return(x)  
 }
 
+
 #' @rdname ata
-#' @description \code{ata.item.maxselect} sets the maximal times of selection for items
+#' @description \code{ata_item_maxselect} sets the maximum selection for items
 #' @param items a vector of item index
 #' @import lpSolveAPI
 #' @export
@@ -319,8 +309,9 @@ ata_item_maxselect <- function(x, maxselect, items=NULL){
   return(x)
 }
 
+
 #' @rdname ata
-#' @description \code{ata.item.enemy} adds enemy item relationship to LP
+#' @description \code{ata_item_enemy} adds enemy item relationship to LP
 #' @import lpSolveAPI
 #' @export
 ata_item_enemy <- function(x, items){
@@ -338,8 +329,9 @@ ata_item_enemy <- function(x, items){
   return(x)
 }
 
+
 #' @rdname ata
-#' @description \code{ata.fixitem} set a fixed value for items, e.g, 1 for selection and 0 for no selection
+#' @description \code{ata_item_fixedvalue} sets a fixed value range for items
 #' @import lpSolveAPI
 #' @export
 ata_item_fixedvalue <- function(x, items, min, max, forms=NULL, collapse=FALSE){
@@ -364,12 +356,11 @@ ata_item_fixedvalue <- function(x, items, min, max, forms=NULL, collapse=FALSE){
   return(x)
 }
 
+
 #' @rdname ata
-#' @description \code{ata.solve} solves the LP
+#' @description \code{ata_solve} solves the LP
 #' @details 
-#' In \code{ata.solve}, the \code{...} are additional \code{lp.control.options}.
-#' The result (\code{x$result}) is a data frame of binary code with 1 indicating selected 
-#' (items in rows and forms in columns). Use \code{ata.get.items} to extract actual items.
+#' In \code{ata_solve}, the \code{...} are additional \code{lp.control.options}.
 #' @import lpSolveAPI
 #' @export
 ata_solve <- function(x, ...){
@@ -391,8 +382,9 @@ ata_solve <- function(x, ...){
   return(x)
 }
 
+
 #' @rdname ata
-#' @description \code{ata.get.items} extracts items using assembly results
+#' @description \code{ata_get_items} extracts items using assembly results
 #' @param as.list \code{TRUE} to return a list, \code{FALSE} to return a data frame
 #' @export
 ata_get_items <- function(x, as.list=FALSE){

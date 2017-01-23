@@ -9,22 +9,24 @@
 #' @examples
 #' \dontrun{
 #' # data generation
+#' library(ggplot2)
+#' library(reshape2)
+#' library(dplyr)
 #' data <- irt_model("3pl")$gendata(500, 50)
-#' # MLE
-#' x <- estimate_people(data$responses, data$items, "3pl", "mle", debug=TRUE)
-#' cor(data$people$theta, x$people$theta)
-#' plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
-#' # MAP
-#' x <- estimate_people(data$responses, data$items, "3pl", "map", debug=TRUE)
-#' cor(data$people$theta, x$people$theta)
-#' plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
-#' # EAP
-#' x <- estimate_people(data$responses, data$items, "3pl", "eap")
-#' cor(data$people$theta, x$people$theta)
-#' plot(data$people$theta, x$people$theta, xlim=c(-4,4), ylim=c(-4,4), 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.5), pch=16)
+#' 
+#' # Estimate people parameters: MLE
+#' x.mle <- estimate_people(data$responses, data$items, "3pl", "mle")
+#' # Estimate people parameters: MAP
+#' x.map <- estimate_people(data$responses, data$items, "3pl", "map")
+#' # Estimate people parameters: EAP
+#' x.eap <- estimate_people(data$responses, data$items, "3pl", "eap")
+#' # Comparison with true parameters
+#' x <- data.frame(true=data$people$theta, mle=x.mle$people$theta, map=x.map$people$theta, eap=x.eap$people$theta)
+#' round(t(apply(x, 2, function(v) c(R=cor(v, x$true), RMSE=rmse(v, x$true)))), 2)
+#' melt(x, id.vars="true") %>% 
+#'   ggplot(aes(x=true, y=value, color=variable)) + geom_point(pch=1) +
+#'   facet_wrap(~variable, nrow=2) + xlab("True") + ylab("Est.") +
+#'   theme_bw() + theme(legend.key=element_blank())
 #' }
 #' @export
 estimate_people <- function(responses, items, model="3pl", method="mle", ...){
@@ -36,6 +38,7 @@ estimate_people <- function(responses, items, model="3pl", method="mle", ...){
                         )
          )
 }
+
 
 #' @rdname estimate_people
 #' @description \code{estimate_people_3pl_mle} is the maximum likelihood (ML) estimator of the people parameter.
@@ -59,7 +62,7 @@ estimate_people_3pl_mle <- function(responses, items, init=0, iter=30, conv=0.01
   # Initial values
   diagnosis <- list(h=rep(NA, iter))
   n.items <- nrow(items)
-  n.people <- nrow(responses)
+  n.people <- nrow(u)
   if(length(init) == 1) init <- rep(init, n.people)
   if(length(init) != n.people) stop("incorrect init length")
   t <- init
@@ -95,6 +98,7 @@ estimate_people_3pl_mle <- function(responses, items, init=0, iter=30, conv=0.01
   return(output)
 }
 
+
 #' @rdname estimate_people
 #' @description \code{estimate_people_3pl_map} is the maximum a posteriori (MAP) estimator of people parameters
 #' @param prior.mean the mean of the prior distribuiton
@@ -113,7 +117,7 @@ estimate_people_3pl_map <- function(responses, items, prior.mean=0, prior.sd=1, 
   # Initial values
   diagnosis <- list(h=rep(NA, iter))
   n.items <- nrow(items)
-  n.people <- nrow(responses)
+  n.people <- nrow(u)
   if(length(init) == 1) init <- rep(init, n.people)
   if(length(init) != n.people) stop("incorrect init length")
   t <- init
@@ -151,6 +155,7 @@ estimate_people_3pl_map <- function(responses, items, prior.mean=0, prior.sd=1, 
   return(output)
 }
 
+
 #' @rdname estimate_people
 #' @description \code{estimate_people_3pl_eap} is the expected a priori (EAP) estimator of people parameters
 #' @details
@@ -164,7 +169,7 @@ estimate_people_3pl_eap <- function(responses, items){
   
   # Initial values
   n.items <- nrow(items)
-  n.people <- nrow(responses)
+  n.people <- nrow(u)
   gauss.hermite <- quadrature()
   X <- gauss.hermite$x
   A <- gauss.hermite$w
@@ -195,34 +200,26 @@ estimate_people_3pl_eap <- function(responses, items){
 #' @examples
 #' \dontrun{
 #' # data generation
+#' library(ggplot2)
+#' library(reshape2)
+#' library(dplyr)
 #' data <- irt_model("3pl")$gendata(2000, 50)
-#' # JMLE
-#' x <- estimate_items(data$responses, model="3pl", method="jmle", people=data$people, debug=TRUE)
-#' cor(data$items, x$items)
-#' plot(data$items$a, x$items$a, xlim=c(0, 2), ylim=c(0, 2), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' # MMLE
-#' x <- estimate_items(data$responses, model="3pl", method="mmle", debug=TRUE)
-#' cor(data$items, x$items)
-#' plot(data$items$a, x$items$a, xlim=c(0, 2), ylim=c(0, 2), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' # BME
-#' x <- estimate_items(data$responses, model="3pl", method="bme", debug=TRUE)
-#' cor(data$items, x$items)
-#' plot(data$items$a, x$items$a, xlim=c(0, 2), ylim=c(0, 2), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' plot(data$items$b, x$items$b, xlim=c(-4, 4), ylim=c(-4, 4), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
-#' plot(data$items$c, x$items$c, xlim=c(0, .3), ylim=c(0, .3), pch=16, 
-#' xlab="True", ylab="Est.", col=rgb(.8,.2,.2,.6))
+#' 
+#' # Estimate item parameters: JMLE
+#' x.jmle <- estimate_items(data$responses, "3pl", "jmle", people=data$people)
+#' # Estimate item parameters: MMLE
+#' x.mmle <- estimate_items(data$responses, "3pl", "mmle")
+#' # Estimate item parameters: BME
+#' x.bme <- estimate_items(data$responses, "3pl", "bme")
+#' # Comparison with true parameters
+#' sapply(list(jmle=x.jmle, mmle=x.mmle, bme=x.bme), function(x) diag(cor(x$items, data$items)))
+#' sapply(list(jmle=x.jmle, mmle=x.mmle, bme=x.bme), function(x) rmse(x$items, data$items))
+#' x <- rbind(data.frame(method="jmle", melt(x.jmle$items), true=melt(data$items)$value),
+#'            data.frame(method="mmle", melt(x.mmle$items), true=melt(data$items)$value),
+#'            data.frame(method="bme", melt(x.bme$items), true=melt(data$items)$value))
+#' ggplot(data=x, aes(x=true, y=value, color=method)) + geom_point(pch=1) +
+#'   facet_grid(variable ~ method, scales="free") + xlab("True") + ylab("Est.") +
+#'   theme_bw() + theme(legend.key=element_blank())
 #' }
 #' @export
 estimate_items <- function(responses, model="3pl", method="jmle", ...){
@@ -234,6 +231,7 @@ estimate_items <- function(responses, model="3pl", method="jmle", ...){
          )
   )
 }
+
 
 #' @rdname estimate_items
 #' @description \code{estimate_items_3pl_jmle} is the joint maximum likelihood estimator (JML) of item parameters
@@ -344,6 +342,7 @@ estimate_items_3pl_jmle <- function(responses, people, fix=list(), iter=30, conv
   }
   return(output) 
 }
+
 
 #' @rdname estimate_items
 #' @description \code{estimate_items_3pl_mmle} is the marginal maximum likelihood estimator (MMLE) of item parameters
@@ -467,6 +466,7 @@ estimate_items_3pl_mmle <- function(responses, fix=list(), iter=30, conv=0.01, b
   return(output)
 }
 
+
 #' @rdname estimate_items
 #' @description \code{estimate_items_3pl_bme} is the bayesian estimator of item parameters
 #' @param prior a list of prior distributions parameters
@@ -485,8 +485,8 @@ estimate_items_3pl_bme <- function(responses, fix=list(), iter=30, conv=0.01,
   u <- inputs$responses
   
   # Constants
-  n.people <- nrow(responses)
-  n.items <- ncol(responses)
+  n.people <- nrow(u)
+  n.items <- ncol(u)
   
   # Initial item parameters
   init.par <- estimate_items_3pl_init_par(fix, init, n.items)
@@ -594,6 +594,7 @@ estimate_items_3pl_bme <- function(responses, fix=list(), iter=30, conv=0.01,
   }
   return(output)
 }
+
 
 #' Estimate Both People and Item Parameters
 #' @description Estimates both people and item responses using MMLE and JMLE

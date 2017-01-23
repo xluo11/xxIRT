@@ -19,7 +19,9 @@ irt_model <- function(model, people=NULL, items=NULL, responses=NULL, ...){
          "3pl" = model_3pl(people, items, responses, ...))
 }
 
+
 #' @rdname irt_model
+#' @param x a \code{irt_model} object
 #' @importFrom utils head
 #' @export
 print.irt.model <- function(x, ...){
@@ -37,6 +39,7 @@ print.irt.model <- function(x, ...){
   
   invisible(x)
 }
+
 
 #' Compute IRT Statistics
 #' @description Compute probability, information, likelihood and loglikelihood via a common interface
@@ -62,6 +65,7 @@ print.irt.model <- function(x, ...){
 irt_stats <- function(x, stats="prob", summary=NULL, fun=NULL, ...){
   if(!"irt.model" %in% class(x)) 
     stop("data is not a irt.model object")
+  stats <- tolower(gsub('[- ]', '', stats))
   if(!stats %in% c("prob", "info", "lik", "loglik")) 
     stop("invalid stats input. use 'prob', 'info', 'lik', or 'loglik'")
   
@@ -78,6 +82,7 @@ irt_stats <- function(x, stats="prob", summary=NULL, fun=NULL, ...){
   
   return(value)
 }
+
 
 #' Subset IRT Model
 #' @description Subset and sample from an IRT model object
@@ -106,6 +111,7 @@ irt_select <- function(x, people.index=NULL, items.index=NULL){
   return(irt_model(x$name, people, items, responses))
 }
 
+
 #' @rdname irt_select
 #' @param n.people the nubmer of people to sample
 #' @param n.items the number of items to sample
@@ -130,6 +136,7 @@ irt_sample <- function(x, n.people=NULL, n.items=NULL){
 
   return(irt_select(x, people.index, items.index))
 }
+
 
 #' Rescale 3PL parameters
 #' @description Rescale parameters in a 3PL model
@@ -173,6 +180,7 @@ irt_rescale_3pl <- function(x, parameter="theta", mean=0, sd=1){
   
   return(x)
 }
+
 
 #' @rdname irt_model
 #' @details 

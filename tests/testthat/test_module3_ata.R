@@ -2,6 +2,8 @@ library(testthat)
 library(magrittr)
 library(dplyr)
 
+context("module3_ata.R")
+
 test_that("create ata object", {
   items <- irt_model("3pl")$gendata(1, 100)$items
   items$content <- sample(1:3, nrow(items), replace=TRUE)
@@ -112,6 +114,99 @@ test_that("add relative objective functions", {
 })
 
 test_that("add constraints", {
+  items <- irt_model("3pl")$gendata(1, 100)$items
+  items$content <- sample(1:3, nrow(items), replace=TRUE)
+  items$time <- round(rlnorm(nrow(items), log(60), .2), 0)
+
+  # add categorical constraint for all forms with both min and max
+  x <- ata(items, 4, len=10, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, coef="content", min=3, max=3, level=1)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(content=sum(content == 1))
+  expect_true(all(val$content == 4))
   
+  # add categorical constraint for all forms with min only
+  x <- ata(items, 4, len=10, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, coef="content", min=3, level=1)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(content=sum(content == 1))
+  expect_true(all(val$content >= 3))
+  
+  # add categorical constraint for all forms with max only
+  x <- ata(items, 4, len=10, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, coef="content", max=3, level=1)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(content=sum(content == 1))
+  expect_true(all(val$content <= 3))
+  
+  # add categorical constraint for 2 forms with min and max
+  x <- ata(items, 4, len=10, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, coef="content", min=4, max=4, level=1, forms=1:2)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(content=sum(content == 1))
+  expect_true(all(val$content[1:2] == 4))
+  
+  # add quantitaive constraint for all forms with both min and max
+  x <- ata(items, 4, len=10, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, coef="time", min=59*10, max=61*10)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(time=mean(time))
+  expect_true(all(val$time >= 59 & val$time < 61))
+  
+  # add constant constraint for all forms with both min and max
+  x <- ata(items, 4, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, 1, min=10, max=10)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(len=n())
+  expect_true(all(val$len == 10))
+  
+  # add vector value constraint for all forms with both min and max
+  x <- ata(items, 4, len=10, maxselect=1)
+  x <- ata_obj_relative(x, "b", "max")
+  x <- ata_constraint(x, coef=items$a, min=0.8*10, max=1.0*10)
+  x <- ata_solve(x)
+  y <- ata_get_items(x)
+  val <- y %>% group_by(form) %>% summarise(a=mean(a))
+  expect_true(all(val$a >= 0.8 & val$a <= 1.1))
+})
+
+test_that("enemy items", {
+  items <- irt_model("3pl")$gendata(1, 5)$items
+  items$id <- 1:nrow(items)
+  
+  for(i in 2:5){
+    x <- ata(items, 1, len=4, maxselect=1)
+    x <- ata_obj_relative(x, "b", "max")
+    x <- ata_item_enemy(x, c(1, i))
+    x <- ata_solve(x)
+    y <- ata_get_items(x)
+    expect_false(all(c(1, i) %in% y$id))
+  }
+})
+
+test_that("fixed selection", {
+  items <- irt_model("3pl")$gendata(1, 5)$items
+  items$id <- 1:nrow(items)
+  
+  for(i in 1:nrow(items)){
+    x <- ata(items, 1, len=3, maxselect=1)
+    x <- ata_obj_relative(x, "b", "max")
+    x <- ata_item_fixedvalue(x, items=i, min=1, max=1)
+    x <- ata_solve(x)
+    y <- ata_get_items(x)
+    expect_true(i %in% y$id)
+  }
 })
 

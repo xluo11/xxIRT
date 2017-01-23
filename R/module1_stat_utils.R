@@ -11,6 +11,7 @@ rmse <- function(x, y){
   return(rmse)
 }
 
+
 #' Count Frequency
 #' @description Count (cumulative) frequency and percentage using user-defined values
 #' @param x a vector being counted

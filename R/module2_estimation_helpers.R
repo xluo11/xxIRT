@@ -2,13 +2,14 @@
 #' @name estimationHelper
 NULL
 
+
 #' @rdname estimationHelper
 #' @param responses the responses data
 #' @param items the item parameters
 estimate_people_3pl_check_input <- function(responses, items){
   # convert vector to matrix
   if(is.vector(responses) && length(responses) == nrow(items))
-    responses <- matrix(unlist(responses), nrow=1)
+    responses <- matrix(responses, nrow=1)
   # validate dimension
   if(ncol(responses) != nrow(items))
     stop("response columns don't match item rows")
@@ -18,6 +19,7 @@ estimate_people_3pl_check_input <- function(responses, items){
   return(list(responses=responses, items=items))
 }
 
+
 #' @rdname estimationHelper
 #' @details 
 #' \code{qudrature} was originally intended to call \code{gaussquad::hermite.h.quadrature.rules(12)[[12]]}
@@ -26,12 +28,13 @@ quadrature <- function () {
                     w=c(2.658552e-07, 8.573687e-05, 0.003905391, 0.05160799, 0.2604923, 0.5701352, 0.5701352, 0.2604923, 0.05160799, 0.003905391, 8.573687e-05, 2.658552e-07)))
 }
 
+
 #' @rdname estimationHelper
 #' @param people the people parameters
 estimate_items_3pl_check_input <- function(responses, people){
   # convert vector to data frame
   if(is.vector(responses) && length(responses) == nrow(people))
-    responses <- matrix(unlist(responses), ncol=1)
+    responses <- matrix(responses, ncol=1)
   # validate dimensions
   if(!is.null(people) && nrow(responses) != nrow(people))
     stop("response rows don't match people rows")
@@ -40,6 +43,7 @@ estimate_items_3pl_check_input <- function(responses, people){
     stop("response is not dichotomous")
   return(list(responses=responses, people=people))
 }
+
 
 #' @rdname estimationHelper
 #' @param n.items the number of items
