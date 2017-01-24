@@ -10,6 +10,7 @@ estimate_people_3pl_check_input <- function(responses, items){
   # convert vector to matrix
   if(is.vector(responses) && length(responses) == nrow(items))
     responses <- matrix(responses, nrow=1)
+  responses <- as.matrix(responses)
   # validate dimension
   if(ncol(responses) != nrow(items))
     stop("response columns don't match item rows")
@@ -35,6 +36,7 @@ estimate_items_3pl_check_input <- function(responses, people){
   # convert vector to data frame
   if(is.vector(responses) && length(responses) == nrow(people))
     responses <- matrix(responses, ncol=1)
+  responses <- as.matrix(responses)
   # validate dimensions
   if(!is.null(people) && nrow(responses) != nrow(people))
     stop("response rows don't match people rows")
