@@ -149,7 +149,7 @@ cat_sim <- function(theta.true, pool, opts, cat.select=cat_select_default, cat.e
   
   # Clean up
   cat.data$stats <- cat.data$stats[1:i, ]
-  cat.data$admin <- cbind(cat.data$stats, cat.data$items)
+  cat.data$admin <- cbind(pos=1:i, cat.data$stats, cat.data$items)
   class(cat.data) <- "cat"
   return(cat.data)
 }
@@ -182,13 +182,12 @@ print.cat <- function(x, ...){
 plot.cat <- function(x, ...){
   x$admin$lb <- x$admin$t - 1.96 * x$admin$se
   x$admin$ub <- x$admin$t + 1.96 * x$admin$se
-  x$admin$pos <- 1:x$len
   x$admin$Response <- factor(x$admin$u, levels=c(0, 1), labels=c("Wrong", "Right"))
   ggplot(data=x$admin, aes_string(x="pos",y="t",color="Response")) + 
-    geom_point(aes_string(size="se"), alpha=.5) + 
+    geom_point(aes_string(size="se"), alpha=.6) + 
     geom_hline(yintercept=x$true, linetype=2, color="gray70") +
     geom_linerange(aes_string(ymin="lb",ymax="ub"), linetype=3) +
-    coord_cartesian(ylim=c(-3,3), xlim=c(0, x$opts$max)) + scale_size(range=c(1, 3)) +
+    coord_cartesian(ylim=c(-3,3), xlim=c(0, x$opts$max)) + scale_size(range=c(1, 5)) +
     xlab("Position") + ylab(expression(paste("Est. ", theta))) + 
     guides(size=F, alpha=F) + theme_bw() + theme(legend.key = element_blank())
 }

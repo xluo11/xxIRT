@@ -21,7 +21,8 @@
 #' # Estimate people parameters: EAP
 #' x.eap <- estimate_people(data$responses, data$items, "3pl", "eap")
 #' # Comparison with true parameters
-#' x <- data.frame(true=data$people$theta, mle=x.mle$people$theta, map=x.map$people$theta, eap=x.eap$people$theta)
+#' x <- data.frame(true=data$people$theta, mle=x.mle$people$theta, 
+#'   map=x.map$people$theta, eap=x.eap$people$theta)
 #' round(t(apply(x, 2, function(v) c(R=cor(v, x$true), RMSE=rmse(v, x$true)))), 2)
 #' melt(x, id.vars="true") %>% 
 #'   ggplot(aes(x=true, y=value, color=variable)) + geom_point(pch=1) +

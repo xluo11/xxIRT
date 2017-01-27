@@ -22,7 +22,6 @@ Imports:
     ggplot2, 
     graphics,
     reshape2, 
-    shiny,
     stats,
     utils
 RoxygenNote: 5.0.1
