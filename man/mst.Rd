@@ -5,8 +5,10 @@
 \alias{mst_assemble}
 \alias{mst_constraint}
 \alias{mst_get_items}
+\alias{mst_module_mininfo}
 \alias{mst_objective}
 \alias{mst_route}
+\alias{mst_set_rdp}
 \alias{mst_stage_length}
 \alias{plot.mst}
 \alias{print.mst}
@@ -23,6 +25,10 @@ mst_constraint(x, coef, min = NA, max = NA, level = NULL,
   indices = NULL)
 
 mst_stage_length(x, stages, min = NA, max = NA)
+
+mst_set_rdp(x, theta, indices)
+
+mst_module_mininfo(x, theta, mininfo, indices)
 
 mst_assemble(x, ...)
 
@@ -67,6 +73,8 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 
 \item{stages}{the stage index}
 
+\item{mininfo}{the minimum information treshold}
+
 \item{...}{further arguments}
 
 \item{panel}{the panel index}
@@ -85,6 +93,10 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 \code{mst_constraint} adds constraints to the mst
 
 \code{mst_stage_length} sets the minimum and maximum length for a stage
+
+\code{mst_set_rdp} anchors the routing decision point (rdp) between adjacent modules
+
+\code{mst_module_mininfo} sets the minimum information for modules
 
 \code{mst_assemble} assembles the mst
 

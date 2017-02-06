@@ -165,7 +165,8 @@ mst_objective <- function(x, theta, indices=NULL, target=NULL, flatten=NULL, the
   indices <- mst_indices_input(x, indices)
   
   if(length(theta) == 2) {
-    theta <- seq(theta[1], theta[2], length.out=theta.step)
+    theta <- seq(theta[1], theta[2], length.out=theta.step + 2)
+    theta <- theta[-c(1, length(theta))]
   } else if(length(theta) > 2) {
     stop("invalid theta input. use one or two numbers to set TIF objective at a point or over an interval.")
   }
@@ -233,6 +234,45 @@ mst_stage_length <- function(x, stages, min=NA, max=NA){
   x$calls <- c(x$calls, match.call())
   return(x)
 }
+
+
+#' @rdname mst
+#' @description \code{mst_set_rdp} anchors the routing decision point (rdp) between adjacent modules
+#' @import lpSolveAPI
+#' @export
+mst_set_rdp <- function(x, theta, indices) {
+  # validation
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
+  if(length(theta) != 1) stop("rdp is not a single theta point")
+  if(length(indices) != 2|| abs(indices[1] - indices[2]) != 1) stop("modules are not adjacent") 
+  
+  value <- rep(c(1, -1), each=x$nitem)
+  for(i in 1:x$npanel) {
+    f <- indices + (i - 1) * x$nmodule
+    index <- as.vector(outer(1:x$nitem, (f - 1) * x$nitem, "+"))
+    add.constraint(x$assembler$lp, value, "=", 0, index)
+  }
+  x
+}
+
+
+#' @rdname mst
+#' @description \code{mst_module_mininfo} sets the minimum information for modules
+#' @param mininfo the minimum information treshold
+#' @export
+mst_module_mininfo <- function(x, theta, mininfo, indices) {
+  # validation
+  if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
+  if(any(indices < 1 | indices > x$nmodule)) stop("invalid module index")
+
+  coef <- irt_stats(irt_model("3pl", t=theta, items=x$pool), "info")
+  coef <- round(coef, 3)
+  for(i in 1:x$npanel)
+    for(j in 1:length(theta))
+      x$assembler <- ata_constraint(x$assembler, coef[j, ], min=mininfo, forms=indices + (i - 1) * x$nmodule)
+  x
+}
+
 
 
 #' @rdname mst
