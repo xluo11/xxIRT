@@ -14,7 +14,7 @@
 \alias{print.mst}
 \title{Computerized Multistage Testing (MST)}
 \usage{
-mst(pool, design, npanel, method)
+mst(pool, design, npanel, method, len = NULL, maxselect = NULL)
 
 mst_route(x, route, op)
 
@@ -26,11 +26,11 @@ mst_constraint(x, coef, min = NA, max = NA, level = NULL,
 
 mst_stage_length(x, stages, min = NA, max = NA)
 
-mst_set_rdp(x, theta, indices)
+mst_set_rdp(x, theta, indices, tol)
 
 mst_module_mininfo(x, theta, mininfo, indices)
 
-mst_assemble(x, ...)
+mst_assemble(x, solver = "lpsolve", verbose = "none", ...)
 
 \method{print}{mst}(x, ...)
 
@@ -46,6 +46,10 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 \item{npanel}{the number of panels}
 
 \item{method}{the design method (i.e., 'topdown' or 'bottomup')}
+
+\item{len}{the module/route length}
+
+\item{maxselect}{the maximum selection of items}
 
 \item{x}{the mst object}
 
@@ -73,7 +77,13 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 
 \item{stages}{the stage index}
 
+\item{tol}{tolerance parameter}
+
 \item{mininfo}{the minimum information treshold}
+
+\item{solver}{the ata solver}
+
+\item{verbose}{the verbose parameter}
 
 \item{...}{further arguments}
 
@@ -122,56 +132,56 @@ and route information functions if \code{byroute=TRUE}
 pool <- irt_model("3pl")$gendata(1,300)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-# ex. 1: 1-2-2 MST, 2 panels, topdown, 20 items, content = c(10, 5, 5)
-# maximize information at -1 and 1 for easy and hard routes
-x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown')
-x$route
+
+## ex. 1: 1-2-2 MST, 2 panels, topdown
+## 20 items, content = c(10, 5, 5)
+## maximize information at -1 and 1 for easy and hard routes
+x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown', len=20, maxselect=1)
 x <- mst_objective(x, theta=-1, indices=1:2)
 x <- mst_objective(x, theta= 1, indices=3:4)
-x <- mst_constraint(x, coef=1, min=20, max=20)
 x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
 x <- mst_constraint(x, coef="content", min=5, max=5, level=2)
 x <- mst_constraint(x, coef="content", min=5, max=5, level=3)
-x <- mst_stage_length(x, stages=c(1, 2, 3), min=5)
-x <- mst_assemble(x, timeout=60)
+x <- mst_stage_length(x, stages=c(1, 2, 3), min=1)
+x <- mst_assemble(x, timeout=10)
+x$items
 plot(x)
 plot(x, byroute=TRUE)
 freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
 freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-# ex. 2: 1-2-3 MST, 2 panels, bottomup, 10 items per stage, content = c(4, 3, 3)
-# maximize information at -1, 0 and 1 for easy, medium, and hard modules
-x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup')
+
+## ex. 2: 1-2-3 MST, 2 panels, bottomup, 
+## 10 items in each module, content = c(4, 3, 3)
+## maximize information at -1, 0 and 1 for easy, medium, and hard modules
+x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup', len=10, maxselect=1)
 x <- mst_route(x, c(1, 2, 6), "-")
 x <- mst_route(x, c(1, 3, 4), "-")
-x$route
-x$module
 x <- mst_objective(x, theta= 0, indices=1)
 x <- mst_objective(x, theta=-1, indices=c(2,4))
 x <- mst_objective(x, theta= 1, indices=c(3,5))
-x <- mst_constraint(x, coef=1, min=10, max=10)
 x <- mst_constraint(x, coef="content", min=4, max=4, level=1)
 x <- mst_constraint(x, coef="content", min=3, max=3, level=2)
 x <- mst_constraint(x, coef="content", min=3, max=3, level=3)
-x <- mst_assemble(x, timeout=60)
+x <- mst_assemble(x, timeout=10)
 plot(x)
 plot(x, byroute=TRUE)
 freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
 freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-# ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items, 10 items in each content area
-# target information at 18 at -1, 0, and 1 for easy, medium and hard routes
-x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown')
+
+## ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items, 
+## 10 items in each content area
+## target information at 18 at -1, 0, and 1 for easy, medium and hard routes
+x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown', len=30, maxselect=1)
 x <- mst_route(x, c(1, 2, 6), "-")
 x <- mst_route(x, c(1, 3, 4), "-")
-x$route
 x <- mst_objective(x, theta=-1, indices=1, target=16)
 x <- mst_objective(x, theta= 0, indices=2:3, target=16)
 x <- mst_objective(x, theta= 1, indices=4, target=16)
-x <- mst_constraint(x, coef=1, min=30, max=30)
 x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
 x <- mst_constraint(x, coef="content", min=10, max=10, level=2)
 x <- mst_constraint(x, coef="content", min=10, max=10, level=3)
 x <- mst_stage_length(x, stages=c(1, 2, 3), min=3)
-x <- mst_assemble(x, timeout=5*60)
+x <- mst_assemble(x, timeout=20)
 plot(x)
 plot(x, byroute=TRUE)
 freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq

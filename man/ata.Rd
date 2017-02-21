@@ -3,28 +3,28 @@
 \name{ata}
 \alias{ata}
 \alias{ata_constraint}
-\alias{ata_get_items}
 \alias{ata_item_enemy}
 \alias{ata_item_fixedvalue}
 \alias{ata_item_maxselect}
 \alias{ata_obj_absolute}
 \alias{ata_obj_relative}
 \alias{ata_solve}
+\alias{ata_solve_glpk}
+\alias{ata_solve_lpsolve}
 \alias{plot.ata}
 \alias{print.ata}
 \title{Automated Test Assembly (ATA)}
 \usage{
-ata(pool, nform = 1, len = NULL, maxselect = NULL, debug = FALSE)
+ata(pool, nforms = 1, len = NULL, maxselect = NULL)
 
 \method{print}{ata}(x, ...)
 
 \method{plot}{ata}(x, ...)
 
 ata_obj_relative(x, coef, mode, negative = FALSE, flatten = NULL,
-  compensate = FALSE, forms = NULL, collapse = FALSE)
+  forms = NULL, collapse = FALSE)
 
-ata_obj_absolute(x, coef, target, compensate = FALSE, forms = NULL,
-  collapse = FALSE)
+ata_obj_absolute(x, coef, target, forms = NULL, collapse = FALSE)
 
 ata_constraint(x, coef, min = NA, max = NA, level = NULL, forms = NULL,
   collapse = FALSE)
@@ -33,52 +33,60 @@ ata_item_maxselect(x, maxselect, items = NULL)
 
 ata_item_enemy(x, items)
 
-ata_item_fixedvalue(x, items, min, max, forms = NULL, collapse = FALSE)
+ata_item_fixedvalue(x, items, min = NA, max = NA, forms = NULL,
+  collapse = FALSE)
 
-ata_solve(x, ...)
+ata_solve(x, solver = "lpsolve", as.list = TRUE, timeout = 10,
+  mip_gap = 0.01, verbose = "none", ...)
 
-ata_get_items(x, as.list = FALSE)
+ata_solve_glpk(x, ...)
+
+ata_solve_lpsolve(x, ...)
 }
 \arguments{
-\item{pool}{a data frame of item parameters}
+\item{pool}{item pool}
 
-\item{nform}{the number of forms to be assembled}
+\item{nforms}{the number of forms}
 
 \item{len}{the test length}
 
 \item{maxselect}{the maximum selection of each item}
 
-\item{debug}{\code{TRUE} to turn on debugging mode}
-
 \item{x}{the ata object}
 
 \item{...}{further arguments}
 
-\item{coef}{the coefficients added to the LP}
+\item{coef}{the coefficients of the objective function or the constraint}
 
-\item{mode}{the optimzation mode. 'max' for maximization and 'min' for minimization}
+\item{mode}{the optimzation mode: 'max' for maximization and 'min' for minimization}
 
 \item{negative}{\code{TRUE} when the expected value of the objective function is negative}
 
-\item{flatten}{the flatten parameter to make the objective function smooth}
+\item{flatten}{the flatten parameter to make the objective function flat}
 
-\item{compensate}{\code{TRUE} when objective functions are compensatory to one another}
+\item{forms}{the indcies of forms where objectives are added. \code{NULL} for all forms}
 
-\item{forms}{the forms to which objectives are added. \code{NULL} for all forms}
+\item{collapse}{\code{TRUE} to collapse all forms into one objective function}
 
-\item{collapse}{\code{TRUE} to collapse all forms into one objective}
+\item{target}{the target of the objective function}
 
-\item{target}{the targeted value of the objective function}
+\item{min}{the lower bound of the constraint}
 
-\item{min}{the minimum value of the constraint}
-
-\item{max}{the maximum value of the constraint}
+\item{max}{the upper bound of the constraint}
 
 \item{level}{the level value for categorical variable}
 
-\item{items}{a vector of item index}
+\item{items}{a vector of item indices}
 
-\item{as.list}{\code{TRUE} to return a list, \code{FALSE} to return a data frame}
+\item{solver}{\code{"glpk"} for GLPK and \code{"lpsolve"} for lpSolve}
+
+\item{as.list}{\code{TRUE} to return resutls in a list; otherwise, data frame}
+
+\item{timeout}{the time limit in seconds}
+
+\item{mip_gap}{the mip gap paraemter}
+
+\item{verbose}{the message parameter}
 }
 \description{
 \code{ata} creates an \code{ata} object
@@ -97,94 +105,97 @@ ata_get_items(x, as.list = FALSE)
 
 \code{ata_solve} solves the LP
 
-\code{ata_get_items} extracts items using assembly results
+\code{ata_solve_glpk} solves the LP using  GLPK
+
+\code{ata_solve_lpsolve} solves the LP using LpSolve
 }
 \details{
-An \code{ata} object contains an item pool (\code{pool}), a LP object (\code{lp}),
-and several constants such as the number of forms (\code{nform}), the size of item pool(\code{nitem}), 
-the size of LP object (\code{nlpitem}), etc. It would also contain assembly results (\code{result}) 
-if LP has been solved. The result is a data frame of binary code with 1 meaning an item being selected 
-(items in rows and forms in columns). Use \code{ata_get_items} to extract selected items from results. \cr
+The \code{ata} object stores LP information in \code{obj}, \code{mat}, \code{dir}, 
+\code{rhs}, \code{types}, \code{bounds}, \code{max}. When the \code{ata_solve} is
+called, this information will be converted to real LP object for the selected solver.
+When the LP is solved successfully, two results will be added to the \code{ata} object:
+(i) \code{result} is a matrix of binary selection results (items in rows and forms in columns)
+and (ii) \code{items} is a list or data frame of selected items.\cr
 
-When \code{coef} is a pool-size numeric vector, coefficients are used directly.
+To maximize the LP, it is to maximize y while subject to sum(x) - y >= 0 and <= F (flatten parameter).
+To minimize teh LP, it is to minimize y while subject to sum(x) - y <= 0 and >= F.
+By default, y is non-negative. When \code{negative=TRUE}, y is set to be negative. \cr 
+When \code{coef} is a pool-size or form-size numeric vector, coefficients are used directly.
 When \code{coef} is a variable name, variable values are used as coefficients.
 When \code{coef} is a numeric vector unequal to pool size, information at those points are used as coefficients.\cr
 
-When the expected value of the objective function is negative, set the \code{negative=TRUE}.\cr
+\code{ata_obj_absolute} is to minimize y while subject to sum(x) + y >= T and sum(x) - y <= T. \cr
 
-The \code{compensate} argument controls whether objective functions are compensatory. 
-For example, the ATA job wants to maximize information at -0.5 and 0.5.
-When \code{compensate=TRUE}, the LP assembles a test maximizing the sum of information at -0.5 and 0.5.
-When \code{compensate=FALSE}, the LP assembles a test maximizing information at each point, but not necessarily a maxmized total.\cr
+For \code{ata_constraint}, set \code{coef} to a variable name and \code{level} a level 
+of that variable to add a categorical constraint. Set \code{coef} to a variable name and
+leave \code{level} to default value (\code{NULL} or \code{NA}) to add a quantitative constraint. 
+Set \code{coef} to a constant or a vector to add a constraint directly.\cr
 
-\code{ata_obj_relative} is to maximize or minimize the objectives. There are four scenarios.
-(1) For a maximization job with postive expected value, maximize y while sum(x) - y >= 0 and <= F (flatten).
-(2) For a maximization job with negative expected value, minimize y while sum(x) + y >= 0 and <= F.
-(3) For a minimization job with postive expected value, minimize y while sum(x) + y <= 0 and >= F.
-(4) For a minimization job with negative expected value, maximize y while sum(x) - y <= 0 and >= F.
-
-\code{ata_obj_absolute} minimizes y while sum(x) + y >= target and sum(x) - y <= target. \cr
-
-For \code{ata_constraint}, set \code{coef} to a variable name 
-in the pool and \code{level} a level value of that variable to 
-add a categorical constraint. Set \code{coef} to a variable name and
-leave \code{level} to default value (\code{NULL} or \code{NA}) to add
-a quantitative constraint. Set \code{coef} to a number or a vector to 
-add a constraint directly.\cr
-
-In \code{ata_solve}, the \code{...} are additional \code{lp.control.options}.
+In \code{ata_solve}, additional control parameters will be passed into solvers.
+When passing control parameters to the GLPK solver, use the correct parameter name
+(see \code{?glpkAPI::glpkConstants}).
 }
 \examples{
 \dontrun{
+library(dplyr)
 # generate a 100-item pool
-# library(magrittr)
-# library(dplyr)
 items <- irt_model("3pl")$gendata(1, 100)$items
+items$id <- 1:nrow(items)
 items$content <- sample(1:3, nrow(items), replace=TRUE)
 items$time <- round(rlnorm(nrow(items), log(60), .2), 0)
-# ex. 1: 4 forms, 10 items, maximize b parmaters
-x <- ata(items, 4, len=10, maxselect=1)
+
+## ex. 1: 6 forms, 10 items, maximize b parmaters
+## solved by GLPK and LpSolve respectively
+x <- ata(items, 6, len=10, maxselect=1)
 x <- ata_obj_relative(x, "b", "max")
-x <- ata_solve(x)
-plot(x)
-ata_get_items(x) \%>\% group_by(form) \%>\% 
-  summarize(a=mean(a), b=mean(b), c=mean(c))
-# ex. 2: 4 forms, 10 items, minimize b parmaeters
-x <- ata(items, 4, len=10, maxselect=1)
+glpk <- ata_solve(x, solver="glpk")
+glpk$optimum
+sapply(glpk$items, function(x)
+  c(mean=mean(x$b), sd=sd(x$b), min=min(x$b), max=max(x$b)))
+lpsolve <- ata_solve(x, solver="lpsolve")
+lpsolve$optimum
+sapply(lpsolve$items, function(x)
+  c(mean=mean(x$b), sd=sd(x$b), min=min(x$b), max=max(x$b)))
+
+## ex. 2: 4 forms, 10 items, minimize b parmaeters
+x <- ata(items, 3, len=10, maxselect=1)
 x <- ata_obj_relative(x, "b", "min", negative=TRUE)
-x <- ata_solve(x)
-plot(x)
-ata_get_items(x) \%>\% group_by(form) \%>\% 
-  summarize(a=mean(a), b=mean(b), c=mean(c))
-# ex. 3: 4 forms, 10 items, maximize information at -1 and 1
-# content distribution: 3, 3, 4; response time: avg. 55--65s
-x <- ata(items, 4, len=10, maxselect=1) \%>\%
-     ata_obj_relative(c(-1, 1), "max") \%>\%
-     ata_constraint("content", min=3, max=3, level=1) \%>\%
-     ata_constraint("content", min=3, max=3, level=2) \%>\%
-     ata_constraint("content", min=4, max=4, level=3) \%>\%
-     ata_constraint("time", min=55*10, max=65*10) \%>\%
-     ata_solve()
-plot(x)
-ata_get_items(x) \%>\% group_by(form) \%>\% 
-  summarize(a=mean(a), b=mean(b), c=mean(c),
-  cont1=sum(content==1), cont2=sum(content==2), cont3=sum(content==3))
-# ex. 4: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
+glpk <- ata_solve(x, solver="glpk", as.list=FALSE, timeout=5)
+group_by(glpk$items, form) \%>\% 
+  summarise(mean=mean(b), sd=sd(b), min=min(b), max=max(b))
+lpsolve <- ata_solve(x, solver="lpsolve", as.list=FALSE, timeout=5)
+group_by(lpsolve$items, form) \%>\% 
+  summarise(mean=mean(b), sd=sd(b), min=min(b), max=max(b))
+  
+## ex. 3: 3 forms, 10 items, maximize information at -1 and 1
+## content distribution: 3, 3, 4
+## response time: avg. 55-65 seconds
+x <- ata(items, 3, len=10, maxselect=1)
+x <- ata_obj_relative(x, c(-1, 1), "max")
+x <- ata_constraint(x, "content", min=3, max=3, level=1)
+x <- ata_constraint(x, "content", min=3, max=3, level=2)
+x <- ata_constraint(x, "content", min=4, max=4, level=3)
+x <- ata_constraint(x, "time", min=55*10, max=65*10)
+lpsolve <- ata_solve(x, solver="lpsolve")
+lpsolve$optimum
+plot(lpsolve)
+sapply(lpsolve$items, function(x) 
+  c(freq(x$content, 1:3)$freq, mean(x$time)))
+  
+## ex. 4: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
 x <- ata(items, 2, len=10, maxselect=1) \%>\%
-     ata_obj_absolute(x$pool$b, 0 * 10) \%>\%
-     ata_obj_absolute((x$pool$b - 0)^2, 1 * 10) \%>\%
+     ata_obj_absolute(items$b, 0 * 10) \%>\%
+     ata_obj_absolute((items$b - 0)^2, 1 * 10) \%>\%
      ata_constraint("content", min=3, max=3, level=1) \%>\%
      ata_constraint("content", min=3, max=3, level=2) \%>\%
-     ata_constraint("content", min=4, max=4, level=3) \%>\%
-     ata_solve(timeout=30)
-plot(x)
-ata_get_items(x) \%>\% group_by(form) \%>\% 
-  summarize(b_mean=mean(b), b_sd=sd(b),
-  cont1=sum(content==1), cont2=sum(content==2), cont3=sum(content==3))
+     ata_constraint("content", min=4, max=4, level=3)
+lpsolve <- ata_solve(x, "lpsolve", verbose="normal", timeout=5)
+sapply(lpsolve$items, function(x) c(mean=mean(x$b), sd=sd(x$b)))
+
 # ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
 x <- ata(items, 2, len=10, maxselect=1) \%>\%
-     ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.1) \%>\%
-     ata_solve(timeout=30)
+     ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.05)
+x <- ata_solve(x, "lpsolve")
 plot(x)
 }
 }

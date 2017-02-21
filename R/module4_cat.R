@@ -269,34 +269,36 @@ cat_select_shadow <- function(cat.data){
     cat("\nShadow test selection algorithm: select", paste(len,collapse="--"), 
         "items to maximize information at", round(cat.data$est, 2), "\n")
   
-  x <- ata(pool, nform=1, len=len, maxselect=1)
+  # compute lower- and upper-bounds
+  x <- ata(pool, nforms=1, len=len, maxselect=1)
   x <- ata_obj_relative(x, cat.data$est, "max")
-  for(i in 1:nrow(cons)){
-    con <- unlist(cons[i,])
-    con <- list(name=con[1], min=as.numeric(con[3]), max=as.numeric(con[4]), 
-                level=ifelse(con[2]=="NA", NA, as.numeric(con[2])))
-    if(nrow(items) == 0){
-      con$curr <- 0
-    } else {
-      if(is.na(con$level)) {
-        con$curr <- sum(items[, con$name])
-      } else {
-        con$curr <- sum(items[, con$name] == con$level)
-      }
-    }
-    con$min <- con$min - con$curr
-    con$min <- ifelse(con$min < 0, 0 , con$min)
-    con$max <- con$max - con$curr
-    con$max <- ifelse(con$max < 0, 0 , con$max)
-    x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
-
-    if(cat.data$debug) cat("subject to: ", con$name, ", level = ",con$level, 
-                           ", current = ", con$curr, ", ~ [", con$min, ", ", con$max, "]\n", sep="")
-  }
-  x <- ata_solve(x)
+  cons$curr <- apply(cons, 1, function(x) {
+    if(nrow(cat.data$items) == 0)
+      return(0)
+    if(is.na(x["level"]) || x["level"] == "NA")
+      return(sum(cat.data$items[, x["name"]]))
+    return(sum(cat.data$items[, x["name"]] == as.numeric(x["level"])))
+  })
+  cons$min <- cons$min - cons$curr
+  cons$min <- ifelse(cons$min < 0, 0, cons$min)
+  cons$max <- cons$max - cons$curr
+  cons$max <- ifelse(cons$max < 0, 0, cons$max)
   
-  if(is.null(x$result)) stop("no solutions.")
-  shadow <- ata_get_items(x, as.list=TRUE)[[1]]
+  # add constraints
+  for(i in 1:nrow(cons)) {
+    x <- ata_constraint(x, coef=cons$name[i], min=cons$min[i], max=cons$max[i], level=cons$level[i])
+    if(cat.data$debug) 
+      cat("subject to: ", cons$name[i], ", level = ", cons$level[i], ", current = ", cons$curr[i], ", ~ [", cons$min[i], ", ", cons$max[i], "]\n", sep="")
+  }
+  x <- ata_solve(x, "lpsolve", verbose="none")
+  
+  # select an item from the shadow test
+  if(!is.null(x$items)) {
+    shadow <- x$items[[1]]
+  } else {
+    cat("No solution for shadow test at #", cat.data$len, "\n", sep="")
+    shadow <- cat.data$pool
+  }
   index <- cat_select_randomesque(cat.data$est, shadow, cat.data$opts$randomesque)
   index <- shadow$temp.id[index]
   
@@ -415,35 +417,35 @@ cat_stop_projection <- function(cat.data){
   }
   
   if(method == "information"){
-    x <- ata(pool, nform=1, len=len, maxselect=1)
+    x <- ata(pool, nforms=1, len=len, maxselect=1)
     x <- ata_obj_relative(x, cat.data$est, "max")
     for(i in 1:nrow(cons)) x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
-    x <- ata_solve(x)
+    x <- ata_solve(x, "lpsolve", verbose="none")
     
-    if(is.null(x$result)) stop("no solutions.")
-    x <- ata_get_items(x, as.list=TRUE)[[1]]
+    if(is.null(x$items)) stop("no solutions.")
+    x <- x$items[[1]]
     proj.items <- rbind(items, x)
     proj.response <- c(rsp, rep(0, nrow(x)))
     proj.theta.lb <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
     proj.response <- c(rsp, rep(1, nrow(x)))
     proj.theta.ub <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
   } else if(method == "difficulty"){
-    x <- ata(pool, nform=1, len=len, maxselect=1)
+    x <- ata(pool, nforms=1, len=len, maxselect=1)
     x <- ata_obj_absolute(x, x$pool$b, cat.data$est + 2 * cat.data$stats[cat.data$len, "se"])
     for(i in 1:nrow(cons)) x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
-    x <- ata_solve(x)
-    if(is.null(x$result)) stop("no solutions.")
-    x <- ata_get_items(x, as.list=TRUE)[[1]]
+    x <- ata_solve(x, "lpsolve", verbose="none")
+    if(is.null(x$items)) stop("no solutions.")
+    x <- x$items[[1]]
     proj.items <- rbind(items, x)
     proj.response <- c(rsp, rep(1, nrow(x)))
     proj.theta.ub <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
     
-    x <- ata(pool, nform=1, len=len, maxselect=1)
+    x <- ata(pool, nforms=1, len=len, maxselect=1)
     x <- ata_obj_absolute(x, x$pool$b, cat.data$est - 2 * cat.data$stats[cat.data$len, "se"])
     for(i in 1:nrow(cons)) x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
     x <- ata_solve(x)
-    if(is.null(x$result)) stop("no solutions.")
-    x <- ata_get_items(x, TRUE)[[1]]
+    if(is.null(x$items)) stop("no solutions.")
+    x <- x$items[[1]]
     proj.items <- rbind(items, x)
     proj.response <- c(rsp, rep(0, nrow(x)))
     proj.theta.lb <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]

@@ -2,19 +2,25 @@
 % Please edit documentation in R/module3_ata_helpers.R
 \name{ataHelpers}
 \alias{ataHelpers}
-\alias{ata_constraint_coef}
-\alias{ata_get_forms}
+\alias{ata_append}
+\alias{ata_form_index}
 \alias{ata_obj_coef}
 \title{ATA Helper Functions}
 \usage{
-ata_get_forms(x, forms, collapse)
+ata_append(x, mat, dir, rhs)
+
+ata_form_index(x, forms, collapse)
 
 ata_obj_coef(x, coef, compensate)
-
-ata_constraint_coef(x, coef, level)
 }
 \arguments{
 \item{x}{the ata object}
+
+\item{mat}{the coefficient}
+
+\item{dir}{direction}
+
+\item{rhs}{right-hand-side value}
 
 \item{forms}{the forms indices}
 
@@ -23,27 +29,14 @@ ata_constraint_coef(x, coef, level)
 \item{coef}{the coefficients}
 
 \item{compensate}{\code{TRUE} to combine coefficients}
-
-\item{level}{the level of the categorial variable}
 }
 \description{
 ATA Helper Functions
 
-\code{ata_get_forms} converts input forms into actual form indeces in LP
+\code{ata_append} adds constraint data into ata
+
+\code{ata_form_index} converts input forms into actual form indeces in LP
 
 \code{ata_obj_coef} processes input coefficients for setting objective functions
-
-\code{ata_constraint_coef} processes input coefficients for adding constraints
-}
-\details{
-\code{forms} input can be \code{NULL} (all forms) or a vector of form indicies. 
-When \code{collapse=TRUE}, the function returns a row vector; otherwise, a column vector.
-
-\code{coef} can be a variable name, a vector of theta points, or a n-element vector. 
-When \code{compensate=TRUE}, add coefficients up. The function rounds results to 2 decimal places and returns a matrix.
-
-\code{coef} can be a variable name, a constant, or a n-element vector. 
-When \code{level=NULL}, assume it's quantitaive variable; otherwise, a categorical variable.
-Results are rounded to 2 decimal places.
 }
 

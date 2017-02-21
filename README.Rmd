@@ -87,8 +87,6 @@ x$I(x)
 x$L(x)
 ```
 
-##### PCM
-
 
 ### Module 1: IRT Utils
 Item response theory (IRT) parameterizes the characteristics of test takers and testing items, and uses these parameters to build statistical models that describes the mechanisms underlying observed responses. It is widely used in practice to develop and analyze modern assessment instruments. IRT refers to a family of models using the metholodgy of this kind. This module provides a common interface for IRT computations and graphing, and it is the foundation for other advanced IRT applications in this package.  
@@ -194,13 +192,13 @@ filter(x, variable == "b") %>%
 
 
 ### Module 3: Automated Test Assembly
-Automated test assembly (ATA) is not only a technique that could greatly faciliate assembly of parallel test forms in practice, but also a indispensable component in advanced applications that involves sophisticated test assembly problems. Apprantly, it is astronomically daunting, tedious and error-prone job to manually assemble multiple parallel forms under complex constraints. ATA transforms this type of problem into a set of linear equations and utilizes advanced optimization methodology to find the best solution to the problem, if a solution is feasible. Beyond that, ATA is a necessary building block of applications such as shadow test CAT algorithm[^3], MST assembly[^4], and projection-based stopping rule[^5].
+Automated test assembly (ATA) is not only a technique that could greatly faciliate assembly of parallel test forms in practice, but also a indispensable component in advanced applications that involves sophisticated test assembly problems. Apprantly, it is astronomically daunting, tedious and error-prone job to manually assemble multiple parallel forms under complex constraints. ATA transforms this type of problem into a set of linear equations and utilizes advanced optimization methodology to find the best solution to the problem, if a solution is feasible. Beyond that, ATA is a necessary building block of applications such as shadow test CAT algorithm[^3], MST assembly[^4], etc.
 
 [^3]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
 [^4]: Breithaupt, K., & Hare, D. R. (2007). Automated simultaneous assembly of multistage testlets for a high-stakes licensing examination. Educational and Psychological Measurement, 67(1), 5-20.
-[^5]: Luo, ...  
 
-Technically, ATA is to solve an optimization problem per se. This module provides an interface to solve the problem using mixed integer programming (MIP) technique. It is built upon the open-source mixed integer linear programming solver *[lp_solve](http://lpsolve.sourceforge.net)* and its R interface package *[lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI)*. Compared to the heuristic ATA methods [^6][^7], MIP is able to address more complex problem and obtain better results. However, its computation is far more sophisticated and intense than heuristic methods.
+
+Technically, ATA is to solve a NP-hard optimization problem per se. This module provides an interface to solve the problem using mixed integer linear programming (MIP) technique. It is built upon the open-source mixed integer linear programming solver *[lp_solve](http://lpsolve.sourceforge.net)* and its R interface package *[lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI)*. Compared to the heuristic ATA methods [^6][^7], MIP is able to address more complex problem and obtain better results. However, its computation is far more sophisticated and intense than heuristic methods.
 
 [^6]: Swanson, L., & Stocking, M. L. (1993). A model and heuristic for solving very large item selection problems. Applied Psychological Measurement, 17(2), 151-166.
 [^7]: Luecht, R. M. (1998). Computer-assisted test assembly using optimization heuristics. Applied Psychological Measurement, 22(3), 224-236.

@@ -1,5 +1,7 @@
 library(testthat)
 context("module1_irt_utils.R")
+set.seed(880813)
+
 
 test_that("create irt models", {
   x <- model_3pl()$gendata(10, 5)

@@ -20,6 +20,7 @@ BugReports: https://github.com/xluo11/xxIRT/issues
 Imports:
     lpSolveAPI,
     ggplot2, 
+    glpkAPI,
     graphics,
     reshape2, 
     stats,

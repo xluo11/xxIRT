@@ -34,24 +34,17 @@ test_that("create a model using given data", {
 })
 
 test_that("create a model using generate data", {
-  thresh <- 0.1
+  tol <- 0.2
   x <- model_3pl()$gendata(1000, 200)
-  theta.mean <- mean(x$people$theta)
-  theta.sd <- sd(x$people$theta)
-  a.mean <- mean(log(x$items$a))
-  a.sd <- sd(log(x$items$a))
-  b.mean <- mean(x$items$b)
-  b.sd <- sd(x$items$b)
-  c.mean <- mean(x$items$c)
-  c.sd <- sd(x$items$c)
-  expect_true(abs(theta.mean - 0) < thresh)
-  expect_true(abs(theta.sd - 1) < thresh)
-  expect_true(abs(a.mean - 0) < thresh)
-  expect_true(abs(a.sd - 0.2) < thresh)
-  expect_true((b.mean - 0) < thresh)
-  expect_true(abs(b.sd - 1) < thresh)
-  expect_true(abs(c.mean - 5 / (5 + 42)) < thresh)
-  expect_true(abs(c.sd - sqrt(5 * 42 / (5  + 42)^2 / (5 + 42 + 1))) < thresh)
+
+  expect_equal(mean(x$people$theta), 0, tolerance=tol, scale=1)
+  expect_equal(sd(x$people$theta), 1, tolerance=tol, scale=1)
+  expect_equal(mean(x$items$b), 0, tolerance=tol, scale=1)
+  expect_equal(sd(x$items$b), 1, tolerance=tol, scale=1)
+  expect_equal(mean(log(x$items$a)), 0, tolerance=tol, scale=1)
+  expect_equal(sd(log(x$items$a)), 0.2, tolerance=tol, scale=1)
+  expect_equal(mean(x$items$c), 5 / (5 + 42), tolerance=tol, scale=1)
+  expect_equal(sd(x$items$c), sqrt(5 * 42 / (5  + 42)^2 / (5 + 42 + 1)), tolerance=tol, scale=1)
   expect_equal(dim(x$responses), c(1000, 200))
 })
 

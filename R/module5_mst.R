@@ -4,6 +4,8 @@
 #' @param design a numeric vector of the MST design (e.g., 1-2-3, or 1-2-2)
 #' @param npanel the number of panels
 #' @param method the design method (i.e., 'topdown' or 'bottomup')
+#' @param len the module/route length
+#' @param maxselect the maximum selection of items
 #' @details
 #' The \code{mst} object contains an item pool (\code{pool}), a test assembler (\code{assembler}), 
 #' a route map (\code{route}), a stage-module map (\code{module}), a design method (\code{method}),
@@ -20,56 +22,56 @@
 #' pool <- irt_model("3pl")$gendata(1,300)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 #' pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-#' # ex. 1: 1-2-2 MST, 2 panels, topdown, 20 items, content = c(10, 5, 5)
-#' # maximize information at -1 and 1 for easy and hard routes
-#' x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown')
-#' x$route
+#' 
+#' ## ex. 1: 1-2-2 MST, 2 panels, topdown
+#' ## 20 items, content = c(10, 5, 5)
+#' ## maximize information at -1 and 1 for easy and hard routes
+#' x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown', len=20, maxselect=1)
 #' x <- mst_objective(x, theta=-1, indices=1:2)
 #' x <- mst_objective(x, theta= 1, indices=3:4)
-#' x <- mst_constraint(x, coef=1, min=20, max=20)
 #' x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
 #' x <- mst_constraint(x, coef="content", min=5, max=5, level=2)
 #' x <- mst_constraint(x, coef="content", min=5, max=5, level=3)
-#' x <- mst_stage_length(x, stages=c(1, 2, 3), min=5)
-#' x <- mst_assemble(x, timeout=60)
+#' x <- mst_stage_length(x, stages=c(1, 2, 3), min=1)
+#' x <- mst_assemble(x, timeout=10)
+#' x$items
 #' plot(x)
 #' plot(x, byroute=TRUE)
 #' freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
 #' freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-#' # ex. 2: 1-2-3 MST, 2 panels, bottomup, 10 items per stage, content = c(4, 3, 3)
-#' # maximize information at -1, 0 and 1 for easy, medium, and hard modules
-#' x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup')
+#' 
+#' ## ex. 2: 1-2-3 MST, 2 panels, bottomup, 
+#' ## 10 items in each module, content = c(4, 3, 3)
+#' ## maximize information at -1, 0 and 1 for easy, medium, and hard modules
+#' x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup', len=10, maxselect=1)
 #' x <- mst_route(x, c(1, 2, 6), "-")
 #' x <- mst_route(x, c(1, 3, 4), "-")
-#' x$route
-#' x$module
 #' x <- mst_objective(x, theta= 0, indices=1)
 #' x <- mst_objective(x, theta=-1, indices=c(2,4))
 #' x <- mst_objective(x, theta= 1, indices=c(3,5))
-#' x <- mst_constraint(x, coef=1, min=10, max=10)
 #' x <- mst_constraint(x, coef="content", min=4, max=4, level=1)
 #' x <- mst_constraint(x, coef="content", min=3, max=3, level=2)
 #' x <- mst_constraint(x, coef="content", min=3, max=3, level=3)
-#' x <- mst_assemble(x, timeout=60)
+#' x <- mst_assemble(x, timeout=10)
 #' plot(x)
 #' plot(x, byroute=TRUE)
 #' freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
 #' freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-#' # ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items, 10 items in each content area
-#' # target information at 18 at -1, 0, and 1 for easy, medium and hard routes
-#' x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown')
+#' 
+#' ## ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items, 
+#' ## 10 items in each content area
+#' ## target information at 18 at -1, 0, and 1 for easy, medium and hard routes
+#' x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown', len=30, maxselect=1)
 #' x <- mst_route(x, c(1, 2, 6), "-")
 #' x <- mst_route(x, c(1, 3, 4), "-")
-#' x$route
 #' x <- mst_objective(x, theta=-1, indices=1, target=16)
 #' x <- mst_objective(x, theta= 0, indices=2:3, target=16)
 #' x <- mst_objective(x, theta= 1, indices=4, target=16)
-#' x <- mst_constraint(x, coef=1, min=30, max=30)
 #' x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
 #' x <- mst_constraint(x, coef="content", min=10, max=10, level=2)
 #' x <- mst_constraint(x, coef="content", min=10, max=10, level=3)
 #' x <- mst_stage_length(x, stages=c(1, 2, 3), min=3)
-#' x <- mst_assemble(x, timeout=5*60)
+#' x <- mst_assemble(x, timeout=20)
 #' plot(x)
 #' plot(x, byroute=TRUE)
 #' freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
@@ -77,13 +79,9 @@
 #' }
 #' @import lpSolveAPI
 #' @export
-mst <- function(pool, design, npanel, method){
-  # Validate pool
-  pool <- as.data.frame(pool)
-  if(!all(c("a","b","c") %in% colnames(pool))) stop("cannot find a-, b-, or c-parameters in item pool")
-  # Validate design
+mst <- function(pool, design, npanel, method, len=NULL, maxselect=NULL){
+  # validatioin
   if(any(design < 1)) stop("invalid design.")
-  # Validate method
   method <- tolower(gsub("[- ]", "", method))
   if(!method %in% c('topdown', 'bottomup')) stop("invalid method. use 'topdown' or 'bottomup'")
   
@@ -106,15 +104,21 @@ mst <- function(pool, design, npanel, method){
   route$index <- 1:nrow(route)
   nroute <- nrow(route)
   
-  # assmebler: maxselection = 1
-  assembler <- ata(pool, npanel * nmodule, maxselect=1)
-  x <- list(calls=list(), design=design, pool=pool, nitem=nrow(pool), npanel=npanel, 
+  # ata
+  assembler <- ata(pool, npanel * nmodule)
+  x <- list(design=design, pool=pool, nitem=nrow(pool), npanel=npanel, 
             nstage=nstage, nmodule=nmodule, nroute=nroute, module=module, 
             route=route, assembler=assembler, method=method)
   class(x) <- "mst"
   
-  # reindex routes
-  x <- mst_reindex_routes(x)
+  # constraint: test length
+  if(!is.null(len) && length(len) == 1) x <- mst_constraint(x, 1, len, len)
+  if(!is.null(len) && length(len) == 2) x <- mst_constraint(x, 1, len[1], len[2])
+  if(!is.null(len) && length(len) > 2) stop("invalid length. use 1 or 2 numbers.")
+  
+  # constraint: maxselect
+  if(!is.null(maxselect)) x$assembler <- ata_item_maxselect(x$assembler, maxselect)
+  
   return(x)
 }
 
@@ -145,8 +149,6 @@ mst_route <- function(x, route, op){
   
   x$nroute <- nrow(x$route)
   x <- mst_reindex_routes(x)
-  
-  x$calls <- c(x$calls, match.call())
   return(x)
 }
 
@@ -183,7 +185,6 @@ mst_objective <- function(x, theta, indices=NULL, target=NULL, flatten=NULL, the
     }
   }
   
-  x$calls <- c(x$calls, match.call())
   return(x)
 }
 
@@ -207,7 +208,6 @@ mst_constraint <- function(x, coef, min=NA, max=NA, level=NULL, indices=NULL){
     }
   }
   
-  x$calls <- c(x$calls, match.call())
   return(x)  
 }
 
@@ -231,27 +231,26 @@ mst_stage_length <- function(x, stages, min=NA, max=NA){
     x$assembler <- ata_constraint(x$assembler, 1, min[i], max[i], forms=f, collapse=FALSE)
   }
   
-  x$calls <- c(x$calls, match.call())
   return(x)
 }
 
 
 #' @rdname mst
 #' @description \code{mst_set_rdp} anchors the routing decision point (rdp) between adjacent modules
+#' @param tol tolerance parameter
 #' @import lpSolveAPI
 #' @export
-mst_set_rdp <- function(x, theta, indices) {
+mst_set_rdp <- function(x, theta, indices, tol) {
   # validation
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(length(theta) != 1) stop("rdp is not a single theta point")
-  if(length(indices) != 2|| abs(indices[1] - indices[2]) != 1) stop("modules are not adjacent") 
+  if(length(indices) != 2 || abs(indices[1] - indices[2]) != 1) stop("modules are not adjacent") 
   
-  value <- rep(c(1, -1), each=x$nitem)
-  for(i in 1:x$npanel) {
-    f <- indices + (i - 1) * x$nmodule
-    index <- as.vector(outer(1:x$nitem, (f - 1) * x$nitem, "+"))
-    add.constraint(x$assembler$lp, value, "=", 0, index)
-  }
+  info <- irt_stats(irt_model("3pl", theta=theta, items=x$pool), "info")
+  info <- round(info[1,], 3)
+  coef <- c(info, -1 * info)
+  for(i in 1:x$npanel)
+    x$assembler <- ata_constraint(x$assembler, coef, -tol, tol, forms=indices + (i - 1) * x$nmodule, collapse=TRUE)
   x
 }
 
@@ -274,24 +273,24 @@ mst_module_mininfo <- function(x, theta, mininfo, indices) {
 }
 
 
-
 #' @rdname mst
 #' @description \code{mst_assemble} assembles the mst
+#' @param solver the ata solver
+#' @param verbose the verbose parameter
 #' @import lpSolveAPI
 #' @export
-mst_assemble <- function(x, ...){
+mst_assemble <- function(x, solver="lpsolve", verbose="none", ...){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
-  
-  x$assembler <- ata_solve(x$assembler, ...)
-  if(!is.null(x$assembler$result)) {
-    items <- ata_get_items(x$assembler)
+  x$assembler <- ata_solve(x$assembler, solver=solver, as.list=FALSE, verbose=verbose, ...)
+  if(!is.null(x$assembler$items)) {
+    items <- x$assembler$items
     items$panel <- ceiling(items$form / x$nmodule)
     items$index <- (items$form - 1) %% x$nmodule + 1
     items$stage <- x$module$stage[match(items$index, x$module$index)]
     items$module <- x$module$module[match(items$index, x$module$index)]
     x$items <- items
   }
-  return(x)
+  x
 }
 
 
@@ -308,15 +307,6 @@ print.mst <- function(x, ...){
   cat("ATA assembles", x$npanel, "panel(s) from a pool of", x$nitem, "items:\n\n")
   print(x$assembler)
   cat("\n\n")
-  
-  if(is.null(x$items)) {
-    cat("It has been assembled yet.\n")
-  } else {
-    cat("It has been assembled. The first and last 5 items in the results are:\n")
-    print(x$items[1:5, ])
-    cat("...")
-    print(x$items[1:5 + nrow(x$items) - 5, ])
-  }
   invisible(x)
 }
 
