@@ -396,6 +396,7 @@ ata_solve <- function(x, solver="lpsolve", as.list=TRUE, timeout=10, mip_gap=0.0
     verbose <- switch(verbose, "full"="full", "normal"="normal", "none"="neutral")
     mipgap <- rep(mip_gap, 2)
     rs <- ata_solve_lpsolve(x, timeout=timeout, mip.gap=mip_gap, verbose=verbose)
+    if(!rs$status %in% c(0, 1)) rs$result <- array(0L, dim(rs$result))
   } else {
     stop("invalid solver. use 'glpk' or 'lpsolve'")
   }
