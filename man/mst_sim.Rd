@@ -4,12 +4,14 @@
 \alias{mst_sim}
 \title{MST Simulation}
 \usage{
-mst_sim(x, theta.true)
+mst_sim(x, theta.true, rdp = NULL)
 }
 \arguments{
 \item{x}{an assembled mst}
 
 \item{theta.true}{the true value of theta parameter}
+
+\item{rdp}{a list of routing decision points}
 }
 \description{
 \code{mst_sim} runs a MST simulation

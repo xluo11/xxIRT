@@ -37,7 +37,7 @@ ata_item_fixedvalue(x, items, min = NA, max = NA, forms = NULL,
   collapse = FALSE)
 
 ata_solve(x, solver = "lpsolve", as.list = TRUE, timeout = 10,
-  mip_gap = 0.01, verbose = "none", ...)
+  mip_gap = 0.1, verbose = "none", ...)
 
 ata_solve_glpk(x, ...)
 

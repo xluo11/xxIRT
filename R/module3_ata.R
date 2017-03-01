@@ -385,7 +385,7 @@ ata_item_fixedvalue <- function(x, items, min=NA, max=NA, forms=NULL, collapse=F
 #' When passing control parameters to the GLPK solver, use the correct parameter name
 #' (see \code{?glpkAPI::glpkConstants}).
 #' @export
-ata_solve <- function(x, solver="lpsolve", as.list=TRUE, timeout=10, mip_gap=0.01, verbose="none", ...) {
+ata_solve <- function(x, solver="lpsolve", as.list=TRUE, timeout=10, mip_gap=0.1, verbose="none", ...) {
   if(class(x) != "ata") stop("not an 'ata' object")
   
   if(solver == "glpk") {
@@ -486,7 +486,6 @@ ata_solve_lpsolve <- function(x, ...) {
   with(x$bounds, for(i in seq_along(ind)) {
     set.bounds(lp, if(!is.na(lb[i])) lower=lb[i], if(!is.na(ub[i])) upper=ub[i], columns=ind[i])
   })
-  rep(c(1, 2, NULL), 3)
   # (mat): constraints
   dir <- gsub("==", "=", x$dir)
   for(i in 1:nrow(x$mat)) add.constraint(lp, x$mat[i,], dir[i], x$rhs[i])

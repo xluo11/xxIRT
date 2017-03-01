@@ -2,25 +2,29 @@
 #' @description \code{mst_sim} runs a MST simulation
 #' @param x an assembled mst
 #' @param theta.true the true value of theta parameter
+#' @param rdp a list of routing decision points
 #' @importFrom stats runif
-#' @import magrittr dplyr
 #' @export
 mst_sim <- function(x, theta.true, rdp=NULL){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(is.null(x$items)) stop("the mst has not been assembled yet")
   
-  # rdp
-  if(!is.null(rdp)) {
-    if(length(rdp) != x$nstage - 1) stop("invalid routing decision points.")
-    rdp <- Map(function(x) c(-Inf, x, Inf), rdp)
-  }
+  # select a panel
+  panel.items <- mst_get_items(x, panel=sample(1:x$npanel, 1))
   
   # initials
   theta.est <- 0
   used.items <- responses <- NULL
   route <- thetas <- ses <- rep(NA, x$nstage)
   
-  panel.items <- mst_get_items(x, panel=sample(1:x$npanel, 1))
+  # rdp
+  if(!is.null(rdp)) {
+    if(length(rdp) != x$nstage - 1) stop("invalid routing decision points.")
+    rdp <- lapply(rdp, function(x) data.frame(lower=c(-Inf, x), upper=c(x, Inf)))
+    rdp <- Reduce(rbind, rdp)
+    rdp$index <- 2:x$nmodule
+  }
+  
   for(i in 1:x$nstage){
     # select next module
     if(i == 1) { # initial stage: randomly select an module in Stage 1
@@ -29,18 +33,25 @@ mst_sim <- function(x, theta.true, rdp=NULL){
       # all connected modules
       next.modules <- sort(unique(x$route[x$route[, i-1] ==  route[i-1], i]))
       if(is.null(rdp)) { # maximum information
-        info <- panel.items %>% filter(., stage == i, index %in% next.modules) %>% group_by(index) %>%
-          summarise(info=(model_3pl(theta=theta.est, items=.) %>% irt_stats(., "info") %>% sum(.)))
+        items <- with(panel.items, subset(panel.items, stage == i & index %in% next.modules))
+        info <- irt_stats(model_3pl(theta=theta.est, items=items), "info")[1,]
+        info <- aggregate(info, list(items$index), sum)
+        colnames(info) <- c("index", "info")
         next.module <- info$index[which.max(info$info)]
       } else { # rdp
-        if(length(rdp[[i-1]]) != length(next.modules) + 1) stop("invalid rdp in Stage ", i)
-        next.module <- cut(theta.est, breaks=rdp[[i-1]]) %>% `[`(next.modules, .)
+        next.module <- subset(rdp, index %in% next.modules & theta.est < upper)
+        if(nrow(next.module) != 0) {
+          next.module <- min(next.module$index)
+        } else {
+          next.module <- subset(rdp, index %in% next.modules & theta.est > lower)
+          next.module <- max(next.module$index)
+        }
       }
     }
     
     # generate responses
-    items <- filter(panel.items, stage == i, index == next.module)
-    p <- model_3pl(theta=theta.true, items=items) %>% irt_stats(., "prob") %>% as.vector()
+    items <- with(panel.items, subset(panel.items, stage == i & index == next.module))
+    p <- irt_stats(model_3pl(theta=theta.true, items=items), "prob")[1,]
     u <- (p >= runif(length(p))) * 1
     
     # append module, items and responses
@@ -53,7 +64,8 @@ mst_sim <- function(x, theta.true, rdp=NULL){
     thetas[i] <- theta.est
     
     # information
-    info <- model_3pl(theta=theta.est, items=used.items) %>% irt_stats(., "info") %>% sum()
+    info <- irt_stats(model_3pl(theta=theta.est, items=used.items), "info")
+    info <- sum(info)
     se <- 1 / sqrt(info)
     ses[i] <- se
   }
