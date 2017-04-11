@@ -6,7 +6,8 @@
 \alias{print.irt.model}
 \title{Create IRT Models}
 \usage{
-irt_model(model, people = NULL, items = NULL, responses = NULL, ...)
+irt_model(model = c("3pl"), people = NULL, items = NULL,
+  responses = NULL, ...)
 
 \method{print}{irt.model}(x, ...)
 

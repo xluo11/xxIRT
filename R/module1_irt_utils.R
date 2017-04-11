@@ -14,7 +14,8 @@
 #' # generate data with Rasch items
 #' irt_model("3pl")$gendata(10, 5, a.sd=0, c.alpha=0)
 #' @export
-irt_model <- function(model, people=NULL, items=NULL, responses=NULL, ...){
+irt_model <- function(model=c("3pl"), people=NULL, items=NULL, responses=NULL, ...){
+  model <- match.arg(model)
   switch(tolower(model),
          "3pl" = model_3pl(people, items, responses, ...))
 }
@@ -62,24 +63,15 @@ print.irt.model <- function(x, ...){
 #' irt_stats(x, "lik")
 #' irt_stats(x, "loglik")
 #' @export
-irt_stats <- function(x, stats="prob", summary=NULL, fun=NULL, ...){
-  if(!"irt.model" %in% class(x)) 
-    stop("data is not a irt.model object")
-  stats <- tolower(gsub('[- ]', '', stats))
-  if(!stats %in% c("prob", "info", "lik", "loglik")) 
-    stop("invalid stats input. use 'prob', 'info', 'lik', or 'loglik'")
-  
-  value <- switch (tolower(stats),
-                   "prob" = x$P(x),
-                   "info" = x$I(x),
-                   "lik" = x$L(x),
-                   "loglik" = x$L(x, log=TRUE))
+irt_stats <- function(x, stats=c("prob", "info", "lik", "loglik"), summary=NULL, fun=NULL, ...){
+  if(!"irt.model" %in% class(x)) stop("data is not a irt.model object")
+  stats <- match.arg(stats)
+  value <- switch (stats, "prob" = x$P(x), "info" = x$I(x), "lik" = x$L(x), "loglik" = x$L(x, log=TRUE))
   if(!is.null(summary)){
     if(is.null(fun)) stop("No summary function")
     if(!summary %in% c("people", "items")) stop("invalid summary input. use 'people' or 'items'")
     value <- apply(value, ifelse(summary=="people", 1, 2), fun, ...)
   }
-  
   return(value)
 }
 
@@ -159,9 +151,10 @@ irt_sample <- function(x, n.people=NULL, n.items=NULL){
 #' round(abs(irt_stats(x, "prob") - irt_stats(y, "prob")), 2)
 #' @importFrom stats sd
 #' @export
-irt_rescale_3pl <- function(x, parameter="theta", mean=0, sd=1){
+irt_rescale_3pl <- function(x, parameter=c("theta", "b"), mean=0, sd=1){
   if(!"model.3pl" %in% class(x)) stop("data is not a 3PL model")
   
+  parameter <- match.arg(parameter)
   if(parameter == "theta"){
     mean0 <- mean(x$people$theta)
     sd0 <- stats::sd(x$people$theta)

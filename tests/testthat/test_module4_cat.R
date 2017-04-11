@@ -186,3 +186,5 @@ test_that("shadow-test selection rule", {
   rs <- as.data.frame(rs) %>% group_by(true) %>% summarise(rmse=sqrt(mean((true-est)^2)))
   expect_true(all(rs$rmse <= rmse.tol))
 })
+
+

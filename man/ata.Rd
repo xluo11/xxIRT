@@ -21,8 +21,8 @@ ata(pool, nforms = 1, len = NULL, maxselect = NULL)
 
 \method{plot}{ata}(x, ...)
 
-ata_obj_relative(x, coef, mode, negative = FALSE, flatten = NULL,
-  forms = NULL, collapse = FALSE)
+ata_obj_relative(x, coef, mode = c("max", "min"), negative = FALSE,
+  flatten = NULL, forms = NULL, collapse = FALSE)
 
 ata_obj_absolute(x, coef, target, forms = NULL, collapse = FALSE)
 
@@ -36,8 +36,8 @@ ata_item_enemy(x, items)
 ata_item_fixedvalue(x, items, min = NA, max = NA, forms = NULL,
   collapse = FALSE)
 
-ata_solve(x, solver = "lpsolve", as.list = TRUE, timeout = 10,
-  mip_gap = 0.1, verbose = "none", ...)
+ata_solve(x, solver = c("lpsolve", "glpk"), as.list = TRUE, timeout = 10,
+  mip_gap = 0.1, verbose = c("none", "normal", "full"), ...)
 
 ata_solve_glpk(x, ...)
 

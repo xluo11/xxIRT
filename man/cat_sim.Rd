@@ -108,55 +108,78 @@ To use \code{cat_stop_projection}, pass in a data frame of constraints with 4 co
 Also set a method in \code{opts$method} ('information' or 'difficulty') and a cut score in \code{opts$cut}.
 }
 \examples{
-\dontrun{
-# generate a 200-item pool
+### generate a 200-item pool
 pool <- irt_model("3pl")$gendata(1,200)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-# ex. 1: 10-30 items, MI selection rule, SE stopping rule (se=.3)
+
+### ex. 1: 10-30 items
+### maximum information selection rule
+### standard error stopping rule (se=.3)
 opts <- list(min=10, max=30, stop.se=.3)
 x <- cat_sim(0.1, pool, opts)
 x$admin
 plot(x)
-# ex. 2: 10-30 items, MI selection rule, MI stopping rule (mi=.3)
+
+### ex. 2: 10-30 items
+### maximum information selection rule
+### minimum information stopping rule (mi=.3)
 opts <- list(min=10, max=30, stop.mi=.8)
 x <- cat_sim(0.1, pool, opts)
 x$admin
 plot(x)
-# ex. 3: 10-30 items, MI selection rule, CI stopping rule (cut=0)
+
+### ex. 3: 10-30 items
+### maximum information selection rule
+### confidence interval stopping rule (cut=0)
 opts <- list(min=10, max=30, stop.cut=0)
 x <- cat_sim(0.1, pool, opts)
 x$admin
 plot(x)
-# ex. 4: 10-30 items, MI selection rules, SE stopping rule (se=.3), randomesque=5
+
+### ex. 4: 10-30 items
+### maximum information selection rules, randomesque = 5
+### standard error stopping rule (se=.3) 
 opts <- list(min=10, max=30, stop.se=.3, randomesque=5)
 x <- cat_sim(0.1, pool, opts)
 x$admin
 plot(x)
-# ex. 5: 10-30 items, c-cat selection rule, first 10 content areas is random
-opts <- list(min=30, max=60, stop.cut=0, ccat.target=c(.50,.25,.25), ccat.random=10)
+
+### ex. 5: 10-30 items
+### c-cat selection rule, first 10 areas are random
+### confidence interval stopping rule
+opts <- list(min=30, max=60, stop.cut=0, 
+    ccat.target=c(.50,.25,.25), ccat.random=10)
 x <- cat_sim(0.1, pool, opts, cat.select=cat_select_ccat)
 x$admin
 plot(x)
 freq(x$admin$content, 1:3)
-# ex. 6: 30 items, shadow test selection rule
-cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10), 
-                   max=c(10, 10, 10), stringsAsFactors=FALSE)
-cons <- rbind(cons, c("time", NA, 55*30, 65*30))
-opts <- list(min=30, max=30, stop.se=.03, shadow.constraints=cons)
+
+### ex. 6: 15 items
+### shadow test selection rule
+### content: [5, 5, 5] items in area 1--3
+### response time: avg. 55--65 seconds
+cons <- data.frame(name="content", level=c(1,2,3), min=c(5, 5, 5), 
+                   max=c(5, 5, 5), stringsAsFactors=FALSE)
+cons <- rbind(cons, c("time", NA, 55*15, 65*15))
+opts <- list(min=15, max=15, stop.se=.03, shadow.constraints=cons)
 x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow)
 x$admin
 plot(x)
 freq(x$admin$content, 1:3)
 mean(x$items$time)
-# ex. 7: 10-30 items,  simulation using the projection-based stopping rule
+
+### ex. 7: 20-30 items
+### shadow selection rule
+### projection-based stopping rule
 cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10), 
-                   max=c(30, 30, 30), stringsAsFactors=FALSE)
-opts <- list(min=10, max=30, projection.cut=0, projection.constraints=cons, 
-projection.method="information")
-x <- cat_sim(0.1, pool, opts, cat.stop=cat_stop_projection)
+                   max=c(10, 10, 10), stringsAsFactors=FALSE)
+cons <- rbind(cons, c("time", NA, 55*30, 65*30))
+opts <- list(min=20, max=30, projection.cut=0, projection.constraints=cons, 
+projection.method="difficulty", shadow.constraints=cons)
+x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow, 
+cat.stop=cat_stop_projection)
 x$admin
 plot(x)
-}
 }
 

@@ -30,14 +30,13 @@
 #'   theme_bw() + theme(legend.key=element_blank())
 #' }
 #' @export
-estimate_people <- function(responses, items, model="3pl", method="mle", ...){
-  switch(tolower(model),
-         "3pl" = switch(tolower(method),
-                        "mle" = estimate_people_3pl_mle(responses, items, ...),
-                        "map" = estimate_people_3pl_map(responses, items, ...),
-                        "eap" = estimate_people_3pl_eap(responses, items, ...)
-                        )
-         )
+estimate_people <- function(responses, items, model=c("3pl"), method=c("mle", "eap", "map"), ...){
+  model <- match.arg(model)
+  method <- match.arg(method)
+  fun <- switch(model,
+                "3pl" = switch(method, "mle" = estimate_people_3pl_mle, "map" = estimate_people_3pl_map, "eap" = estimate_people_3pl_eap)
+  )
+  fun(responses, items, ...)
 }
 
 
@@ -109,7 +108,7 @@ estimate_people_3pl_mle <- function(responses, items, init=0, iter=30, conv=0.01
 #' @importFrom graphics plot
 #' @importFrom grDevices rgb
 #' @export
-estimate_people_3pl_map <- function(responses, items, prior.mean=0, prior.sd=1, init=0, iter=15, conv=0.01, bound=3.5, debug=FALSE){
+estimate_people_3pl_map <- function(responses, items, prior.mean=0, prior.sd=1, init=0, iter=30, conv=0.01, bound=3.5, debug=FALSE){
   # Validate input
   inputs <- estimate_people_3pl_check_input(responses, items)
   u <- inputs$responses
@@ -223,14 +222,13 @@ estimate_people_3pl_eap <- function(responses, items){
 #'   theme_bw() + theme(legend.key=element_blank())
 #' }
 #' @export
-estimate_items <- function(responses, model="3pl", method="jmle", ...){
-  switch(tolower(model),
-         "3pl" = switch(tolower(method),
-                        "jmle" = estimate_items_3pl_jmle(responses, ...),
-                        "mmle" = estimate_items_3pl_mmle(responses, ...),
-                        "bme"  = estimate_items_3pl_bme(responses, ...)
-         )
+estimate_items <- function(responses, model=c("3pl"), method=c("jmle", "mmle", "bme"), ...){
+  model <- match.arg(model)
+  method <- match.arg(method)
+  fun <- switch(model,
+                "3pl" = switch(method, "jmle" = estimate_items_3pl_jmle, "mmle" = estimate_items_3pl_mmle, "bme"  = estimate_items_3pl_bme)
   )
+  fun(responses, ...)
 }
 
 

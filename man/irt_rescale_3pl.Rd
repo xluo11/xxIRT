@@ -4,7 +4,7 @@
 \alias{irt_rescale_3pl}
 \title{Rescale 3PL parameters}
 \usage{
-irt_rescale_3pl(x, parameter = "theta", mean = 0, sd = 1)
+irt_rescale_3pl(x, parameter = c("theta", "b"), mean = 0, sd = 1)
 }
 \arguments{
 \item{x}{an IRT model object}

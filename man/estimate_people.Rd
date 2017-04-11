@@ -7,13 +7,14 @@
 \alias{estimate_people_3pl_mle}
 \title{Estimate People Parameters}
 \usage{
-estimate_people(responses, items, model = "3pl", method = "mle", ...)
+estimate_people(responses, items, model = c("3pl"), method = c("mle", "eap",
+  "map"), ...)
 
 estimate_people_3pl_mle(responses, items, init = 0, iter = 30,
   conv = 0.01, bound = 3.5, debug = FALSE)
 
 estimate_people_3pl_map(responses, items, prior.mean = 0, prior.sd = 1,
-  init = 0, iter = 15, conv = 0.01, bound = 3.5, debug = FALSE)
+  init = 0, iter = 30, conv = 0.01, bound = 3.5, debug = FALSE)
 
 estimate_people_3pl_eap(responses, items)
 }

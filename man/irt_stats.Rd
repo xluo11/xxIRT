@@ -4,7 +4,8 @@
 \alias{irt_stats}
 \title{Compute IRT Statistics}
 \usage{
-irt_stats(x, stats = "prob", summary = NULL, fun = NULL, ...)
+irt_stats(x, stats = c("prob", "info", "lik", "loglik"), summary = NULL,
+  fun = NULL, ...)
 }
 \arguments{
 \item{x}{an IRT model object}

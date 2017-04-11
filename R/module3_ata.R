@@ -179,13 +179,12 @@ plot.ata <- function(x, ...){
 #' When \code{coef} is a variable name, variable values are used as coefficients.
 #' When \code{coef} is a numeric vector unequal to pool size, information at those points are used as coefficients.\cr
 #' @export
-ata_obj_relative <- function(x, coef, mode, negative=FALSE, flatten=NULL, forms=NULL, collapse=FALSE){
+ata_obj_relative <- function(x, coef, mode=c('max', 'min'), negative=FALSE, flatten=NULL, forms=NULL, collapse=FALSE){
   if(class(x) != "ata") stop("not an 'ata' object")
   forms <- ata_form_index(x, forms, collapse)
   coef <- ata_obj_coef(x, coef, compensate=FALSE)
   x$negative <- negative
-  if(any(!mode %in% c("max", "min"))) stop("invalid mode. use 'max' or 'min'")
-  x$max <- ifelse(mode == "max", TRUE, FALSE)
+  x$max <- ifelse(match.arg(mode) == "max", TRUE, FALSE)
   
   mat <- matrix(0, nrow=nrow(forms) * nrow(coef), ncol=x$nlp)
   dir <- rhs <- rep(NA, nrow(forms) * nrow(coef))
@@ -385,8 +384,10 @@ ata_item_fixedvalue <- function(x, items, min=NA, max=NA, forms=NULL, collapse=F
 #' When passing control parameters to the GLPK solver, use the correct parameter name
 #' (see \code{?glpkAPI::glpkConstants}).
 #' @export
-ata_solve <- function(x, solver="lpsolve", as.list=TRUE, timeout=10, mip_gap=0.1, verbose="none", ...) {
+ata_solve <- function(x, solver=c("lpsolve", "glpk"), as.list=TRUE, timeout=10, mip_gap=0.1, verbose=c("none", "normal", "full"), ...) {
   if(class(x) != "ata") stop("not an 'ata' object")
+  solver <- match.arg(solver)
+  verbose <- match.arg(verbose)
   
   if(solver == "glpk") {
     timeout <- timeout * 1000
@@ -397,8 +398,6 @@ ata_solve <- function(x, solver="lpsolve", as.list=TRUE, timeout=10, mip_gap=0.1
     mipgap <- rep(mip_gap, 2)
     rs <- ata_solve_lpsolve(x, timeout=timeout, mip.gap=mip_gap, verbose=verbose)
     if(!rs$status %in% c(0, 1)) rs$result <- array(0L, dim(rs$result))
-  } else {
-    stop("invalid solver. use 'glpk' or 'lpsolve'")
   }
   
   x$status <- rs$status

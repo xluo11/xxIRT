@@ -7,7 +7,8 @@
 \alias{estimate_items_3pl_mmle}
 \title{Estimate Item Parameters}
 \usage{
-estimate_items(responses, model = "3pl", method = "jmle", ...)
+estimate_items(responses, model = c("3pl"), method = c("jmle", "mmle",
+  "bme"), ...)
 
 estimate_items_3pl_jmle(responses, people, fix = list(), iter = 30,
   conv = 0.01, bound = list(a = 2, b = 3.5, c = 0.25), init = list(a = 1,

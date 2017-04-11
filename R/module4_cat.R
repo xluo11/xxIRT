@@ -26,56 +26,79 @@
 #' outputs a list with the boolean \code{stop} decision, and \code{output} for additional output (optional). 
 #' Retrieve the additional output using \code{output.stop} from the returnig \code{cat} object. \cr
 #' @examples
-#' \dontrun{
-#' # generate a 200-item pool
+#' ### generate a 200-item pool
 #' pool <- irt_model("3pl")$gendata(1,200)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 #' pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-#' # ex. 1: 10-30 items, MI selection rule, SE stopping rule (se=.3)
+#' 
+#' ### ex. 1: 10-30 items
+#' ### maximum information selection rule
+#' ### standard error stopping rule (se=.3)
 #' opts <- list(min=10, max=30, stop.se=.3)
 #' x <- cat_sim(0.1, pool, opts)
 #' x$admin
 #' plot(x)
-#' # ex. 2: 10-30 items, MI selection rule, MI stopping rule (mi=.3)
+#' 
+#' ### ex. 2: 10-30 items
+#' ### maximum information selection rule
+#' ### minimum information stopping rule (mi=.3)
 #' opts <- list(min=10, max=30, stop.mi=.8)
 #' x <- cat_sim(0.1, pool, opts)
 #' x$admin
 #' plot(x)
-#' # ex. 3: 10-30 items, MI selection rule, CI stopping rule (cut=0)
+#' 
+#' ### ex. 3: 10-30 items
+#' ### maximum information selection rule
+#' ### confidence interval stopping rule (cut=0)
 #' opts <- list(min=10, max=30, stop.cut=0)
 #' x <- cat_sim(0.1, pool, opts)
 #' x$admin
 #' plot(x)
-#' # ex. 4: 10-30 items, MI selection rules, SE stopping rule (se=.3), randomesque=5
+#' 
+#' ### ex. 4: 10-30 items
+#' ### maximum information selection rules, randomesque = 5
+#' ### standard error stopping rule (se=.3) 
 #' opts <- list(min=10, max=30, stop.se=.3, randomesque=5)
 #' x <- cat_sim(0.1, pool, opts)
 #' x$admin
 #' plot(x)
-#' # ex. 5: 10-30 items, c-cat selection rule, first 10 content areas is random
-#' opts <- list(min=30, max=60, stop.cut=0, ccat.target=c(.50,.25,.25), ccat.random=10)
+#' 
+#' ### ex. 5: 10-30 items
+#' ### c-cat selection rule, first 10 areas are random
+#' ### confidence interval stopping rule
+#' opts <- list(min=30, max=60, stop.cut=0, 
+#'     ccat.target=c(.50,.25,.25), ccat.random=10)
 #' x <- cat_sim(0.1, pool, opts, cat.select=cat_select_ccat)
 #' x$admin
 #' plot(x)
 #' freq(x$admin$content, 1:3)
-#' # ex. 6: 30 items, shadow test selection rule
-#' cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10), 
-#'                    max=c(10, 10, 10), stringsAsFactors=FALSE)
-#' cons <- rbind(cons, c("time", NA, 55*30, 65*30))
-#' opts <- list(min=30, max=30, stop.se=.03, shadow.constraints=cons)
+#' 
+#' ### ex. 6: 15 items
+#' ### shadow test selection rule
+#' ### content: [5, 5, 5] items in area 1--3
+#' ### response time: avg. 55--65 seconds
+#' cons <- data.frame(name="content", level=c(1,2,3), min=c(5, 5, 5), 
+#'                    max=c(5, 5, 5), stringsAsFactors=FALSE)
+#' cons <- rbind(cons, c("time", NA, 55*15, 65*15))
+#' opts <- list(min=15, max=15, stop.se=.03, shadow.constraints=cons)
 #' x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow)
 #' x$admin
 #' plot(x)
 #' freq(x$admin$content, 1:3)
 #' mean(x$items$time)
-#' # ex. 7: 10-30 items,  simulation using the projection-based stopping rule
+#' 
+#' ### ex. 7: 20-30 items
+#' ### shadow selection rule
+#' ### projection-based stopping rule
 #' cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10), 
-#'                    max=c(30, 30, 30), stringsAsFactors=FALSE)
-#' opts <- list(min=10, max=30, projection.cut=0, projection.constraints=cons, 
-#' projection.method="information")
-#' x <- cat_sim(0.1, pool, opts, cat.stop=cat_stop_projection)
+#'                    max=c(10, 10, 10), stringsAsFactors=FALSE)
+#' cons <- rbind(cons, c("time", NA, 55*30, 65*30))
+#' opts <- list(min=20, max=30, projection.cut=0, projection.constraints=cons, 
+#' projection.method="difficulty", shadow.constraints=cons)
+#' x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow, 
+#' cat.stop=cat_stop_projection)
 #' x$admin
 #' plot(x)
-#' }
 #' @importFrom stats runif
 #' @export
 cat_sim <- function(theta.true, pool, opts, cat.select=cat_select_default, cat.estimate=cat_estimate_default, cat.stop=cat_stop_default, debug=FALSE){
@@ -257,7 +280,9 @@ cat_select_shadow <- function(cat.data){
   if(is.null(cons)) stop("The constraints of shadow-test selection algorithm is not found in options")
   if(!all(colnames(cons) %in% c("name", "level", "min", "max"))) stop("make sure the column names of the contraints data frame are 'name', 'level', 'min', 'max'")
   if(is.factor(cons$name)) cons$name <- levels(cons$name)[cons$name]
-  if(is.factor(cons$level)) cons$level <- levels(cons$level)[cons$level]
+  if(is.factor(cons$level)) cons$level <- as.numeric(levels(cons$level)[cons$level])
+  cons$min <- as.numeric(cons$min)
+  cons$max <- as.numeric(cons$max)
   
   pool <- cat.data$pool
   pool$temp.id <- 1:nrow(pool)
@@ -277,7 +302,7 @@ cat_select_shadow <- function(cat.data){
       return(0)
     if(is.na(x["level"]) || x["level"] == "NA")
       return(sum(cat.data$items[, x["name"]]))
-    return(sum(cat.data$items[, x["name"]] == as.numeric(x["level"])))
+    return(sum(cat.data$items[, x["name"]] == x["level"]))
   })
   cons$min <- cons$min - cons$curr
   cons$min <- ifelse(cons$min < 0, 0, cons$min)
@@ -379,8 +404,10 @@ cat_stop_projection <- function(cat.data){
   if(is.null(cons)) stop("The constraints of the projection-based stopping rule is not found in options")
   if(!all(colnames(cons) %in% c("name", "level", "min", "max"))) stop("make sure the column names of the contraints data frame are 'name', 'level', 'min', 'max'")
   if(is.factor(cons$name)) cons$name <- levels(cons$name)[cons$name]
-  if(is.factor(cons$level)) cons$level <- levels(cons$level)[cons$level]
-
+  if(is.factor(cons$level)) cons$level <- as.numeric(levels(cons$level)[cons$level])
+  cons$min <- as.numeric(cons$min)
+  cons$max <- as.numeric(cons$max)
+  
   if(cat.data$len < cat.data$opts$min){
     return(list(stop=FALSE))
   } else if(cat.data$len >= cat.data$opts$max) {
@@ -388,72 +415,73 @@ cat_stop_projection <- function(cat.data){
   }
   
   pool <- cat.data$pool
+  n <- cat.data$len
+  theta <- cat.data$est
   items <- cat.data$items
-  rsp <- cat.data$stats[1:cat.data$len, "u"]
-  len <- c(cat.data$opts$min - cat.data$len, cat.data$opts$max - cat.data$len)
+  se <- cat.data$stats[n, "se"]
+  rsp <- cat.data$stats[1:n, "u"]
+  len <- c(cat.data$opts$min - n, cat.data$opts$max - n)
   
-  if(cat.data$debug) cat("\nProjection-based stopping rule: select", paste(len, collapse="--"), "items\n")
+  cons$curr <- apply(cons, 1, function(x) {
+    if(nrow(items) == 0)
+      return(0)
+    if(is.na(x["level"]) || x["level"] == "NA")
+      return(sum(items[, x["name"]]))
+    return(sum(items[, x["name"]] == x["level"]))
+  })
+  cons$min <- cons$min - cons$curr
+  cons$min <- ifelse(cons$min < 0, 0, cons$min)
+  cons$max <- cons$max - cons$curr
+  cons$max <- ifelse(cons$max < 0, 0, cons$max)
   
-  for(i in 1:nrow(cons)){
-    con <- unlist(cons[i,])
-    con <- list(name=con[1], min=as.numeric(con[3]), max=as.numeric(con[4]), 
-                level=ifelse(con[2]=="NA", NA, as.numeric(con[2])))
-    if(nrow(items) == 0){
-      con$curr <- 0
-    } else {
-      if(is.na(con$level)) {
-        con$curr <- sum(items[, con$name])
-      } else {
-        con$curr <- sum(items[, con$name] == con$level)
-      }
-    }
-    con$min <- con$min - con$curr
-    con$min <- ifelse(con$min < 0, 0 , con$min)
-    con$max <- con$max - con$curr
-    con$max <- ifelse(con$max < 0, 0 , con$max)
-    
-    if(cat.data$debug) cat("subject to: ", con$name, ", level = ",con$level, ", current = ", 
-                           con$curr, ", ~ [", con$min, ", ", con$max, "]\n", sep="")
+  if(cat.data$debug) {
+    cat("\nProjection-based stopping rule: select", paste(len, collapse="--"), "items\n")
+    apply(cons, 1, function(x) {
+      cat("subject to: ", x["name"], ", level = ", x["level"], ", current = ", 
+          x["curr"], ", ~ [", x["min"], ", ", x["max"], "]\n", sep="")
+    })
   }
   
   if(method == "information"){
-    x <- ata(pool, nforms=1, len=len, maxselect=1)
-    x <- ata_obj_relative(x, cat.data$est, "max")
-    for(i in 1:nrow(cons)) x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
+    x <- ata(pool, nforms=1, len=NULL, maxselect=1)
+    x <- ata_constraint(x, 1, min=len[1], max=len[2])
+    x <- ata_obj_relative(x, theta, "max")
+    for(i in 1:nrow(cons)) 
+      x <- ata_constraint(x, coef=cons$name[i], min=cons$min[i], max=cons$max[i], level=cons$level[i])
     x <- ata_solve(x, "lpsolve", verbose="none")
-    
     if(is.null(x$items)) stop("no solutions.")
-    x <- x$items[[1]]
-    proj.items <- rbind(items, x)
-    proj.response <- c(rsp, rep(0, nrow(x)))
-    proj.theta.lb <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
-    proj.response <- c(rsp, rep(1, nrow(x)))
-    proj.theta.ub <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
+    items.ub <- items.lb <- x$items[[1]]
   } else if(method == "difficulty"){
-    x <- ata(pool, nforms=1, len=len, maxselect=1)
-    x <- ata_obj_absolute(x, x$pool$b, cat.data$est + 2 * cat.data$stats[cat.data$len, "se"])
-    for(i in 1:nrow(cons)) x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
+    x <- ata(pool, nforms=1, len=NULL, maxselect=1)
+    x <- ata_constraint(x, 1, min=len[1], max=len[2])
+    x <- ata_obj_absolute(x, x$pool$b, theta + 2 * se)
+    for(i in 1:nrow(cons)) 
+      x <- ata_constraint(x, coef=cons$name[i], min=cons$min[i], max=cons$max[i], level=cons$level[i])
     x <- ata_solve(x, "lpsolve", verbose="none")
     if(is.null(x$items)) stop("no solutions.")
-    x <- x$items[[1]]
-    proj.items <- rbind(items, x)
-    proj.response <- c(rsp, rep(1, nrow(x)))
-    proj.theta.ub <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
-    
-    x <- ata(pool, nforms=1, len=len, maxselect=1)
-    x <- ata_obj_absolute(x, x$pool$b, cat.data$est - 2 * cat.data$stats[cat.data$len, "se"])
-    for(i in 1:nrow(cons)) x <- ata_constraint(x, coef=con$name, min=con$min, max=con$max, level=con$level)
-    x <- ata_solve(x)
+    items.ub <- x$items[[1]]
+
+    x <- ata(pool, nforms=1, len=NULL, maxselect=1)
+    x <- ata_constraint(x, 1, min=len[1], max=len[2])
+    x <- ata_obj_absolute(x, x$pool$b, theta - 2 * se)
+    for(i in 1:nrow(cons)) 
+      x <- ata_constraint(x, coef=cons$name[i], min=cons$min[i], max=cons$max[i], level=cons$level[i])
+    x <- ata_solve(x, "lpsolve", verbose="none")
     if(is.null(x$items)) stop("no solutions.")
-    x <- x$items[[1]]
-    proj.items <- rbind(items, x)
-    proj.response <- c(rsp, rep(0, nrow(x)))
-    proj.theta.lb <- estimate_people(proj.response, proj.items, model="3pl", method="mle")$people[1,1]
-  }
+    items.lb <- x$items[[1]]
+  }  
   
-  if(cat.data$debug) cat("the projected theta range is: [", round(proj.theta.lb, 2), 
-                         ", ", round(proj.theta.ub, 2), "]\n", sep="")
+  rsp.ub <- c(rsp, rep(1, nrow(items.ub)))
+  items.ub <- rbind(items, items.ub[,colnames(items)])
+  theta.ub <- estimate_people(rsp.ub, items.ub, method="mle")$people[1,1]
+  rsp.lb <- c(rsp, rep(0, nrow(items.lb)))
+  items.lb <- rbind(items, items.lb[,colnames(items)])
+  theta.lb <- estimate_people(rsp.lb, items.lb, method="mle")$people[1,1]
   
-  stop <- (proj.theta.lb > cutscore || proj.theta.ub < cutscore)
+  if(cat.data$debug) 
+    cat("the projected theta range is: [", round(theta.lb, 2), 
+        ", ", round(theta.ub, 2), "]\n", sep="")
+  
+  stop <- (theta.lb > cutscore || theta.ub < cutscore)
   return(list(stop=stop))
 }

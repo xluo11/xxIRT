@@ -39,11 +39,11 @@ mst_sim <- function(x, theta.true, rdp=NULL){
         colnames(info) <- c("index", "info")
         next.module <- info$index[which.max(info$info)]
       } else { # rdp
-        next.module <- subset(rdp, index %in% next.modules & theta.est < upper)
+        next.module <- subset(rdp, rdp$index %in% next.modules & theta.est < rdp$upper)
         if(nrow(next.module) != 0) {
           next.module <- min(next.module$index)
         } else {
-          next.module <- subset(rdp, index %in% next.modules & theta.est > lower)
+          next.module <- subset(rdp, rdp$index %in% next.modules & theta.est > rdp$lower)
           next.module <- max(next.module$index)
         }
       }
