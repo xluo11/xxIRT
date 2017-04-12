@@ -155,6 +155,7 @@ x$admin
 plot(x)
 freq(x$admin$content, 1:3)
 
+\dontrun{
 ### ex. 6: 15 items
 ### shadow test selection rule
 ### content: [5, 5, 5] items in area 1--3
@@ -181,5 +182,6 @@ x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow,
 cat.stop=cat_stop_projection)
 x$admin
 plot(x)
+}
 }
 

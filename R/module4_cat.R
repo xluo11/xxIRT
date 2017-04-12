@@ -73,6 +73,7 @@
 #' plot(x)
 #' freq(x$admin$content, 1:3)
 #' 
+#' \dontrun{
 #' ### ex. 6: 15 items
 #' ### shadow test selection rule
 #' ### content: [5, 5, 5] items in area 1--3
@@ -99,6 +100,7 @@
 #' cat.stop=cat_stop_projection)
 #' x$admin
 #' plot(x)
+#' }
 #' @importFrom stats runif
 #' @export
 cat_sim <- function(theta.true, pool, opts, cat.select=cat_select_default, cat.estimate=cat_estimate_default, cat.stop=cat_stop_default, debug=FALSE){
