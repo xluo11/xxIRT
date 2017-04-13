@@ -9,7 +9,7 @@ Maintainer: Xiao Luo <xluo1986@gmail.com>
 Description: An implementation of item response theory and computer-based testing in R. 
     It is designed for bridging the gap between theoretical advancements in 
     psychometric research and their applications in practice. Currently, it 
-    consists of five modules: (1) common IRT functions, (2) estimation procedures, 
+    consists of five modules: (1) common item response theory functions, (2) estimation procedures, 
     (3) automated test assembly framework, (4) computerized adaptive testing framework, 
     (5) multistage testing framework. See detailed documentation at 
     <https://github.com/xluo11/xxIRT>.
