@@ -1,11 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 
-^README\.Rmd$
-^README_files$
-
-^res\\*\.*$
-
-^tests\\*\.*$
+^README.*$
+^tests$
 
 
