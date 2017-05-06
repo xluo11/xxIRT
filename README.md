@@ -1,7 +1,7 @@
 xxIRT: Practical Item Response Theory and Computer-Based Testing in R
 ================
 Xiao Luo
-11 April 2017
+06 May 2017
 
 ### Table of Contents
 
@@ -11,7 +11,7 @@ Xiao Luo
     -   [IRT Models](#irt-models)
     -   [IRT Utils](#irt-utils)
     -   [Parameter Estimation](#parameter-estimation)
-    -   [Automated Testing Assembly](#automated-testing-assembly)
+    -   [Automated Test Assembly](#automated-test-assembly)
     -   [Computerized Adaptive Testing](#computerized-adaptive-testing)
     -   [Multistage Testing](#multistage-testing)
 -   [Graphical User Interfaces](#graphical-user-interfaces)
@@ -549,8 +549,8 @@ lpsolve <- ata_solve(x, "lpsolve", verbose="normal", timeout=5)
     ##       The largest [LUSOL v2.2.1.0] fact(B) had 245 NZ entries, 1.0x largest basis.
     ##       The maximum B&B level was 60, 0.1x MIP order, 42 at the optimal solution.
     ##       The constraint matrix inf-norm is 6.52, with a dynamic range of 652.
-    ##       Time to load data was 0.008 seconds, presolve used 0.001 seconds,
-    ##        ... 0.209 seconds in simplex solver, in total 0.218 seconds.
+    ##       Time to load data was 0.016 seconds, presolve used 0.000 seconds,
+    ##        ... 0.234 seconds in simplex solver, in total 0.250 seconds.
 
 ``` r
 sapply(lpsolve$items, function(x) c(mean=mean(x$b), sd=sd(x$b)))
