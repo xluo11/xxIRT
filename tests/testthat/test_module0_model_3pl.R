@@ -43,8 +43,8 @@ test_that("create a model using generate data", {
   expect_equal(sd(x$items$b), 1, tolerance=tol, scale=1)
   expect_equal(mean(log(x$items$a)), 0, tolerance=tol, scale=1)
   expect_equal(sd(log(x$items$a)), 0.2, tolerance=tol, scale=1)
-  expect_equal(mean(x$items$c), 5 / (5 + 42), tolerance=tol, scale=1)
-  expect_equal(sd(x$items$c), sqrt(5 * 42 / (5  + 42)^2 / (5 + 42 + 1)), tolerance=tol, scale=1)
+  expect_equal(mean(x$items$c), 5 / (5 + 46), tolerance=tol, scale=1)
+  expect_equal(sd(x$items$c), sqrt(5 * 46 / (5  + 46)^2 / (5 + 46 + 1)), tolerance=tol, scale=1)
   expect_equal(dim(x$responses), c(1000, 200))
 })
 

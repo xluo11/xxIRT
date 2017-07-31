@@ -3,19 +3,6 @@ context("module1_irt_utils.R")
 set.seed(880813)
 
 
-test_that("create irt models", {
-  x <- model_3pl()$gendata(10, 5)
-  y <- irt_model("3pl", x$people, x$items, x$responses)
-  expect_equal(x$people, y$people)
-  expect_equal(x$items, y$items)
-  expect_equal(x$responses, y$responses)
-  
-  y <- irt_model("3pl", theta=x$people$theta, a=x$items$a, b=x$items$b, c=x$items$c, responses=x$responses)
-  expect_equal(x$people, y$people)
-  expect_equal(x$items, y$items)
-  expect_equal(x$responses, y$responses)
-})
-
 test_that("compute irt statistics", {
   x <- model_3pl()$gendata(10, 5)
   expect_equal(irt_stats(x, stats="prob"), x$P(x))
