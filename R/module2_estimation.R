@@ -2,7 +2,6 @@
 #' @name estimation
 NULL
 
-
 #' @rdname estimation
 #' @description \code{estimate_mle} estimates parameters using joint or maximum likelihood estimation method
 #' @param u a matrix of response data
@@ -37,19 +36,23 @@ NULL
 #' When \code{debug} mode is on, print and report additional information regarding the convergence
 #' over the iterations. \cr
 #' @examples
+#' \dontrun{
 #' library(ggplot2)
 #' library(dplyr)
-#' data <- model_3pl()$gendata(1000, 20)
+#' data <- model_3pl()$gendata(1000, 40)
 #' x <- estimate_mle(data$responses, debug=TRUE)
 #' y <- rbind(data.frame(param='t', true=data$people$theta, est=x$t),
 #'      data.frame(param='a', true=data$items$a, est=x$a),
 #'      data.frame(param='b', true=data$items$b, est=x$b),
 #'      data.frame(param='c', true=data$items$c, est=x$c))
+#' group_by(y, param) %>% 
+#' summarise(corr=cor(true, est), rmse=rmse(true, est))
 #' ggplot(y, aes(x=true, y=est, color=param)) + 
 #'   geom_point(alpha=.5) + facet_wrap(~param, scales="free") + 
 #'   xlab("True Parameters") + ylab("Estimated Parameters") +
 #'   theme_bw()
 #'   summarise(group_by(y, param), corr=cor(true, est), rmse=rmse(true, est), mean=mean(est), sd=sd(est))
+#' }
 #' @import ggplot2
 #' @importFrom stats sd
 #' @importFrom reshape2 melt
@@ -72,7 +75,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
   c_fixed <- inputs$c_fixed
   
   if(method == "mmle") {
-    X <- seq(-3, 3, .2)
+    X <- seq(-3, 3, .5)
     A <- dnorm(X, mean=mmle_mu, sd=mmle_sig)
   }
   h_t <- ifelse(t_fixed, 0, 1)
@@ -81,7 +84,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
   h_c <- ifelse(c_fixed, 0, 1)
   debugger <-matrix(nrow=iter, ncol=4, dimnames=list(1:iter, c('t', 'a', 'b', 'c')))
   
-  if(debug) cat("Estimting:")
+  if(debug) cat(method, "- estimating:")
   for(k in seq(iter)){
     if(debug) cat('.')
     # update b
@@ -89,14 +92,15 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
       if(method == "jmle"){
         p <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob")
         p_alt <- irt_stats(model_3pl(theta=t, a=a, b=b, c=0), "prob")
-        f1 <- -1 * ((u - p) * p_alt / p) %*% diag(1.7 * a)
+        f1 <- -1 * ((u - p) * p_alt / p)
+        f1 <- ifelse(is.na(f1), 0, f1) %*% diag(1.7 * a)
         f2 <- -1 * (p * (1 - p) * p_alt / p) %*% diag(1.7 * a)^2
       } else if(method == "mmle") {
-        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
         P <- L %*% diag(A)
         P <- P / rowSums(P)
         f <- colSums(P)
-        r <- t(P) %*% u
+        r <- t(P) %*% ifelse(is.na(u), 0, u)
         p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
         p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
         f1 <- -1 * ((r - p * f) * p_alt / p) %*% diag(1.7 * a)
@@ -105,7 +109,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         stop("invalid estimation method for items")
       }
       h <- h_b
-      h_b <- colSums(f1) / colSums(f2)
+      h_b <- colSums(f1, na.rm=TRUE) / colSums(f2, na.rm=TRUE)
       h_b <- ifelse(abs(h_b) > h, 0.5, 1.0) * h_b
       h_b[b_fixed] <- 0
       b <- b - h_b
@@ -121,11 +125,11 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         f1 <- (u - p) * outer(t, b, '-') * p_alt / p
         f2 <- -1 * outer(t, b, '-')^2 * p * (1 - p) * (p_alt / p)^2        
       } else if(method == "mmle") {
-        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
         P <- L %*% diag(A)
         P <- P / rowSums(P)
         f <- colSums(P)
-        r <- t(P) %*% u
+        r <- t(P) %*% ifelse(is.na(u), 0, u)
         p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
         p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
         f1 <- (r - p * f) * outer(X, b, '-') * p_alt / p
@@ -134,7 +138,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         stop("invalid estimation method for items")
       }
       h <- h_a
-      h_a <- colSums(f1) / colSums(f2)
+      h_a <- colSums(f1, na.rm=TRUE) / colSums(f2, na.rm=TRUE)
       h_a <- ifelse(abs(h_a) > h, 0.5, 1.0) * h_a
       h_a[a_fixed] <- 0
       a <- a - h_a
@@ -151,11 +155,11 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         f1 <- (u - p) / (p - c_mat) * p_alt / p
         f2 <- -1 * (1 - p) / (1 - c_mat) / (p - c_mat) * p_alt / p
       } else if(method == "mmle") {
-        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
         P <- L %*% diag(A)
         P <- P / rowSums(P)
         f <- colSums(P)
-        r <- t(P) %*% u
+        r <- t(P) %*% ifelse(is.na(u), 0, u)
         p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
         p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
         c_mat <- matrix(1, nrow=length(X)) %*% matrix(c, nrow=1)
@@ -165,7 +169,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         stop("invalid estimation method for items")
       }
       h <- h_c
-      h_c <- colSums(f1) / colSums(f2)
+      h_c <- colSums(f1, na.rm=TRUE) / colSums(f2, na.rm=TRUE)
       h_c <- ifelse(abs(h_c) > h, 0.5, 1.0) * h_c
       h_c[c_fixed] <- 0
       c <- c - h_c
@@ -177,7 +181,8 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
     if(any(!t_fixed)){
       p <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob")
       p_alt <- irt_stats(model_3pl(theta=t, a=a, b=b, c=0), "prob")
-      L1 <- ((u - p) * p_alt / p) %*% diag(1.7 * a)
+      L1 <- ((u - p) * p_alt / p) 
+      L1 <- ifelse(is.na(L1), 0, L1) %*% diag(1.7 * a)
       L2 <- -1 * ((p_alt / p) %*% diag(1.7 * a))^2 * p * (1 - p)
       h <- h_t
       h_t <- rowSums(L1) / rowSums(L2)
@@ -225,16 +230,20 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
 #' The \code{method} argument in \code{estimate_bayesian} controls whether to use 
 #' maximum (\code{map}) or expected (\code{eap}) a posteriori to estimate theta parameters. \cr 
 #' @examples
+#' \dontrun{
 #' x <- estimate_bayesian(data$responses, debug=TRUE)
 #' y <- rbind(data.frame(param='t', true=data$people$theta, est=x$t),
 #'      data.frame(param='a', true=data$items$a, est=x$a),
 #'      data.frame(param='b', true=data$items$b, est=x$b),
 #'      data.frame(param='c', true=data$items$c, est=x$c))
+#' group_by(y, param) %>% 
+#' summarise(corr=cor(true, est), rmse=rmse(true, est))
 #' ggplot(y, aes(x=true, y=est, color=param)) + 
 #'   geom_point(alpha=.5) + facet_wrap(~param, scales="free") + 
 #'   xlab("True Parameters") + ylab("Estimated Parameters") +
 #'   theme_bw()
 #'   summarise(group_by(y, param), corr=cor(true, est), rmse=rmse(true, est), mean=mean(est), sd=sd(est))
+#' }
 #' @import ggplot2
 #' @importFrom stats sd
 #' @importFrom reshape2 melt
@@ -257,7 +266,7 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
   c_fixed <- inputs$c_fixed
   c[!c_fixed] <- 0.01
   
-  X <- seq(-3, 3, .2)
+  X <- seq(-3, 3, .5)
   A <- dnorm(X, mean=t_mu, sd=t_sig)
   h_t <- ifelse(t_fixed, 0, 1)
   h_a <- ifelse(a_fixed, 0, 1)
@@ -265,16 +274,16 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
   h_c <- ifelse(c_fixed, 0, 1)
   debugger <-matrix(nrow=iter, ncol=4, dimnames=list(1:iter, c('t', 'a', 'b', 'c')))
   
-  if(debug) cat("Estimating:")
+  if(debug) cat(method, "- estimating:")
   for(k in seq(iter)){
     if(debug) cat('.')
     # update b
     if(any(!b_fixed)){
-      L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+      L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
       P <- L %*% diag(A)
       P <- P / rowSums(P)
       f <- colSums(P)
-      r <- t(P) %*% u
+      r <- t(P) %*% ifelse(is.na(u), 0, u)
       p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
       p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
       w <- p_alt * (1 - p_alt) / p / (1 -p)
@@ -292,11 +301,11 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
     }
     # update a
     if(any(!a_fixed)){
-      L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+      L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
       P <- L %*% diag(A)
       P <- P / rowSums(P)
       f <- colSums(P)
-      r <- t(P) %*% u
+      r <- t(P) %*% ifelse(is.na(u), 0, u)
       p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
       p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
       w <- p_alt * (1 - p_alt) / p / (1 - p)
@@ -314,11 +323,11 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
     }
     # update c
     if(any(!c_fixed)){
-      L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+      L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
       P <- L %*% diag(A)
       P <- P / rowSums(P)
       f <- colSums(P)
-      r <- t(P) %*% u
+      r <- t(P) %*% ifelse(is.na(u), 0, u)
       p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
       p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
       c_mat <- matrix(1, nrow=length(X)) %*% c
@@ -337,7 +346,8 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
     if(any(!t_fixed)){
       if(method == "map"){
         p <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob")
-        f1 <- (sweep(p, MARGIN=2, c, FUN='-') * (u - p) / (p %*% diag(1 - c))) %*% diag(1.7 * a)
+        f1 <- (sweep(p, MARGIN=2, c, FUN='-') * (u - p) / (p %*% diag(1 - c))) 
+        f1 <- ifelse(is.na(f1), 0, f1) %*% diag(1.7 * a)
         f1 <- rowSums(f1) - (t - t_mu) / t_sig 
         f2 <- -1 * (sweep(p, MARGIN=2, c, FUN='-') %*% diag(1.7 * a / (1 - c)))^2 * (1 - p) / p
         f2 <- rowSums(f2) - 1 / t_sig^2
@@ -347,7 +357,7 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
         h_t[t_fixed] <- 0
         t <- t - h_t
       } else if(method == "eap"){
-        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod)})
+        L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
         p <- L %*% diag(A) 
         p <- p / rowSums(p)
         theta <- as.vector(p %*% matrix(X))
@@ -451,33 +461,5 @@ estimate_check_input <- function(u, t, a, b, c) {
     stop("invalid a-parameters")
   }
   return(list(t=t, a=a, b=b, c=c, t_fixed=t_fixed, a_fixed=a_fixed, b_fixed=b_fixed, c_fixed=c_fixed))
-}
-
-
-estimation_stats <- function(u, t, a, b, c){
-  ###
-  data <- model_3pl()$gendata(n.people=1000, n.items=40)
-  est <- estimate_mle(data$responses, debug=T)
-  u <- data$responses
-  t <- est$t
-  a <- est$a
-  b <- est$b
-  c <- est$c
-  ###
-  
-  # people
-  score_obs <- rowSums(u)
-  p_value <- rowMeans(u)
-  score_exp <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob", summary="people", fun=sum)
-  info <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "info", summary="people", fun=sum)
-  se <- 1 / sqrt(info)
-  # pt-biserial
-  # pt measure
-  # in-fit 
-  # out-fit
-  
-  
-  # items
-  
 }
 
