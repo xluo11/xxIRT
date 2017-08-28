@@ -57,7 +57,7 @@ NULL
 #' @importFrom stats sd
 #' @importFrom reshape2 melt
 #' @export
-estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005, method=c("jmle", "mmle"), bound_t=3.5, bound_a=2, bound_b=3.5, bound_c=0.25, mmle_mu=0, mmle_sig=1, scale=c("theta", "b"), scale_mean=0, scale_sd=1, debug=FALSE){
+estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005, method=c("jmle", "mmle"), bound_t=3.5, bound_a=2, bound_b=3.5, bound_c=0.25, mmle_mu=0, mmle_sig=1, scale=c("none", "theta", "b"), scale_mean=0, scale_sd=1, debug=FALSE){
   method <- match.arg(method)
   scale <- match.arg(scale)
   u <- as.matrix(u)
@@ -93,8 +93,8 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         p <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob")
         p_alt <- irt_stats(model_3pl(theta=t, a=a, b=b, c=0), "prob")
         f1 <- -1 * ((u - p) * p_alt / p)
-        f1 <- ifelse(is.na(f1), 0, f1) %*% diag(1.7 * a)
-        f2 <- -1 * (p * (1 - p) * p_alt / p) %*% diag(1.7 * a)^2
+        f1 <- ifelse(is.na(f1), 0, f1) %*% diag(1.7 * a, nrow=n.items)
+        f2 <- -1 * (p * (1 - p) * p_alt / p) %*% diag(1.7 * a, nrow=n.items)^2
       } else if(method == "mmle") {
         L <- sapply(X, function(x){irt_stats(model_3pl(theta=rep(x, n.people), a=a, b=b, c=c, responses=u), "lik", summary="people", fun=prod, na.rm=TRUE)})
         P <- L %*% diag(A)
@@ -103,8 +103,8 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
         r <- t(P) %*% ifelse(is.na(u), 0, u)
         p <- irt_stats(model_3pl(theta=X, a=a, b=b, c=c), "prob")
         p_alt <- irt_stats(model_3pl(theta=X, a=a, b=b, c=0), "prob")
-        f1 <- -1 * ((r - p * f) * p_alt / p) %*% diag(1.7 * a)
-        f2 <- -1 * (f * p * (1 - p) * p_alt / p) %*% diag(1.7 * a)^2
+        f1 <- -1 * ((r - p * f) * p_alt / p) %*% diag(1.7 * a, nrow=n.items)
+        f2 <- -1 * (f * p * (1 - p) * p_alt / p) %*% diag(1.7 * a, nrow=n.items)^2
       } else {
         stop("invalid estimation method for items")
       }
@@ -182,8 +182,8 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
       p <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob")
       p_alt <- irt_stats(model_3pl(theta=t, a=a, b=b, c=0), "prob")
       L1 <- ((u - p) * p_alt / p) 
-      L1 <- ifelse(is.na(L1), 0, L1) %*% diag(1.7 * a)
-      L2 <- -1 * ((p_alt / p) %*% diag(1.7 * a))^2 * p * (1 - p)
+      L1 <- ifelse(is.na(L1), 0, L1) %*% diag(1.7 * a, nrow=n.items)
+      L2 <- -1 * ((p_alt / p) %*% diag(1.7 * a, nrow=n.items))^2 * p * (1 - p)
       h <- h_t
       h_t <- rowSums(L1) / rowSums(L2)
       h_t <- ifelse(abs(h_t) > h, 0.5, 1.0) * h_t
@@ -248,7 +248,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
 #' @importFrom stats sd
 #' @importFrom reshape2 melt
 #' @export
-estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map", "eap"), iter=20, conv=0.005, bound_t=3.5, bound_a=2, bound_b=3.5, bound_c=0.25, scale=c("theta", "b"), scale_mean=0, scale_sd=1, t_mu=0, t_sig=1, a_mu=0, a_sig=0.2, b_mu=0, b_sig=1, c_alpha=5, c_beta=46, report_sd=FALSE, debug=FALSE) {
+estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map", "eap"), iter=20, conv=0.005, bound_t=3.5, bound_a=2, bound_b=3.5, bound_c=0.25, scale=c("none", "theta", "b"), scale_mean=0, scale_sd=1, t_mu=0, t_sig=1, a_mu=0, a_sig=0.2, b_mu=0, b_sig=1, c_alpha=5, c_beta=46, report_sd=FALSE, debug=FALSE) {
   method <- match.arg(method)
   scale <- match.arg(scale)
   u <- as.matrix(u)
@@ -346,10 +346,10 @@ estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map",
     if(any(!t_fixed)){
       if(method == "map"){
         p <- irt_stats(model_3pl(theta=t, a=a, b=b, c=c), "prob")
-        f1 <- (sweep(p, MARGIN=2, c, FUN='-') * (u - p) / (p %*% diag(1 - c))) 
-        f1 <- ifelse(is.na(f1), 0, f1) %*% diag(1.7 * a)
+        f1 <- (sweep(p, MARGIN=2, c, FUN='-') * (u - p) / (p %*% diag(1 - c, nrow=n.items))) 
+        f1 <- ifelse(is.na(f1), 0, f1) %*% diag(1.7 * a, nrow=n.items)
         f1 <- rowSums(f1) - (t - t_mu) / t_sig 
-        f2 <- -1 * (sweep(p, MARGIN=2, c, FUN='-') %*% diag(1.7 * a / (1 - c)))^2 * (1 - p) / p
+        f2 <- -1 * (sweep(p, MARGIN=2, c, FUN='-') %*% diag(1.7 * a / (1 - c), nrow=n.items))^2 * (1 - p) / p
         f2 <- rowSums(f2) - 1 / t_sig^2
         h <- h_t
         h_t <- f1 / f2

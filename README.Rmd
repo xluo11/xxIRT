@@ -388,6 +388,36 @@ group_by(x$items, form) %>%
 plot(x)
 ```
 
+Example 4: Assemble 2 parallel forms from an item pool of item sets. Each form should maximize information over \$theta$=[-1, 1], and should have 10 items in 3 content areas as (3, 3, 4). To solve this problem, the item pool should be restructured to collapse items in the set into one entry.
+```{r}
+# generate item pool
+pool <- model_3pl()$gendata(1, 100)$items %>%
+  mutate(content=sample(1:3, 100, replace=TRUE), set_id=sample(1:30, 100, replace=T)) %>%
+  arrange(set_id)
+# collapse item sets: a, b, c parameters are not used, but still required by ATA
+info <- irt_stats(model_3pl(theta=c(-1, 0, 1), items=pool), "info") %>% t() %>% as.data.frame()
+colnames(info) <- paste("info", 1:3, sep="")
+items <- cbind(pool, info) %>% group_by(set_id) %>%
+  summarise(n=n(), info1=sum(info1), info2=sum(info2), info3=sum(info3),
+            content1=sum(content==1), content2=sum(content==2), content3=sum(content==3),
+            a=mean(a), b=mean(b), c=mean(c))
+# solve ata problem: don't use the 'len' argument to set length constraints!
+x <- ata(items, 2, len=NULL, maxselect=1) %>%
+  ata_obj_relative(coef="info1", mode="max") %>%
+  ata_obj_relative(coef="info2", mode="max") %>%
+  ata_obj_relative(coef="info3", mode="max") %>%
+  ata_constraint(coef="n", min=10, max=10) %>%
+  ata_constraint(coef="content1", min=3, max=3) %>%
+  ata_constraint(coef="content2", min=3, max=3) %>%
+  ata_constraint(coef="content3", min=4, max=4) %>%
+  ata_solve(as.list=FALSE)
+# find orignial items using set_id
+x <- select(x$items, form, set_id) %>% merge(x=pool, y=., by="set_id")
+arrange(x, form, set_id)
+group_by(x, form) %>% summarise(n=n(), content1=sum(content==1), content2=sum(content==2), content3=sum(content==3))
+```
+
+
 
 ##### Computerized Adaptive Testing
 

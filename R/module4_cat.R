@@ -27,7 +27,7 @@
 #' Retrieve the additional output using \code{output.stop} from the returnig \code{cat} object. \cr
 #' @examples
 #' ### generate a 200-item pool
-#' pool <- irt_model("3pl")$gendata(1,200)$items
+#' pool <- model_3pl()$gendata(1,200)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 #' pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
 #' 
@@ -103,81 +103,259 @@
 #' }
 #' @importFrom stats runif
 #' @export
-cat_sim <- function(theta.true, pool, opts, cat.select=cat_select_default, cat.estimate=cat_estimate_default, cat.stop=cat_stop_default, debug=FALSE){
-  # Validate: min and max test length in opts
-  if(is.null(opts$min)) stop("minimum length is not found in options")
-  if(is.null(opts$max)) stop("maximum length is not found in options")
-  if(opts$min < 0 || opts$min > opts$max) stop("invalid min/max length values: ", opts$min, " -- ", opts$max)
-  # Validate: item pool
-  if(is.null(pool)) stop("item pool is NULL")
+cat_sim <- function(true, pool, ...){
   pool <- as.data.frame(pool, stringsAsFactors=FALSE)
   if(!all(c("a", "b", "c") %in% colnames(pool))) stop("cannot find a-, b-, or c-parameters in item pool")
+
+  opts <- list(...)
+  if(is.null(opts$min)) stop("minimum length is missing")
+  if(is.null(opts$max)) stop("maximum length is missing")
+  if(opts$min < 0 || opts$min > opts$max) stop("invalid min/max length values: ", opts$min, " -- ", opts$max)
   if(nrow(pool) < opts$max) stop("insufficient items in item pool: ", nrow(pool))
   
-  # Entry point
-  theta.est <- ifelse(is.null(opts$entry), 0, opts$entry)
-  
-  # Data
-  cat.data <- list(debug=debug, pool=pool, opts=opts, len=0, true=theta.true, est=theta.est, items=data.frame(), 
-                   stats=matrix(nrow=opts$max, ncol=3, dimnames=list(NULL, c("u", "t", "se"))))
-  
-  # debugging
-  if(cat.data$debug){
-    cat("Starting a cat simulation sessoin:\n")
-    cat("The item pool has", nrow(cat.data$pool), "items\n")
-    cat("Minimum length is", cat.data$opts$min, "and maximum length is", cat.data$opts$max, "\n")
-    cat("The true ability is", round(cat.data$true, 2), "\n")
-    cat("The entry point (initial ability estimate) is", round(cat.data$est, 2), "\n")
-  }
-  
-  # Simulation
-  for(i in 1:opts$max){
-    # length
-    cat.data$len <- i
-    
-    # select
-    selection <- cat.select(cat.data)
-    cat.data$pool <- selection$pool
-    cat.data$items <- rbind(cat.data$items, selection$item)
-    
-    # administer
-    p <- irt_stats(irt_model("3pl", theta=cat.data$true, items=selection$item), "prob")[1,1]
-    rsp <- (p >= runif(1)) * 1
-    cat.data$stats[i, 1] <- rsp
+  theta <- ifelse(is.null(opts$theta), 0, opts$theta)
+  if(is.null(opts$select_rule)) select_rule <- cat_select_default else select_rule <- opts$select_rule
+  if(is.null(opts$estimate_rule)) estimate_rule <- cat_estimate_default else estimate_rule <- opts$estimate_rule
+  if(is.null(opts$stop_rule)) stop_rule <- cat_stop_default else stop_rule <- opts$stop_rule
+
+  len <- 0
+  stats <- matrix(nrow=opts$max, ncol=3, dimnames=list(NULL, c("u", "t", "se")))
+  admin <- NULL
+
+  while(len < opts$max){
+    # select items and update pool
+    selection <- select_rule(len, theta, stats, admin, pool, opts)
+    item <- selection$item
+    pool <- selection$pool
+    n <- nrow(item)
+    len <- len + n
+    admin <- rbind(admin, item)
+    # generate responses
+    p <- irt_stats(model_3pl(theta=true, items=item), "prob")[1, ]
+    u <- (p > runif(n)) * 1
+    stats[len - 1:n + 1, "u"] <- u
     
     # estimate
-    estimation <- cat.estimate(cat.data)
-    cat.data$est <- cat.data$stats[i, "t"] <- estimation$theta
-    info <- irt_stats(irt_model("3pl", theta=cat.data$est, items=cat.data$items[1:i,]), "info")
-    cat.data$stats[i, "se"] <- 1 / sqrt(sum(info))
-    
-    # stopping
-    termination <- cat.stop(cat.data)
-    
-    # optional output
-    if(!is.null(selection$output)) cat.data$output.select <- selection$output
-    if(!is.null(estimation$output)) cat.data$output.estimate <- estimation$output
-    if(!is.null(termination$output)) cat.data$output.stop <- termination$output
-    
-    # debug
-    if(cat.data$debug) {
-      cat("\nposition", i, "\n")
-      cat("selected item:", paste(c("a","b","c"), "=", round(selection$item[c("a","b","c")],2), collapse=", "), "\n")
-      cat("the item pool has", nrow(selection$pool), "items\n")
-      cat("probability for the selected item is", round(p, 2), "and the simulated response is", rsp, "\n")
-      cat("estimated theta is", round(estimation$theta, 2), "and se is", round(cat.data$stats[i,"se"], 2), "\n")
-      cat("termination decision is", termination$stop, "\n")
-    }
-    
-    if(termination$stop) break
+    theta <- estimate_rule(len, theta, stats, admin, pool, opts)
+    info <- irt_stats(model_3pl(theta=theta, items=admin), 'info')
+    se <- 1 / sqrt(sum(info))
+    stats[len - 1:n + 1, "t"] <- theta
+    stats[len - 1:n + 1, "se"] <- se
+    # stop?
+    if(stop_rule(len, theta, stats, admin, pool, opts)) break
   }
   
-  # Clean up
-  cat.data$stats <- cat.data$stats[1:i, ]
-  cat.data$admin <- cbind(pos=1:i, cat.data$stats, cat.data$items)
-  class(cat.data) <- "cat"
-  return(cat.data)
+  admin <- cbind(stats[1:len, ], admin)
+  list(pool=pool, admin=admin, true=true, theta=theta)
 }
+
+
+pool <- model_3pl()$gendata(1, 100)$items %>%
+  mutate(id=1:100, content=sample(1:3, 100, replace=T), set_id=sample(1:30, 100, replace=T), time=rlnorm(100, mean=4.1, sd=.2))
+cons <- data.frame(var='content', level=1:3, min=5, max=10)
+cons <- rbind(cons, data.frame(var='time', level=NA, min=58*10, max=62*20))
+
+
+# cat_sim(1.0, pool, min=10, max=20, randomesque=5)$admin %>% head()
+# cat_sim(1.0, pool, min=10, max=20, selct_id="set")$admin %>% head()
+# cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_mle_step, mle_step=.5)$admin %>% head()
+# cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_hybrid)$admin %>% head()
+# cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_se=.25)$admin %>% tail()
+# cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_cut=0)$admin %>% tail()
+# cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5))$admin %>% head()
+# cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5), ccat_init_rand=5)$admin %>% head()
+# cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_shadow, select_id="set_id", shadow_constraints=cons)$admin %>% head()
+
+
+###
+
+
+#' importFrom magrittr %>%
+#' importFrom dplyr group_by summarise
+cat_select_shadow <- function(len, theta, stats, admin, pool, opts){
+  constraints <- opts$shadow_constraints
+  if(is.null(constraints)) 
+    stop("shadow-test constraint is missing")
+  if(!all(colnames(constraints) %in% c("var", "level", "min", "max"))) 
+    stop("shadow-test constraints should have columns named 'var', 'level', 'min', and 'max'")
+  if(is.factor(constraints$var)) constraints$var <- levels(constraints$var)[constraints$var]
+  if(is.factor(constraints$level)) constraints$level <- levels(constraints$level)[constraints$level]
+  constraints$curr <- apply(constraints, 1, function(xx) {
+    if(is.null(admin)){
+      curr <- 0
+    } else if(is.na(xx["level"])) {
+      curr <- sum(admin[, xx["var"]])
+    } else {
+      curr <- sum(admin[, xx["var"]] == trimws(xx["level"]))
+    }
+    curr
+  })
+  
+  if(is.null(opts$select_id)) id <- 1:nrow(pool) else id <- pool[, opts$select_id]
+  
+  # dummy code categorical variable and transform constraints
+  cons_cat <- filter(constraints, !is.na(level)) 
+  pool_cat <- apply(cons_cat, 1, function(xx) {
+    as.integer(pool[, xx['var']] == xx['level'])
+  }) %>% as.data.frame()
+  colnames(pool_cat) <- paste(cons_cat$var, cons_cat$level, sep="_")
+  x_pool <- cbind(pool, pool_cat) %>% 
+    mutate(len=1, info=irt_stats(model_3pl(theta=theta, items=pool), "info")[1, ]) %>%
+    aggregate(., by=list(id), sum) %>% 
+    rename(shadow_id=Group.1)
+  constraints <- mutate(cons_cat, var=paste(var, level, sep='_'), level=NA) %>%
+    rbind(., filter(constraints, is.na(level)))
+  
+  # ata
+  x <- ata(x_pool, 1, len=NULL, maxselect=1)
+  x <- ata_obj_relative(x, x_pool$info, mode="max")
+  x <- ata_constraint(x, "len", min=opts$min - len, max=opts$max - len)
+  for(i in 1:nrow(constraints))
+    x <- ata_constraint(x, coef=constraints$var[i], min=constraints$min[i] - constraints$curr[i], max=constraints$max[i] - constraints$curr[i])
+  x <- ata_solve(x, as.list=FALSE, verbose="neutral")
+  if(is.null(x$items)) x <- pool else x <- x$items
+  
+  info <- order(x$info / x$len, decreasing=TRUE)
+  randomesque <- ifelse(is.null(opts$randomesque), 1, opts$randomesque)
+  randomesque <- min(randomesque, length(info))
+  select_id <- x$shadow_id[info[1:randomesque]]
+  if(length(select_id) > 1) select_id <- sample(select_id, 1)
+  select_item <- pool[id == select_id, ]
+  if(!is.null(opts$enemy_var)){
+    enemy <- sapply(select_item[, opts$enemy_var], function(xx) strsplit(xx, split="[,]")[[1]])
+    enemy <- unique(Reduce(c, enemy))
+  } else {
+    enemy <- NULL
+  }
+  select_pool <- pool[!id %in% c(select_id, enemy), ]
+  list(item=select_item, pool=select_pool)
+}
+
+
+cat_select_ccat <- function(len, theta, stats, admin, pool, opts){
+  if(is.null(opts$select_id)) id <- 1:nrow(pool) else id <- pool[, opts$select_id]
+  if(is.null(opts$ccat_perc)) stop("ccat_perc is missing")
+  if(is.null(opts$ccat_var)) stop("ccat_var is misisng")
+  # find next domain
+  init_rand <- ifelse(is.null(opts$ccat_init_random), 0, opts$ccat_init_random)
+  target_perc <- opts$ccat_perc
+  if(len == 0) curr_perc <- rep(0, length(target_perc)) else curr_perc <- freq(admin[1:len, opts$ccat_var], names(target_perc))$perc / 100
+  if(len < init_rand){
+    domain <- names(target_perc)[curr_perc * len < target_perc * opts$min]
+    if(length(domain) > 1) domain <- sample(domain, 1)
+  } else {
+    domain <- names(target_perc)[which.max(target_perc - curr_perc)]
+  }
+  info <- irt_stats(model_3pl(theta=theta, items=pool), "info")[1, ]
+  info <- aggregate(info, by=list(id, pool[,opts$ccat_var]), mean)
+  colnames(info) <- c("id", "domain", "info")
+  info <- info[info$domain == domain, ]
+  randomesque <- ifelse(is.null(opts$randomesque), 1, opts$randomesque)
+  randomesque <- min(randomesque, nrow(info))
+  select_id <- info$id[order(info$info, decreasing=TRUE)[1:randomesque]]
+  if(length(select_id) > 1) select_id <- sample(select_id, 1)
+  select_item <- pool[id == select_id, ]
+  if(!is.null(opts$enemy_var)){
+    enemy <- sapply(select_item[, opts$enemy_var], function(xx) strsplit(xx, split="[,]")[[1]])
+    enemy <- unique(Reduce(c, enemy))
+  } else {
+    enemy <- NULL
+  }
+  select_pool <- pool[!id %in% c(select_id, enemy), ]
+  list(item=select_item, pool=select_pool)
+}
+
+
+
+
+
+
+###
+cat_select_default <- function(len, theta, stats, admin, pool, opts){
+  if(is.null(opts$select_id)) id <- 1:nrow(pool) else id <- pool[, opts$select_id]
+  info <- irt_stats(model_3pl(theta=theta, items=pool), "info")[1, ]
+  info <- aggregate(info, by=list(id), mean)
+  colnames(info) <- c("id", "info")
+  randomesque <- ifelse(is.null(opts$randomesque), 1, opts$randomesque)
+  randomesque <- min(randomesque, nrow(info))
+  select_id <- info$id[order(info$info, decreasing=TRUE)[1:randomesque]]
+  if(length(select_id) > 1) select_id <- sample(select_id, 1)
+  select_item <- pool[id == select_id, ]
+  if(!is.null(opts$enemy_var)){
+    enemy <- sapply(select_item[, opts$enemy_var], function(xx) strsplit(xx, split="[,]")[[1]])
+    enemy <- unique(Reduce(c, enemy))
+  } else {
+    enemy <- NULL
+  }
+  select_pool <- pool[!id %in% c(select_id, enemy), ]
+  list(item=select_item, pool=select_pool)
+}
+
+
+###
+cat_estimate_default <- function(len, theta, stats, admin, pool, opts){
+  u <- matrix(stats[1:len, "u"], nrow=1)
+  theta <- estimate_mle(u=u, a=admin$a[1:len], b=admin$b[1:len], c=admin$c[1:len], iter=10)$t
+  theta
+}
+
+cat_estimate_mle_step <- function(len, theta, stats, admin, pool, opts){
+  if(is.null(opts$mle_step)) stop("mle_step parameter is missing")
+  mle_step <- opts$mle_step
+  u <- matrix(stats[1:len, "u"], nrow=1)
+  if(all(u==0)){
+    theta <- theta - mle_step
+  } else if(all(u==1)){
+    theta <- theta + mle_step
+  } else {
+    theta <- estimate_mle(u=u, a=admin$a[1:len], b=admin$b[1:len], c=admin$c[1:len], iter=10)$t
+  }
+  theta
+}
+
+cat_estimate_eap <- function(len, theta, stats, admin, pool, opts){
+  eap_mean <- ifelse(is.null(opts$eap_mean), 0, opts$eap_mean)
+  eap_sd <- ifelse(is.null(opts$eap_sd), 1, opts$eap_sd)
+  u <- matrix(stats[1:len, "u"], nrow=1)
+  theta <- estimate_bayesian(u=u, a=admin$a[1:len], b=admin$b[1:len], c=admin$c[1:len], method="eap", iter=10, t_mu=eap_mean, t_sig=eap_sd)$t
+  theta
+}
+
+cat_estimate_hybrid <- function(len, theta, stats, admin, pool, opts){
+  eap_mean <- ifelse(is.null(opts$eap_mean), 0, opts$eap_mean)
+  eap_sd <- ifelse(is.null(opts$eap_sd), 1, opts$eap_sd)
+  u <- matrix(stats[1:len, "u"], nrow=1)
+  if(all(u==0) || all(u==1)){
+    theta <- estimate_bayesian(u=u, a=admin$a[1:len], b=admin$b[1:len], c=admin$c[1:len], method="eap", iter=10, t_mu=eap_mean, t_sig=eap_sd)$t
+  } else {
+    theta <- estimate_mle(u=u, a=admin$a[1:len], b=admin$b[1:len], c=admin$c[1:len], iter=10)$t
+  }
+  theta
+}
+
+
+###
+cat_stop_default <- function(len, theta, stats, admin, pool, opts){
+  if(len < opts$min) return(FALSE)
+  if(len > opts$max) return(TRUE)
+  if(!is.null(opts$stop_se)){
+    se <- stats[len, "se"]
+    return(se <= opts$stop_se)
+  } else if(!is.null(opts$stop_mi)){
+    info <- irt_stats(model_3pl(theta=theta, items=pool), "info")[1, ]
+    return(max(info) <= opts$stop_mi)
+  } else if(!is.null(opts$stop_cut)){
+    se <- stats[len, "se"]
+    lb <- theta - 1.96 * se
+    ub <- theta + 1.96 * se
+    return(lb > opts$stop_cut || ub < opts$stop_cut)
+  }
+  FALSE
+}
+
+
+
+
 
 
 #' @rdname cat_sim

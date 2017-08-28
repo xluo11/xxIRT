@@ -40,7 +40,7 @@ ata_obj_coef <- function(x, coef, compensate){
   if(length(coef) == x$nitem){
     coef <- matrix(coef, nrow=1)
   } else if(is.numeric(coef)) {
-    coef <- irt_stats(irt_model("3pl", theta=coef, items=x$pool), "info")
+    coef <- irt_stats(model_3pl(theta=coef, items=x$pool), "info")
   } else if(is.character(coef) && all(coef %in% colnames(x$pool))) {
     coef <- t(x$pool[, coef])
   } else {
