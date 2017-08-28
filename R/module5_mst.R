@@ -1,9 +1,9 @@
 #' Computerized Multistage Testing (MST)
 #' @description \code{mst} creates a multistage (MST) object
-#' @param pool a data frame of item parameters
-#' @param design a numeric vector of the MST design (e.g., 1-2-3, or 1-2-2)
+#' @param pool the item pool (data.frame)
+#' @param design the MST design: a numeric vectors (e.g., 1-2-3, or 1-2-2)
 #' @param npanel the number of panels
-#' @param method the design method (i.e., 'topdown' or 'bottomup')
+#' @param method the design method: 'topdown' or 'bottomup'
 #' @param len the module/route length
 #' @param maxselect the maximum selection of items
 #' @details
@@ -79,17 +79,13 @@
 #' }
 #' @import lpSolveAPI
 #' @export
-mst <- function(pool, design, npanel, method, len=NULL, maxselect=NULL){
-  # validatioin
+mst <- function(pool, design, npanel, method=c('topdown', 'bottomup'), len=NULL, maxselect=NULL){
+  method <- match.arg(method)
   if(any(design < 1)) stop("invalid design.")
-  method <- tolower(gsub("[- ]", "", method))
-  if(!method %in% c('topdown', 'bottomup')) stop("invalid method. use 'topdown' or 'bottomup'")
-  
-  # Constants
   nstage <- length(design)
   nmodule <- sum(design)
   
-  # Module-index map
+  # module-index map
   module <- NULL
   for(s in 1:nstage)
     for(m in 1:design[s])
@@ -115,18 +111,17 @@ mst <- function(pool, design, npanel, method, len=NULL, maxselect=NULL){
   if(!is.null(len) && length(len) == 1) x <- mst_constraint(x, 1, len, len)
   if(!is.null(len) && length(len) == 2) x <- mst_constraint(x, 1, len[1], len[2])
   if(!is.null(len) && length(len) > 2) stop("invalid length. use 1 or 2 numbers.")
-  
   # constraint: maxselect
   if(!is.null(maxselect)) x$assembler <- ata_item_maxselect(x$assembler, maxselect)
   
-  return(x)
+  x
 }
 
 
 #' @rdname mst
-#' @description \code{mst_route} adds and removes routes in the mst
-#' @param x the mst object
-#' @param route a vector of form indices to represent the route
+#' @description \code{mst_route} adds and removes routes in the MST
+#' @param x a MST object
+#' @param route a MST route represented by a vector of module indices 
 #' @param op \code{"+"} for adding a route and \code{"-"} for removing a route
 #' @export
 mst_route <- function(x, route, op){
@@ -154,7 +149,7 @@ mst_route <- function(x, route, op){
 
 
 #' @rdname mst
-#' @description \code{mst_objective} adds objective functions to the mst
+#' @description \code{mst_objective} adds objective functions to the MST
 #' @param theta a theta point or interval for optimization
 #' @param indices the index of the route (topdown) or the module (bottomup) for adding objectives
 #' @param target the target valus of the TIF objectives. \code{NULL} for maximization
@@ -167,10 +162,10 @@ mst_objective <- function(x, theta, indices=NULL, target=NULL, flatten=NULL, the
   indices <- mst_indices_input(x, indices)
   
   if(length(theta) == 2) {
-    theta <- seq(theta[1], theta[2], length.out=theta.step + 2)
+    theta <- seq(theta[1], theta[2], length.out=theta.step)
     theta <- theta[-c(1, length(theta))]
   } else if(length(theta) > 2) {
-    stop("invalid theta input. use one or two numbers to set TIF objective at a point or over an interval.")
+    stop("invalid theta input: use one (at a point) or two (over a range) numbers to set TIF objective.")
   }
   theta <- round(theta, 2)
   
@@ -185,16 +180,16 @@ mst_objective <- function(x, theta, indices=NULL, target=NULL, flatten=NULL, the
     }
   }
   
-  return(x)
+  x
 }
 
 
 #' @rdname mst
-#' @description \code{mst_constraint} adds constraints to the mst
+#' @description \code{mst_constraint} adds constraints to the MST
 #' @param coef the coefficients of the constraint
-#' @param level the level value for a categorical constraint
-#' @param min the minimum value of the contraint
-#' @param max the maximum value of the contraint
+#' @param level the constrained level, \code{NA} for continuous variable
+#' @param min the lower bound of the contraint
+#' @param max the upper bound of the contraint
 #' @import lpSolveAPI
 #' @export
 mst_constraint <- function(x, coef, min=NA, max=NA, level=NULL, indices=NULL){
@@ -208,7 +203,7 @@ mst_constraint <- function(x, coef, min=NA, max=NA, level=NULL, indices=NULL){
     }
   }
   
-  return(x)  
+  x
 }
 
 
@@ -231,7 +226,7 @@ mst_stage_length <- function(x, stages, min=NA, max=NA){
     x$assembler <- ata_constraint(x$assembler, 1, min[i], max[i], forms=f, collapse=FALSE)
   }
   
-  return(x)
+  x
 }
 
 
@@ -241,7 +236,6 @@ mst_stage_length <- function(x, stages, min=NA, max=NA){
 #' @import lpSolveAPI
 #' @export
 mst_set_rdp <- function(x, theta, indices, tol) {
-  # validation
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(length(theta) != 1) stop("rdp is not a single theta point")
   if(length(indices) != 2 || abs(indices[1] - indices[2]) != 1) stop("modules are not adjacent") 
@@ -251,6 +245,7 @@ mst_set_rdp <- function(x, theta, indices, tol) {
   coef <- c(info, -1 * info)
   for(i in 1:x$npanel)
     x$assembler <- ata_constraint(x$assembler, coef, -tol, tol, forms=indices + (i - 1) * x$nmodule, collapse=TRUE)
+  
   x
 }
 
@@ -269,6 +264,7 @@ mst_module_mininfo <- function(x, theta, mininfo, indices) {
   for(i in 1:x$npanel)
     for(j in 1:length(theta))
       x$assembler <- ata_constraint(x$assembler, coef[j, ], min=mininfo, forms=indices + (i - 1) * x$nmodule)
+  
   x
 }
 
@@ -279,9 +275,9 @@ mst_module_mininfo <- function(x, theta, mininfo, indices) {
 #' @param verbose the verbose parameter
 #' @import lpSolveAPI
 #' @export
-mst_assemble <- function(x, solver="lpsolve", verbose="none", ...){
+mst_assemble <- function(x, ...){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
-  x$assembler <- ata_solve(x$assembler, solver=solver, as.list=FALSE, verbose=verbose, ...)
+  x$assembler <- ata_solve(x$assembler, as.list=FALSE, ...)
   if(!is.null(x$assembler$items)) {
     items <- x$assembler$items
     items$panel <- ceiling(items$form / x$nmodule)
@@ -306,7 +302,7 @@ print.mst <- function(x, ...){
   cat("\n")
   cat("ATA assembles", x$npanel, "panel(s) from a pool of", x$nitem, "items:\n\n")
   print(x$assembler)
-  cat("\n\n")
+  cat("\n")
   invisible(x)
 }
 
@@ -331,7 +327,7 @@ plot.mst <- function(x, ...){
       r <- subset(x$route, x$route$index == i)[1:x$nstage]
       for(j in 1:x$npanel){
         items <- subset(x$items, x$items$index %in% r & x$items$panel == j)
-        info <- irt_stats(irt_model("3pl", theta=opts$theta, items=items), "info", summary="people", fun=sum)
+        info <- irt_stats(model_epl(theta=opts$theta, items=items), "info", summary="people", fun=sum)
         data <- rbind(data, data.frame(t=opts$theta, info=info, panel=j, route=i))
       }
     }
@@ -358,7 +354,7 @@ plot.mst <- function(x, ...){
       facet_grid(panel ~ stage)
   }
   
-  return(g)
+  g
 }
 
 #' @rdname mst
@@ -384,5 +380,5 @@ mst_get_items <- function(x, panel, stage=NULL, module=NULL, route=NULL){
     items <- subset(items, items$index %in% r)
   }
   
-  return(items)
+  items
 }

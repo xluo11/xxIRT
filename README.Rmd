@@ -421,89 +421,77 @@ group_by(x, form) %>% summarise(n=n(), content1=sum(content==1), content2=sum(co
 
 ##### Computerized Adaptive Testing
 
-Computerized adaptive testing (CAT) is a computer-based testing (CBT) model that tailors the test form in real time to match the test taker's ability. The test adaptation in CAT avoids overly difficulty or easy items in relation to the test taker's ability and hence improves the testing efficiency. An operational CAT algorithm often comprises three important sub-algorithms: the item selection rule, the ability estimation rule, and the stopping rule. The selection rule delineates how to select the next item given the latest ability estimate of the test taker. The estimation rule estimates the ability parameter using the responses that have been collected so far. And the stopping rule determines how to exit the repetitive "seletion-estimation" cycles to finish the test.  
+Computerized adaptive testing (CAT) takes advatange of the tremendous computing powers of modern computers to customize the test forms to match the test takers' demonstrated abilities during the administration. Studeis have shown that CAT could massively improve the testing efficiency and enhance the test security. This module provides a framework for conducting CAT simulation studies with the out-of-box or user-defined selection, estimation, or stopping rules. To change a rule, just pass in the corresponding function in the `cat_sim(true, pool, ...)` function -- e.g., `cat_sim(..., select_rule=new_select_func, estimate_rule=new_estimate_func, stop_rule=new_stop_func)`. When writing a new rule, make sure the function signature is as follows: `function(len, theta, stats, admin, pool, opts)`, where 
 
-This module provides a flexible framework for simulating CAT using different selection, estimation, and/or stopping rules. To expeirment a new rule, the rule of interest is the only component that needs to be authored in the CAT system. This could greatly reduce one's workload. Moreover, this module provides multiple common rules for use as well, including the maximum information selection rule [^9], the C-CAT selection rule [^10], the shadow-test selection rule [^11], the standard error stopping rule, the minimal information stopping rule, the confidence interval stopping, the projetion-based stopping rule[^12], and the EAP+MLE estimation rule.  
+* `len` is the current test length
+* `theta` is the current $\theta\ estimate
+* `stats` is a matrix with 3 columns: `u` for responses, `t` for $\theta\ estimates, and `se` for standard errors
+* `admin` is a data frame of administered items
+* `pool` is a data frame of the remaining items in the pool
+* `opts` is a list of option/control parameters, converted from the `...` argument in the `cat_sim` function.
 
-[^9]: Weiss, D. J., & Kingsbury, G. (1984). Application of computerized adaptive testing to educational problems. Journal of Educational Measurement, 21, 361-375.
-[^10]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4, 241-261.
-[^11]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
- 
 
-Use `cat_sim(true.theta, pool, opts, cat.select, cat.estimate, cat.stop, debug)` to conduct a CAT simulation with the given true theta and item pool. The `opts` argument is a list of option parameters, into which the minimum (`min`) and maximum (`max`) test length and parameters required by the selection, estimation, stopping rules are passed. The default `cat.selection` rule is the maximum information selection rule. Add a `randomesque` value to `opts` to randomly select one item from the *k* items with largest information. Set `cat.select=cat_select_ccat` to use the C-CAT selection rule, which requires `opts` to include `ccat.target` (a vector of content distribution target in percentage) and `cat.random` (inital randomness in content area selection). Set `cat.select=cat_select_shadow` to use the shadow-test selection rule, which requires `opts` to include `shadow.constraints` (a data frame of constraints with four columns: name, level, min and max). The default `cat.stop` rule is a trifold rule depending on which parameter is passed to `opts`. The `stop.se` value in `opts` triggers the standard error rule, `stop.mi` the minimum information rule, and `stop.cut` the confidence interval rule. The default `cat.estimate` rule is the combined EAP and MLE rule, which applies EAP when the responses are all 1's or 0's and MLE otherwise.
+The following rules are provided as the out-of-box rules:
 
-When `debug=TRUE`, the debugging mode is on and the `cat_sim` function prints debugging information on the console to explain the internal process of the function. Once the simulation is completed, the `cat_sim` function returns a *cat* object, inclusive of a data frame of unused pool (`pool`), a data frame of used items (`items`), responses and theta history (`stats`), administration history (`admin`), test length (`len`), true theta (`true`), and estimated theta (`eat`). Use `plot(...)` to visualize the simulaiton.
+* `cat_select_default` selects the item with the maximum information or the item set with the maximum averaged information. When working with item sets, group items in the same set with the same identifier and pass the identifier variable name to the `select_id` argument. Use the `randomesque` argument to implement the randomesque item exposure control procedure[^8][^9]. 
+
+* `cat_select_ccat` selects items or item sets to approach the content-balancing targets[^9]. Use `ccat_var` to define the content variable, and `ccat_perc` to define the targets in percentage (decimal numbers). Make sure the elements names of the `ccat_perc` align with the values in `ccat_var`. Use `ccat_init_rand` to add randomeness in the selection of the initial content areas. The `select_id` and `randomesque` options are also applicable for this rule.
+
+* `cat_select_shadow` implements the shadow-test CAT item selection algorithm[^10]. Use `shadow_constraints` to define the constraints, which should have four columns: `var` (the constrained variable), `level` (the contrained level in that variable, `NA` for continuous variable), `min` (the lower bound) and `max` (the upper bound). The `select_id` and `randomesque` options are also applicable for this rule.
+
+* `cat_estimate_default` is a maximum likelihood estimator (MLE) of the $\theta\ parameter.
+
+* `cat_estimate_mle_step` is another maximum likelihood estimator of the $\theta\ parameter, but only increment or decreament the $\theta\ by a `mle_step` for all 1s or 0s respones.
+
+* `cat_estimate_eap` is a expected a posteriori (EAP) estimator of the $\theta\ parameter. Use `eap_mean` and `eap_sd` to define the priors.
+
+* `cat_estimate_hybrid` is a hybrid estimator, which uses EAP for all 1s and 0s responses and MLE otherwise. 
+
+* `cat_stop_default` is a trifold stopping rule. It uses the minimum standard error stopping rule when `stop_se` is defined in the options, and the minimum information stopping rule when `stop_mi` is defined in the options, and the 95% confidence interval classification stopping rule when `stop_cut` is defined in the options.
+
+[^8]: Weiss, D. J., & Kingsbury, G. (1984). Application of computerized adaptive testing to educational problems. Journal of Educational Measurement, 21, 361-375.
+[^9]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4, 241-261.
+[^10]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
+
+The simulation results are wrapped in a *cat* object, which includes `pool` (the remaining pool), `admin` (the administered items), `true` (the true $\theta\) and `theta` (the final $\theta\ estimate)
 
 ###### Examples
-
 ```{r}
-### generate a pool of 200 3PL items
-### item properties: content, response time
-pool <- irt_model("3pl")$gendata(1,200)$items
-pool$content <- sample(1:3, nrow(pool), replace=TRUE)
-pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
+## generate item pool
+pool <- model_3pl()$gendata(1, 100)$items
+pool$set_id <- sample(1:30, 100, replace=TRUE)
+pool$content <- sample(1:3, 100, replace=TRUE)
+pool$time <- round(rlnorm(100, mean=4.1, sd=.2))
 
-### ex. 1: 10-30 items
-### maximum information selection rule
-### standard error stopping rule (se=.3)
-opts <- list(min=10, max=30, stop.se=.3)
-x <- cat_sim(0.1, pool, opts)
-tail(x$admin, 5) %>% round(., 2)
-plot(x)
-
-### ex. 2: 10-30 items
-### maximum information selection rule
-### minimum information stopping rule (mi=.3)
-opts <- list(min=10, max=30, stop.mi=.8)
-x <- cat_sim(0.1, pool, opts)
-tail(x$admin, 5) %>% round(., 2)
-plot(x)
-
-### ex. 3: 10-30 items
-### maximum information selection rule
-### confidence interval stopping rule (cut=0)
-opts <- list(min=10, max=30, stop.cut=0)
-x <- cat_sim(0.1, pool, opts)
-tail(x$admin, 5) %>% round(., 2)
-plot(x)
-
-### ex. 4: 10-30 items
-### maximum selection rules, randomesque = 5
-### standard error stopping rule (se=.3)
-opts <- list(min=10, max=30, stop.se=.3, randomesque=5)
-x <- cat_sim(0.1, pool, opts)
-tail(x$admin, 5) %>% round(., 2)
-plot(x)
-
-### ex. 5: 10-30 items
-### c-cat selection rule, first 10 areas are random, target = [.50, .25, .25]
-### confidence interval stopping rule
-opts <- list(min=30, max=60, stop.cut=0, ccat.target=c(.50,.25,.25), ccat.random=10)
-x <- cat_sim(0.1, pool, opts, cat.select=cat_select_ccat)
-tail(x$admin, 5) %>% round(., 2)
-freq(x$admin$content, 1:3)
-plot(x)
-
-### ex. 6: 30 items
-### shadow test selection rule
-### content: [10, 10, 10] items in area 1--3
-### response time: avg. 55--65 seconds
-cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10),
-                   max=c(10, 10, 10), stringsAsFactors=FALSE)
-cons <- rbind(cons, c("time", NA, 55*30, 65*30))
-opts <- list(min=30, max=30, stop.se=.03, shadow.constraints=cons)
-x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow)
-freq(x$admin$content, 1:3)
-mean(x$items$time)
-
-### ex. 7: 10-30 items
-### shadow selection rule
-### projection-based stopping rule
-opts <- list(min=10, max=30, projection.cut=0, projection.constraints=cons, projection.method="difficulty", shadow.constraints=cons)
-x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow,
-cat.stop=cat_stop_projection)
+## use all default rules and options
+x <- cat_sim(1.0, pool, min=10, max=20) 
+## use randomesque to control exposure in selection
+x <- cat_sim(1.0, pool, min=10, max=20, randomesque=5)
+## use user-defined identifier to select item sets
+x <- cat_sim(1.0, pool, min=10, max=20, selct_id="set")
+## use the mle_step estimation rule
+x <- cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_mle_step, mle_step=.5)
+## use the hybrid estimation rule
+x <- cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_hybrid, eap_mean=0, eap_sd=1)
+## use the standard error stopping rule
+x <- cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_se=.25)
+## use the 95% confidence interval classification stopping rule
+x <- cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_cut=0)
+## use the constrained CAT item selection
+x <- cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5))
+## use the constrained CAT item selection with initial randomness
+x <- cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5), ccat_init_rand=5)
+## use the shadow-test CAT
+cons <- data.frame(var='content', level=1:3, min=3, max=5)
+cons <- rbind(cons, data.frame(var='time', level=NA, min=55*10, max=65*10))
+x <- cat_sim(1.0, pool, min=10, max=10, shadow_constraints=cons, select_id="set_id")
+## extract CAT history
+x$admin
+## print and plot results
+print(x)
 plot(x)
 ```
+
 
 
 ##### Multistage Testing
