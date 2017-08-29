@@ -131,8 +131,9 @@ When passing control parameters to the GLPK solver, use the correct parameter na
 (see \code{?glpkAPI::glpkConstants}).
 }
 \examples{
+\dontrun{
 library(dplyr)
-# generate a 100-item pool
+## generate a 100-item pool
 pool <- model_3pl()$gendata(1, 100)$items
 pool$content <- sample(1:3, 100, replace=TRUE)
 pool$time <- round(rlnorm(100, log(60), .2))
@@ -170,5 +171,6 @@ x <- ata(pool, 2, len=10, maxselect=1) \%>\%
      ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.05)
 x <- ata_solve(x)
 plot(x)
+}
 }
 

@@ -121,7 +121,9 @@ the topdown approach adds objectives and constraints directly on routes.\cr
 and route information functions if \code{byroute=TRUE}
 }
 \examples{
+\dontrun{
 library(dplyr)
+set.seed(10001)
 ## generate item pool
 pool <- model_3pl()$gendata(1, 300)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
@@ -152,5 +154,6 @@ x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) \%>\%
   mst_constraint("content", 4, 4, level=1)
 x <- mst_assemble(x, timeout=10)
 group_by(x$items, panel, index) \%>\% summarise(n=sum(content==1))
+}
 }
 
