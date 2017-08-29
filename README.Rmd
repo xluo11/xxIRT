@@ -9,7 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, eval=FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, eval=TRUE)
 library(xxIRT)
 library(reshape2)
 library(dplyr)
@@ -53,9 +53,9 @@ The application programming interface (API) is for the intermediate R users who 
 #### Package Modules
 
 ##### IRT Models
-The 3-parameter-logistic (3PL) model was introduced by Birnbaum[^1], which uses three item parameter (a, b, and c) and one people parameter ( *$\theta$*) to describe the probabilistic relationship of the item-people interaction. When fixing the *a*-parameter to 0.58 (since D=1.7) and *c*-parameters to 0, this model becomes **mathematically** equivalent to the Rasch model[^2].
+The 3-parameter-logistic (3PL) model was introduced by Birnbaum[^1], which uses three item parameter (a, b, and c) and one people parameter ($\theta$) to describe the probabilistic relationship of the item-people interaction. When fixing the a-parameter to 0.58 (since D=1.7) and c-parameters to 0, this model becomes **mathematically** equivalent to the Rasch model[^2].
 
-This module creates a S3 R object representing the 3PL model. It contains parameter and response data, as well as functions to compute the probability, information and likelihood. Use `model_3pl(people, items, responses)` or `model_3pl(theta, a, b, c, responses)` to create a *3PL* object. The *people* argument needs to be a data frame with a column named *theta*, the *items* argument a data frame with columns named *a*, *b*, and *c*, and the *responses* argument a matrix or data frame with dimensionality equal to the numbers of people and items. Alternatively, use *theta*, *a*, *b*, and *c* arguments to pass in numeric vectors of parameters directly. Upon its creation, the object comes with functions to compute the probability (`P(x)`), information (`I(x)`), and likelihood (`L(x, log)`) using the 3PL model. It also provides a helper function for generating data (`gendata(n.people, n.items, people, items, ...)`). Pass in the number of people (`n.people`) and items (`n.items`) to generate parameters, or pass in the people (`people`) or item (`items`) parameters to fix parameters in data generation. By default, the *$\theta$* parameter are drawn from a normal distribution (`theta.mean=0`, `theta.sd=1`), *a*-parameter from a lognormal distribution (`a.mean=0`, `a.sd=0.2`), *b*-parameters from a normal distribution (`b.mean=0`, `b.sd=1`), and *c*-parameters from a beta distribution (`c.alpha=5`, `c.beta=46`).
+This module creates a S3 R object representing the 3PL model. It contains parameter and response data, as well as functions to compute the probability, information and likelihood. Use `model_3pl(people, items, responses)` or `model_3pl(theta, a, b, c, responses)` to create a *3PL* object. The *people* argument needs to be a data frame with a column named *theta*, the *items* argument a data frame with columns named *a*, *b*, and *c*, and the *responses* argument a matrix or data frame with dimensionality equal to the numbers of people and items. Alternatively, use *theta*, *a*, *b*, and *c* arguments to pass in numeric vectors of parameters directly. Upon its creation, the object comes with functions to compute the probability (`P(x)`), information (`I(x)`), and likelihood (`L(x, log)`) using the 3PL model. It also provides a helper function for generating data (`gendata(n.people, n.items, people, items, ...)`). Pass in the number of people (`n.people`) and items (`n.items`) to generate parameters, or pass in the people (`people`) or item (`items`) parameters to fix parameters in data generation. By default, the $\theta$ parameter are drawn from a normal distribution (`theta.mean=0`, `theta.sd=1`), *a*-parameter from a lognormal distribution (`a.mean=0`, `a.sd=0.2`), *b*-parameters from a normal distribution (`b.mean=0`, `b.sd=1`), and *c*-parameters from a beta distribution (`c.alpha=5`, `c.beta=46`).
 
 [^1]: Birnbaum, A. (1968). Some latent trait models. In F.M. Lord & M.R. Novick, (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
 [^2]: Rasch, G. (1966). An item analysis which takes individual differences into account. British journal of mathematical and statistical psychology, 19(1), 49-57.
@@ -105,7 +105,7 @@ This module provides a collection of functions for commonly-used computations an
 * `irt_stats(obj, stats, summary, fun)`: compute probability, information, or likelihood, and summarize it over *people* or *item* using customized functions optionally.
 * `irt_select(obj, people_index, items_index)`: subset data
 * `irt_sample(obj, n.people, n.items)`: sample data
-* `irt_rescale_3pl(obj, parameter, mean, sd)`: rescale parameters to the new scale of the *$\theta$* or *b* parameters. 
+* `irt_rescale_3pl(obj, parameter, mean, sd)`: rescale parameters to the new scale of the $\theta$ or *b* parameters. 
 * `plot(obj, stats, total)`: visualize the specified statistics
 
 [^3]: Hambleton, R. K., & Swaminathan, H. (1985). Item response theory: Principles and applications. New York, NY: Springer.
@@ -129,9 +129,9 @@ irt_select(x, c(1, 3), c(2, 4))
 irt_sample(x, 5, 3)
 
 # rescale parameters
-x <- irt_rescale_3pl(x, "theta", 0, 1)
+x <- irt_rescale(x, "theta", 0, 1)
 c(mean=mean(x$people$theta), sd=sd(x$people$theta))
-x <- irt_rescale_3pl(x, "b", 0, 1)
+x <- irt_rescale(x, "b", 0, 1)
 c(mean=mean(x$items$b), sd=sd(x$items$b))
 
 # draw item characteristic curves
@@ -165,16 +165,16 @@ Example 1: Joint maximum likelihood estimation of all parameters:
 ```{r}
 data <- model_3pl()$gendata(2000, 50)
 # joint maximum likelihood estimation
-x <- estimate_mle(data$responses, method='jmle')
+x <- estimate_mle(data$responses, method='jmle', scale="theta")
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 y <- rbind(melt(data$people), melt(data$items)) %>% 
   rename(params=variable, true=value) %>% 
   mutate(est=c(x$t, x$a, x$b, x$c))
 y %>% group_by(params) %>% summarise(n=n(), corr=cor(true, est), rmse=rmse(true, est)) %>% as.data.frame()
-y %>% ggplot(aes(x=true, y=est, color=params, alpha=.5)) +
-  geom_point() + geom_smooth(method='loess') + 
+y %>% ggplot(aes(x=true, y=est, color=params, alpha=.2)) +
+  geom_point() + geom_smooth(se=FALSE) + 
   facet_wrap(~params, nrow=1, scales='free') + 
   xlab('True Parameters') + ylab('Est. Parameters') +
   theme_bw() + guides(alpha=FALSE)
@@ -183,92 +183,76 @@ y %>% ggplot(aes(x=true, y=est, color=params, alpha=.5)) +
 Example 2: Marginal maximum likelihood estimation of all parameters:
 ```{r}
 # marginal maximum likelihood estimation
-x <- estimate_mle(data$responses, method='mmle')
+x <- estimate_mle(data$responses, method='mmle', scale="theta")
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 y <- rbind(melt(data$people), melt(data$items)) %>% 
   rename(params=variable, true=value) %>% 
   mutate(est=c(x$t, x$a, x$b, x$c))
 y %>% group_by(params) %>% summarise(n=n(), corr=cor(true, est), rmse=rmse(true, est)) %>% as.data.frame()
 y %>% ggplot(aes(x=true, y=est, color=params, alpha=.5)) +
-  geom_point() + geom_smooth(method='loess') + 
+  geom_point() + geom_smooth(se=FALSE) + 
   facet_wrap(~params, nrow=1, scales='free') + 
   xlab('True Parameters') + ylab('Est. Parameters') +
   theme_bw() + guides(alpha=FALSE)
 ```
 
-Example 3: Bayesian estimation of all parameters (EAP for */$theta/* parameters):
+Example 3: Bayesian estimation of all parameters (EAP for $\theta$ parameters):
 ```{r}
 # bayesian estimation: eap
-x <- estimate_mle(data$responses, method='eap')
+x <- estimate_bayesian(data$responses, method='eap', scale="theta")
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 y <- rbind(melt(data$people), melt(data$items)) %>% 
   rename(params=variable, true=value) %>% 
   mutate(est=c(x$t, x$a, x$b, x$c))
 y %>% group_by(params) %>% summarise(n=n(), corr=cor(true, est), rmse=rmse(true, est)) %>% as.data.frame()
 y %>% ggplot(aes(x=true, y=est, color=params, alpha=.5)) +
-  geom_point() + geom_smooth(method='loess') + 
+  geom_point() + geom_smooth(se=FALSE) + 
   facet_wrap(~params, nrow=1, scales='free') + 
   xlab('True Parameters') + ylab('Est. Parameters') +
   theme_bw() + guides(alpha=FALSE)
 ```
 
-Example 4: Bayesian estimation of all parameters (MAP for */$theta/* parameters):
+Example 4: Bayesian estimation of all parameters (MAP for $\theta$ parameters):
 ```{r}
 # bayesian estimation: map
-x <- estimate_mle(data$responses, method='map')
+x <- estimate_bayesian(data$responses, method='map', scale="theta")
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 y <- rbind(melt(data$people), melt(data$items)) %>% 
   rename(params=variable, true=value) %>% 
   mutate(est=c(x$t, x$a, x$b, x$c))
 y %>% group_by(params) %>% summarise(n=n(), corr=cor(true, est), rmse=rmse(true, est)) %>% as.data.frame()
 y %>% ggplot(aes(x=true, y=est, color=params, alpha=.5)) +
-  geom_point() + geom_smooth(method='loess') + 
+  geom_point() + geom_smooth(se=FALSE) + 
   facet_wrap(~params, nrow=1, scales='free') + 
   xlab('True Parameters') + ylab('Est. Parameters') +
   theme_bw() + guides(alpha=FALSE)
 ```
 
-Example 5: Estimator comparison under different sample sizes and test lengths:
-```{r, eval=FALSE}
-n_samples <- seq(500, 2000, by=500)
-n_items <- seq(30, 90, by=30)
-params_format <- function(data, x, ns, ni, estimator){
-  rbind(data.frame(params='t', true=data$people$theta, est=x$t),
-        data.frame(params='a', true=data$items$a, est=x$a),
-        data.frame(params='b', true=data$items$b, est=x$b),
-        data.frame(params='c', true=data$items$c, est=x$c)) %>%
-    mutate(n_sample=ns, n_items=ni, estimator=estimator)
-}
-results <- NULL
-for(ns in n_samples){
-  for(ni in n_items){
-    cat("data:", ns, "by", ni, "\n")
+Example 5: The effect of sample sizes and test lengths on JMLE:
+```{r}
+rs <- NULL
+for(ns in seq(500, 2000, by=500)){
+  for(ni in seq(30, 90, by=30)){
     data <- model_3pl()$gendata(ns, ni)
-    x_jmle <- estimate_mle(data$responses, method='jmle', debug=TRUE)
-    x_mmle <- estimate_mle(data$responses, method='mmle', debug=TRUE)
-    x_eap <- estimate_bayesian(data$responses, method='eap', debug=TRUE)
-    x_map <- estimate_bayesian(data$responses, method='map', debug=TRUE)
-    rs <- rbind(params_format(data, x_jmle, ns, ni, 'JMLE'),
-          params_format(data, x_mmle, ns, ni, 'MMLE'),
-          params_format(data, x_eap, ns, ni, 'EAP'),
-          params_format(data, x_map, ns, ni, 'MAP'))
-    results <- rbind(results, rs)
+    x <- estimate_mle(data$responses, method='jmle', scale="theta")
+    params <- data.frame(true=c(data$people$theta, data$items$a, data$items$b, data$items$c), est=c(x$t, x$a, x$b, x$c), params=c(rep("theta", ns), rep(c("a", "b", "c"), each=ni)), n_sample=ns, n_items=ni)
+    rs <- rbind(rs, params)
   }
 }
 ```
 
-```{r, echo=FALSE}
-results %>% group_by(n_sample, n_items, estimator, params) %>% 
+```{r, echo=FALSE, fig.height=3, fig.width=12}
+rs %>% group_by(n_sample, n_items, params) %>% 
   summarise(corr=cor(true, est), rmse=rmse(true, est)) %>%
-  ggplot(aes(x=n_sample, y=rmse, color=estimator)) +
-  geom_point() + geom_line() + facet_grid(n_items ~ params) + 
-  xlab("Sample Sizes") + ylab("Test Length") + theme_bw()
+  ggplot(aes(x=n_sample, y=rmse, color=params)) +
+  geom_point() + geom_line() + facet_wrap( ~ n_items, nrow=1) + 
+  xlab("Sample Sizes") + ylab("RMSE") + theme_bw()
 ```
 
 Example 6: Fix parameters
@@ -277,13 +261,13 @@ data <- model_3pl()$gendata(1000, 50)
 x <- estimate_mle(data$response, t=data$people$theta)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 y <- rbind(data.frame(params='t', true=data$people$theta, est=x$t),
            data.frame(params='a', true=data$items$a, est=x$a),
            data.frame(params='b', true=data$items$b, est=x$b),
            data.frame(params='c', true=data$items$c, est=x$c))
-y %>% ggplot(aes(x=true, y=est, color=params, alpha=.5)) +
-  geom_point() + geom_smooth(method='loess') + 
+y %>% ggplot(aes(x=true, y=est, color=params, alpha=.3)) +
+  geom_point() + geom_smooth(se=FALSE) + 
   facet_wrap(~params, nrow=1, scales='free') + 
   xlab('True Parameters') + ylab('Est. Parameters') +
   theme_bw() + guides(alpha=FALSE)
@@ -294,23 +278,18 @@ Example 7: Estimation with missing data
 data <- model_3pl()$gendata(1000, 50)
 na_index <- runif(prod(dim(data$responses))) < .1
 data$responses[na_index] <- NA
-x <- estimate_mle(data$responses, method='mmle', debug=TRUE, scale="b")
-x <- irt_rescale(model_3pl(t=x$t, a=x$a, b=x$b, c=x$c), "theta", 0, 1)
-x <- list(t=x$people$theta, a=x$items$a, b=x$items$b, c=x$items$c)
+x <- estimate_mle(data$responses, method='jmle', scale="theta")
 ```
-```{r, echo=FALSE}
+
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 y <- rbind(data.frame(param='t', true=data$people$theta, est=x$t),
            data.frame(param='a', true=data$items$a, est=x$a),
            data.frame(param='b', true=data$items$b, est=x$b),
            data.frame(param='c', true=data$items$c, est=x$c))
 ggplot(y, aes(x=true, y=est, color=param)) +
-  geom_point(alpha=.5) + facet_wrap(~param, scales="free") +
-  xlab("True Params") + ylab("Est. Params") +
+  geom_point(alpha=.5) + facet_wrap(~param, nrow=1, scales="free") +
+  xlab("True Params") + ylab("Est. Params") + geom_smooth(se=FALSE) +
   theme_bw()
-group_by(y, param) %>% 
-  summarise(corr=cor(true, est), rmse=rmse(true, est), mean=mean(est), sd=sd(est)) %>%
-  round(., 2)
-
 ```
 
 
@@ -374,7 +353,7 @@ group_by(x$items, form) %>%
   round(., 2)
 ```
 
-Example 3: Assemble 2 parallel forms with 10 items each to maximize information over \$theta$=[-1, 1]. Each form has 3 items from content #1, 3 items from content #2, 4 items from content #3, and average response time of 55-65 seconds.
+Example 3: Assemble 2 parallel forms with 10 items each to maximize information over $\theta$=[-1, 1]. Each form has 3 items from content #1, 3 items from content #2, 4 items from content #3, and average response time of 55-65 seconds.
 ```{r}
 x <- ata(items, 2, len=10, maxselect=1) %>%
   ata_obj_relative(c(-1, 0, 1), "max") %>%
@@ -388,7 +367,7 @@ group_by(x$items, form) %>%
 plot(x)
 ```
 
-Example 4: Assemble 2 parallel forms from an item pool of item sets. Each form should maximize information over \$theta$=[-1, 1], and should have 10 items in 3 content areas as (3, 3, 4). To solve this problem, the item pool should be restructured to collapse items in the set into one entry.
+Example 4: Assemble 2 parallel forms from an item pool of item sets. Each form should maximize information over $\theta$=[-1, 1], and should have 10 items in 3 content areas as (3, 3, 4). To solve this problem, the item pool should be restructured to collapse items in the set into one entry.
 ```{r}
 # generate item pool
 pool <- model_3pl()$gendata(1, 100)$items %>%
@@ -424,8 +403,8 @@ group_by(x, form) %>% summarise(n=n(), content1=sum(content==1), content2=sum(co
 Computerized adaptive testing (CAT) takes advantage of the tremendous computing powers of modern computers to customize the test forms to match the test takers' demonstrated abilities during the administration. Studies have shown that CAT could massively improve the testing efficiency and enhance the test security. This module provides a framework for conducting CAT simulation studies with the out-of-box or user-defined selection, estimation, or stopping rules. To change a rule, just pass in the corresponding function in the `cat_sim(true, pool, ...)` function -- e.g., `cat_sim(..., select_rule=new_select_func, estimate_rule=new_estimate_func, stop_rule=new_stop_func)`. When writing a new rule, make sure the function signature is as follows: `function(len, theta, stats, admin, pool, opts)`, where 
 
 * `len` is the current test length
-* `theta` is the current $\theta\ estimate
-* `stats` is a matrix with 3 columns: `u` for responses, `t` for $\theta\ estimates, and `se` for standard errors
+* `theta` is the current $\theta$ estimate
+* `stats` is a matrix with 3 columns: `u` for responses, `t` for $\theta$ estimates, and `se` for standard errors
 * `admin` is a data frame of administered items
 * `pool` is a data frame of the remaining items in the pool
 * `opts` is a list of option/control parameters, converted from the `...` argument in the `cat_sim` function.
@@ -439,11 +418,11 @@ The following rules are provided as the out-of-box rules:
 
 * `cat_select_shadow` implements the shadow-test CAT item selection algorithm[^10]. Use `shadow_constraints` to define the constraints, which should have four columns: `var` (the constrained variable), `level` (the constrained level in that variable, `NA` for continuous variable), `min` (the lower bound) and `max` (the upper bound). The `select_id` and `randomesque` options are also applicable for this rule.
 
-* `cat_estimate_default` is a maximum likelihood estimator (MLE) of the $\theta\ parameter.
+* `cat_estimate_default` is a maximum likelihood estimator (MLE) of the $\theta$ parameter.
 
-* `cat_estimate_mle_step` is another maximum likelihood estimator of the $\theta\ parameter, but only increment or decrement the $\theta\ by a `mle_step` for all 1s or 0s responses.
+* `cat_estimate_mle_step` is another maximum likelihood estimator of the $\theta$ parameter, but only increment or decrement the $\theta$ by a `mle_step` for all 1s or 0s responses.
 
-* `cat_estimate_eap` is a expected a posteriori (EAP) estimator of the $\theta\ parameter. Use `eap_mean` and `eap_sd` to define the priors.
+* `cat_estimate_eap` is a expected a posteriori (EAP) estimator of the $\theta$ parameter. Use `eap_mean` and `eap_sd` to define the priors.
 
 * `cat_estimate_hybrid` is a hybrid estimator, which uses EAP for all 1s and 0s responses and MLE otherwise. 
 
@@ -453,12 +432,12 @@ The following rules are provided as the out-of-box rules:
 [^9]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4, 241-261.
 [^10]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
 
-The simulation results are wrapped in a *cat* object, which includes `pool` (the remaining pool), `admin` (the administered items), `true` (the true $\theta\) and `theta` (the final $\theta\ estimate)
+The simulation results are wrapped in a *cat* object, which includes `pool` (the remaining pool), `admin` (the administered items), `true` (the true $\theta$) and `theta` (the final $\theta$ estimate)
 
 ###### Examples
 ```{r}
 ## generate item pool
-pool <- model_3pl()$gendata(1, 100)$items
+pool <- model_3pl()$gendata(1, 100)$items %>% round(., 3)
 pool$set_id <- sample(1:30, 100, replace=TRUE)
 pool$content <- sample(1:3, 100, replace=TRUE)
 pool$time <- round(rlnorm(100, mean=4.1, sd=.2))
@@ -496,90 +475,106 @@ plot(x)
 
 ##### Multistage Testing
 
-Multistage testing (MST) is an adaptive CBT model that navigates test takers through a set of pre-constructed item sets, spanning over multiple testing stages, in order to create a test form most suited to their abilities. The pre-constructed item sets are called *modules*, the entire collection of modules connected across stages by the routing rules is called a *panel*, and the pathway used to finish the test is called a *route*. A common practice is to have multiple parallel and interchangeable panels in place for administration. One panel will be randomly selected for a test taker to alleviate the item exposure rate. 
+Multistage testing (MST) navigates test takers through multiple testing stages and each stage contains a set of pre-constructed *modules*. The test is adapted between stages to administer modules most suitable to the test takers' abilities. A group of modules connected via the routing rule constitutes a MST *panel*, and the combination of modules (one module per stage) that leads a test taker to the end of the test is called *route*. The layout design of a MST is normally abbreviated as "1-2", "1-3-3", etc., where the length represents the number of stages and each number represents the number of modules in that stage. With reduced adaptivity, MST usually results in slightly inferior efficiency than CAT. However, it allows test developers to add complex constraints and review assembled tests before test publishing, and this could be a tremendous enhancement of test quality as compared to CAT. 
 
-With reduced adaptivity, it is difficult for MST to surmount CAT in terms of measurement quality and efficiency. However, because all tests are assembled before administration, the content and psychometric properties of the test can be reviewed before the pulication. This module provides an interface for designing, assembling and simulating a MST.
+This module provides an interface for designing, assembling and simulating MSTs. To design a MST, use the following functions:
 
-Call `mst(pool, design, npanel, method, len, maxselect)` to initiate a *mst* object. The design is the structural design of the MST. For instance, `design=c(1, 2, 2)` means a 1-2-2 MST with 3 stages, 5 modules, and 4 routes, and `design=c(1, 2, 3)` means a 1-2-3 MST with 3 stages, 6 modules, and 6 routes. When `method='bottomup'`, the bottom-up design approach is used, meaning objectives  and constraints are imposed on modules. This is a very practical approach and has been commonly used in practice and research. When `method='topdown'`, objectives and constraints are imposed on routes. The top-down approach automatically finds an optimal way to allocate objectives, constraints, and items across stages, but it is a relatively new approach. Internally, the *form* number is the global unique identifier assigned to modules, and the *index* number is the in-panel unique identifier assigned to modules. The former is used for ATA to recognize modules/forms, and the latter is for users to find a module in a given panel. Modules will be indexed sequentially from the first to the last stage. The `module` data frame in a *mst* object shows the mapping between index and stage-module position. The `route` data frame shows all permissible routes. Use `mst_route(mst, route, op)` to add new routes or remove existing routes. In practice, routes with dramatic changes are often prohibited. 
+* `mst(pool, design, npanel, method, len, maxselect)` initiates a *mst* object. `pool` must have columns named *a*, *b*, and *c* to represent item parameters. `design` indicates the MST layout using a hyphen-delimited string (e.g., "1-3-3"). `npanel` is the number of parallel panels to assemble. `method` is the design/assembly method: `topdown` or `bottomup`. `len` is the test/module length. `maxselect` is the maximum selection of an item, which is typically 1.
+* `mst_route(mst, route, op)` adds or removes routes from the MST. 
+* `mst_obj(mst, theta, indices, target, ...)` adds the TIF objectives. When `target` is set, it means to approach the target. Otherwise, maximum TIF at given $\theta$s.
+* `mst_constraint(mst, coef, min, max, level, indices)` adds constraints. When `min` or `max` is `NA`, it means the lower or upper bound is open. When `coef` is a categorical variable, set `level` to indicate which level is constrained. When `coef` is a continuous variable, leave `level` to `NA`.
+* `mst_stage_length(mst, stages, min, max)` regulates the size of stages. This constraint is useful for enforcing a desired item partition across stages. Otherwise, the ATA oftentimes puts more items at the last stages for the optimal results.
+* `mst_rdp(mst, theta, indices, tol)` anchors the intersection of adjacent modules. This is useful for optimizing routing results with fixed RDPs.
+* `mst_module_mininfo(mst, theta, mininfo, indices)` sets the minimum information at RDPs.
+* `mst_assemble(mst)` assembles the MST using MILP. If successful, it adds a data frame named `items` to the orignal *mst* object. 
+* `mst_get_items` retrieves items from an assembled MST
+* `plot(mst, byroute)` visualizes the assembly results. When `byroute=TRUE`, the route information functions are plotted; otherwise, the module information functions.
 
-Use `mst_objective(mst, theta, indicies, target, flatten, ...)` to set the TIF objectives. Use the `target` argument to set a target value at given `theta` points. Or, leave it to `NULL` to maximize the information at given `theta` points. Use the `flatten` argument to have a flat TIF. Use `mst_constraint(mst, coef, min, max, level, indicies)` to add constraints. The `min` and `max` arguments are allowed to be `NA`. In the top-down approach, it is likely to have all items allocated to the vary last stage only for optimality. To circumvent this situation, use `mst_stage_length(mst, stages, min, max)` to regulate the test length in earlier stages. Or, use `mst_set_rdp(mst, theta, indices, tol)` and `mst_module_mininfo(mst, theta, mininfo, indices)` to impose the location and minimum information constraints on routing decision points (RDPs), which helps prevent the empty stages/modules. Finally, use `mst_assemble(mst)` to attempt to assemble the MST. If assembled successfully, the *mst* object adds a data frame  of assembled items (called `items`), which adds a few extra columns to indicate the *panel*, *module*, in-panel *index*, and global *form* indices.  Use `mst_get_items(mst, panel, stage, module, route)` to retrieve items from an assembled MST. To visualize the assembly results, call `plot(mst, byroute)`. When `byroute=FALSE`, it draws the TIFs of modules in a panel-by-stage grid. When `byroute=TRUE`, it draws the TIFs of routes in each panel.
-
-Use `mst_sim(mst, true.theta, rdp)` to conduct a simulation on an assembled MST. If `rdp=NULL`, the maximum information routing rule is used. Otherwise, set `rdp` to a list of vectors of RDPs in each stage.  
+After the MST is assembled, call `mst_sim(mst, true, rdp, ...)` to perform a simulation. When `rdp=NULL`, the test takers are routed to modules with maximum information; otherwise, use fixed RDPs for routing. `rdp` expects a list with length equal to `n_stages - 1`, and each element is a vector with length equal to `n_modules - 1`. In `...`, users can define initial `theta` estimate or which `panel` to use.
 
 ###### Examples
+
+Prep: Generate item pool
 ```{r}
-### generate a 300-item pool
-pool <- irt_model("3pl")$gendata(1,300)$items
+## generate item pool
+set.seed(10001)
+pool <- model_3pl()$gendata(1, 500)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-
-### ex. 1: 1-2-2 MST, 2 panels, topdown
-### 20 items, content = c(10, 5, 5)
-### maximize information at -1 and 1 for easy and hard routes
-x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown', len=20, maxselect=1)
-x <- mst_objective(x, theta=-1, indices=1:2)
-x <- mst_objective(x, theta= 1, indices=3:4)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
-x <- mst_constraint(x, coef="content", min=5, max=5, level=2)
-x <- mst_constraint(x, coef="content", min=5, max=5, level=3)
-x <- mst_stage_length(x, stages=c(1, 2, 3), min=1)
-x <- mst_assemble(x, timeout=10)
-plot(x)
-plot(x, byroute=TRUE)
-freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
-freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-
-### ex. 2: 1-2-3 MST, 2 panels, bottomup,
-### 10 items in each module, content = c(4, 3, 3)
-### maximize information at -1, 0 and 1 for easy, medium, and hard modules
-x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup', len=10, maxselect=1)
-x <- mst_route(x, c(1, 2, 6), "-")
-x <- mst_route(x, c(1, 3, 4), "-")
-x <- mst_objective(x, theta= 0, indices=1)
-x <- mst_objective(x, theta=-1, indices=c(2,4))
-x <- mst_objective(x, theta= 1, indices=c(3,5))
-x <- mst_constraint(x, coef="content", min=4, max=4, level=1)
-x <- mst_constraint(x, coef="content", min=3, max=3, level=2)
-x <- mst_constraint(x, coef="content", min=3, max=3, level=3)
-x <- mst_assemble(x, timeout=10)
-plot(x)
-plot(x, byroute=TRUE)
-
-### ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items,
-### 10 items in each content area
-### target information at 18 at -1, 0, and 1 for easy, medium and hard routes
-x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown', len=30, maxselect=1)
-x <- mst_route(x, c(1, 2, 6), "-")
-x <- mst_route(x, c(1, 3, 4), "-")
-x <- mst_objective(x, theta=-1, indices=1, target=16)
-x <- mst_objective(x, theta= 0, indices=2:3, target=16)
-x <- mst_objective(x, theta= 1, indices=4, target=16)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=2)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=3)
-x <- mst_stage_length(x, stages=c(1, 2, 3), min=3)
-x <- mst_assemble(x, timeout=20)
-plot(x, byroute=TRUE)
-
-### ex. 4: simulation using the maximum information
-y <- mst_sim(x, 0.2)
-y$thetas
-y$ses
-y$route
-
-### ex. 4: simulation using given RPDs
-y <- mst_sim(x, -0.2, rdp=list(s1=c(0), s2=c(-.44, .44)))
-y$thetas
-y$ses
-y$route
 ```
 
+Example 1: Assemble 2 panels of 1-2-2 MST using the top-down approach. Maximize information at -1 and 1 for easy and hard routes. Each route should have 20 items in total and 10 items in content area 1. Stage 1 should have at least 5 items.
+```{r}
+x <- mst(pool, "1-2-2", 2, 'topdown', len=20, maxselect=1)
+x <- mst_obj(x, theta=-1, indices=1:2)
+x <- mst_obj(x, theta=1, indices=3:4)
+x <- mst_constraint(x, "content", 10, 10, level=1)
+x <- mst_stage_length(x, 1, min=5)
+x <- mst_assemble(x, timeout=10)
+plot(x, byroute=TRUE)
+for(i in 1:4)
+  freq(mst_get_items(x, panel=1, route=i)$content, 1)$freq %>% 
+  cat("items in content 1 in route", i, "\n")
+```
+
+Example 2: Assemble 2 panels of 1-2-3 MST using the bottom-up approach. Remove routes with radical $\theta$ changes. Maximize information at -1.0, 0.0, 1.0 for easy, medium and hard modules. Each module should have 10 items in total and 4 items in content area 1.
+```{r}
+x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) %>%
+  mst_route(c(1, 2, 6), "-") %>%
+  mst_route(c(1, 3, 4), "-") %>%
+  mst_obj(theta= 0, indices=c(1, 5)) %>%
+  mst_obj(theta=-1, indices=c(2, 4)) %>%
+  mst_obj(theta= 1, indices=c(3, 6)) %>%
+  mst_constraint("content", 4, 4, level=1)
+x <- mst_assemble(x, timeout=10)
+plot(x, byroute=FALSE) + guides(color=F)
+group_by(x$items, panel, index) %>% 
+  summarise(n=sum(content==1)) %>%
+  acast(panel ~ index, value.var="n")
+```
+
+Example 3: Assemble 2 panels of 1-3-3 MST using the top-down approach. Remove routes with radical $\theta$ changes. Maximize information over [-2, -0.4] for easy routes, [-0.4, 0.4] for medium routes, and [0.4, 2] for hard routes. Each route should have 20 items in total and 8 in content area 1. All E and M modules intersect around -0.4 and M and H modules intersect around 0.4. Information should be at least 5.0 at -0.4 and 0.4 at Stage 1. This may not be the best MST design (probably over-complicated), but a good example to showcase the functionality of this packages with regard to coping with complex MST design.
+```{r}
+x <- mst(pool, "1-3-3", 2, 'topdown', len=20, maxselect=1)
+x <- mst_route(x, c(1, 2, 7), "-")
+x <- mst_route(x, c(1, 4, 5), "-")
+x <- mst_obj(x, theta=c(-2, -1, -0.4), indices=c(1, 3))
+x <- mst_obj(x, theta=c(-0.4, 0, 0.4), indices=c(2, 4, 6))
+x <- mst_obj(x, theta=c(0.4, 1, 2), indices=c(5, 7))
+x <- mst_constraint(x, "content", 8, 8, level=1)
+x <- mst_rdp(x, -0.4, indices=c(2, 3), tol=0.2)
+x <- mst_rdp(x,  0.4, indices=c(3, 4), tol=0.2)
+x <- mst_rdp(x, -0.4, indices=c(5, 6), tol=0.2)
+x <- mst_rdp(x,  0.4, indices=c(6, 7), tol=0.2)
+x <- mst_module_mininfo(x, -0.4, 5.0, c(2, 3))
+x <- mst_module_mininfo(x,  0.4, 5.0, c(3, 4))
+x <- mst_assemble(x, timeout=20)
+plot(x) + guides(color=FALSE)
+```
+
+Conduct a simulation on the assembled MST using fixed RDP for routing. In the plot, circles represent the item difficulty with sizes proportional to the discrimination. Crosses represent three $\theta$ estimates with dashed line indicating the 95% confidence interval.
+```{r}
+rdp <- list(stage1=c(-0.4, 0.4), stage2=c(-0.4, 0.4))
+x_sim <- mst_sim(x, 1.0, rdp)
+x_sim
+plot(x_sim)
+```
+
+Conduct another simulation on the same MST using the maximum information routing rule.
+```{r}
+x_sim <- mst_sim(x, 1.0)
+x_sim
+plot(x_sim)
+```
 
 ### Graphic User Interfaces
 
-The GUIs built on *shiny* were reomved from this package. I'm trying to put together another standalone packages for GUIs. 
+In progress ...
 
 
 ### Ending
 
-Please send your comments, questions, feature request and bug reporting to the author [Xiao Luo](mailto:xluo1986@gmail.com).
+Please  your comments, questions and feature request to the [author](mailto:xluo1986@gmail.com). To report bugs, go to the [issues](https://github.com/xluo11/xxIRT/issues) page.
+
+
+### References
