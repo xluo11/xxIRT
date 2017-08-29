@@ -4,7 +4,7 @@ NULL
 
 
 #' @rdname mstHelpers
-#' @description \code{mst_reindex_routes} sorts an reindexes the routes map
+#' @description \code{mst_reindex_routes} sorts an re-indexes the route map
 #' @param x a \code{mst} object
 mst_reindex_routes <- function(x) {
   index <- apply(x$route[, 1:x$nstage], 1, function(r) {

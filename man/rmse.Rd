@@ -2,7 +2,7 @@
 % Please edit documentation in R/module1_stat_utils.R
 \name{rmse}
 \alias{rmse}
-\title{Compute Root Mean Square Error}
+\title{Root Mean Square Error}
 \usage{
 rmse(x, y)
 }
@@ -12,6 +12,6 @@ rmse(x, y)
 \item{y}{a vector/matrix of numeric values}
 }
 \description{
-Compute the root mean squared error (rsme) of two numeric vectors/matrices
+compute the root mean squared error of two numeric vectors/matrices
 }
 

@@ -2,186 +2,139 @@
 % Please edit documentation in R/module4_cat.R
 \name{cat_sim}
 \alias{cat_estimate_default}
+\alias{cat_estimate_eap}
+\alias{cat_estimate_hybrid}
+\alias{cat_estimate_mle_step}
 \alias{cat_select_ccat}
 \alias{cat_select_default}
 \alias{cat_select_shadow}
 \alias{cat_sim}
 \alias{cat_stop_default}
-\alias{cat_stop_projection}
 \alias{plot.cat}
 \alias{print.cat}
 \title{Computerized Adaptive Testing (CAT) Simulation}
 \usage{
-cat_sim(theta.true, pool, opts, cat.select = cat_select_default,
-  cat.estimate = cat_estimate_default, cat.stop = cat_stop_default,
-  debug = FALSE)
+cat_sim(true, pool, ...)
+
+cat_estimate_default(len, theta, stats, admin, pool, opts)
+
+cat_estimate_mle_step(len, theta, stats, admin, pool, opts)
+
+cat_estimate_eap(len, theta, stats, admin, pool, opts)
+
+cat_estimate_hybrid(len, theta, stats, admin, pool, opts)
+
+cat_stop_default(len, theta, stats, admin, pool, opts)
+
+cat_select_default(len, theta, stats, admin, pool, opts)
+
+cat_select_ccat(len, theta, stats, admin, pool, opts)
+
+cat_select_shadow(len, theta, stats, admin, pool, opts)
 
 \method{print}{cat}(x, ...)
 
 \method{plot}{cat}(x, ...)
-
-cat_select_default(cat.data)
-
-cat_select_ccat(cat.data)
-
-cat_select_shadow(cat.data)
-
-cat_estimate_default(cat.data)
-
-cat_stop_default(cat.data)
-
-cat_stop_projection(cat.data)
 }
 \arguments{
-\item{theta.true}{the true theta parameter}
+\item{true}{the true theta}
 
-\item{pool}{a data frame of items used as the item pool}
+\item{pool}{the item pool (data.frame)}
 
-\item{opts}{a list of option parameters (\code{min} and \code{max} are required)}
+\item{...}{additional option parameters. See details.}
 
-\item{cat.select}{the item selection rule}
+\item{len}{the current test length}
 
-\item{cat.estimate}{the theta estimation rule}
+\item{theta}{the current theta estimate}
 
-\item{cat.stop}{the stopping rule}
+\item{stats}{a matrix of responses and statistics}
 
-\item{debug}{\code{TRUE} to turn on the debugging mode}
+\item{admin}{a data frame of administered item pool}
+
+\item{opts}{a list of options passed in \code{cat_sim}}
 
 \item{x}{a \code{cat} object}
-
-\item{...}{further arguments}
-
-\item{cat.data}{a list of CAT data}
 }
 \value{
-\code{cat_sim} returns a \code{cat} object (see details section)
+\code{cat_sim} returns a \code{cat} object. See details.
 
-\code{cat_estimate_default} estimates the ability using EAP (all correct/incorrect responses) or MLE (mixed responses)
+the estimate rule should return a numeric value
 
-\code{cat_stop_default} evalutes whether to stop the CAT using the SE rule, MI rule, or CI rule
+the stopping rule should return a boolean with \code{TRUE} to stop the CAT
+
+the selection rule should return a list of the selected item and the updated pool
 }
 \description{
-\code{cat_sim} simulates CAT sessions with user-defined algorithms
+\code{cat_sim} simulates CAT with user-defined algorithms
 
-\code{cat_select_default} selects the most informative item
+\code{cat_estimate_default} is a maximum likelihood estimator of
+the theta parameter
 
-\code{cat_select_ccat} selects items under content-balancing constraint (see Kingsbury & Zara, 1989, 1991)
+\code{cat_estimate_mle_step} is a maximum likelihood estimator of
+the theta parameter, with a fixed incremental/decremental change for all 1s or 
+0s responses
 
-\code{cat_select_shadow} implements the shadow test algorithm described in van der Linden (2010)
+\code{cat_estimate_eap} is an expected a posteriori estimator of
+the theta parameter
 
-\code{cat_stop_projection} implements the projection-based stopping rule described in Luo et al (2016)
+\code{cat_estimate_hybrid} is a hybrid estimator of
+the theta parameter: EAP for all 1s or 0s responses, and MLE otherwise
+
+\code{cat_stop_default} is a trifold stopping rule: 
+it is the minimum standard error rule when \code{stop_se} is set in options, 
+the minimum information rule when \code{stop_mi} is set in options, and 
+the 95% confidence interval rule when \code{stop_cut} is set in options
+
+\code{cat_select_default} selects the item with maximum information or 
+the item set with maximum averaged information for the current theta estimate.
+
+\code{cat_select_ccat} implements the constrained CAT selection algorithm. 
+The \code{'ccat_perc'} argument defines the percentage targets, and the \code{'ccat_var'}
+argument defines the constrained variable.
+
+\code{cat_select_shadow} implements the shadow-test CAT selection algorithm. 
+The \code{'shadow_constraints'} argument defines the constraints.
 }
 \details{
-All data (input and output) are combined into a list named \code{cat.data}, which includes
-options (\code{opts}), true theta (\code{true}), estiamted theta (\code{est}), 
-item pool (\code{pool}), administered items (\code{items}), statistics (\code{stats}),
-administration history (\code{admin}), test length (\code{len}), and debugging switch (\code{debug}).\cr
-
-To write a new \code{cat.select} function, make sure it only takes \code{cat.data} as input and 
-outputs a list with the selected \code{item}, updated \code{pool}, and \code{output} for additional output (optional). 
-Retrieve the additional output using \code{output.select} from the returnig \code{cat} object. \cr
-
-To write a new \code{cat.estimate} function, make sure it only takes \code{cat.data} as input and 
-outputs a list with the estimated \code{theta}, and \code{output} for additional output (optional). 
-Retrieve the additional output using \code{output.estimate} from the returnig \code{cat} object. \cr
-
-To write a new \code{cat.stop} function, make sure it only takes \code{cat.data} as input and 
-outputs a list with the boolean \code{stop} decision, and \code{output} for additional output (optional). 
-Retrieve the additional output using \code{output.stop} from the returnig \code{cat} object. \cr
-
-\code{cat_select_default} selects the most informative item for current theta.
-When \code{randomesque} is set, it randomly selects an item from the k most 
-informative ones to control item exposure rate.
-
-To use \code{cat_select_ccat}, set target (percentage)  using \code{ccat_target} and initial randomness using \code{ccat_random} in options.
-
-To use \code{cat_select_shadow}, pass in a data frame of constraints with 4 columns to 
-\code{opts$shadow.constraints}: \code{name}, \code{level}, \code{min}, and \code{max}.
-
-The \code{cat_stop_default} evaluates one of the three criteria after reaching minimum lenght:
-(1) if \code{opts$stop.se} is set, evalute if the se reaches the threshold;
-(2) if \code{opts$stop.mi} is set, evalute if all item reach the threshold;
-(3) if \code{opts$stop.cut} is set, evalute if the 95% confidence interval contains the cut score
-
-To use \code{cat_stop_projection}, pass in a data frame of constraints with 4 columns to
-\code{opts$projection.constraints}: \code{name}, \code{level}, \code{min}, and \code{max}.
-Also set a method in \code{opts$method} ('information' or 'difficulty') and a cut score in \code{opts$cut}.
+\code{...} takes additional option/control parameters from users. \code{min} and {max} are
+mandatory in order to control the minimum and maximum test length. \cr 
+The selection, estimation, and stopping rules takes the same set of arguments: 
+\code{fucntion(len, theta, stats, admin, pool, opts)}, which are the current test length, 
+the current theta estimate, the matrix of statistics, the data.frame of administered items, 
+the item pool, and the options. To override default rules, first write new rules using the 
+same function signature and pass the new rule and its required parameters to \code{cat_sim()}
+options. \cr
+The returned \code{cat} object contains the remaining item pool, the administration history,
+the true and estimated thetas. \cr
 }
 \examples{
-### generate a 200-item pool
-pool <- irt_model("3pl")$gendata(1,200)$items
-pool$content <- sample(1:3, nrow(pool), replace=TRUE)
-pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
-
-### ex. 1: 10-30 items
-### maximum information selection rule
-### standard error stopping rule (se=.3)
-opts <- list(min=10, max=30, stop.se=.3)
-x <- cat_sim(0.1, pool, opts)
-x$admin
-plot(x)
-
-### ex. 2: 10-30 items
-### maximum information selection rule
-### minimum information stopping rule (mi=.3)
-opts <- list(min=10, max=30, stop.mi=.8)
-x <- cat_sim(0.1, pool, opts)
-x$admin
-plot(x)
-
-### ex. 3: 10-30 items
-### maximum information selection rule
-### confidence interval stopping rule (cut=0)
-opts <- list(min=10, max=30, stop.cut=0)
-x <- cat_sim(0.1, pool, opts)
-x$admin
-plot(x)
-
-### ex. 4: 10-30 items
-### maximum information selection rules, randomesque = 5
-### standard error stopping rule (se=.3) 
-opts <- list(min=10, max=30, stop.se=.3, randomesque=5)
-x <- cat_sim(0.1, pool, opts)
-x$admin
-plot(x)
-
-### ex. 5: 10-30 items
-### c-cat selection rule, first 10 areas are random
-### confidence interval stopping rule
-opts <- list(min=30, max=60, stop.cut=0, 
-    ccat.target=c(.50,.25,.25), ccat.random=10)
-x <- cat_sim(0.1, pool, opts, cat.select=cat_select_ccat)
-x$admin
-plot(x)
-freq(x$admin$content, 1:3)
-
-\dontrun{
-### ex. 6: 15 items
-### shadow test selection rule
-### content: [5, 5, 5] items in area 1--3
-### response time: avg. 55--65 seconds
-cons <- data.frame(name="content", level=c(1,2,3), min=c(5, 5, 5), 
-                   max=c(5, 5, 5), stringsAsFactors=FALSE)
-cons <- rbind(cons, c("time", NA, 55*15, 65*15))
-opts <- list(min=15, max=15, stop.se=.03, shadow.constraints=cons)
-x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow)
-x$admin
-plot(x)
-freq(x$admin$content, 1:3)
-mean(x$items$time)
-
-### ex. 7: 20-30 items
-### shadow selection rule
-### projection-based stopping rule
-cons <- data.frame(name="content", level=c(1,2,3), min=c(10, 10, 10), 
-                   max=c(10, 10, 10), stringsAsFactors=FALSE)
-cons <- rbind(cons, c("time", NA, 55*30, 65*30))
-opts <- list(min=20, max=30, projection.cut=0, projection.constraints=cons, 
-projection.method="difficulty", shadow.constraints=cons)
-x <- cat_sim(0.1, pool, opts, cat.select=cat_select_shadow, 
-cat.stop=cat_stop_projection)
-x$admin
-plot(x)
-}
+## generate item pool
+pool <- model_3pl()$gendata(1, 100)$items
+pool$set_id <- sample(1:30, 100, replace=TRUE)
+pool$content <- sample(1:3, 100, replace=TRUE)
+pool$time <- round(rlnorm(100, mean=4.1, sd=.2))
+## randomesque to control exposure in selection
+cat_sim(1.0, pool, min=10, max=20, randomesque=5)
+## use user-defined ID variable to select item sets
+cat_sim(1.0, pool, min=10, max=20, selct_id="set")
+## use the mle_step estimation rule
+cat_sim(1.0, pool, min=10, max=20, mle_step=.5, 
+    estimate_rule=cat_estimate_mle_step)
+## use the hybrid estimation rule
+cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_hybrid)
+## use the standard error stopping rule
+cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_se=.25)
+## use the 95\% confidence interval classification stopping rule
+cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_cut=0)
+## use the constrained CAT item selection
+cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, 
+    ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5))
+## use the constrained CAT item selection with initial randomness
+cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, 
+    ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5), ccat_init_rand=5)
+## use the shadow-test CAT 
+cons <- data.frame(var='content', level=1:3, min=3, max=5)
+cons <- rbind(cons, data.frame(var='time', level=NA, min=55*10, max=65*10))
+cat_sim(1.0, pool, min=10, max=10, shadow_constraints=cons, select_id="set_id")
 }
 

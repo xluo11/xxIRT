@@ -2,19 +2,20 @@
 % Please edit documentation in R/module1_stat_utils.R
 \name{freq}
 \alias{freq}
-\title{Count Frequency}
+\title{Frequency}
 \usage{
-freq(x, val)
+freq(x, val = NULL)
 }
 \arguments{
-\item{x}{a vector being counted}
+\item{x}{a vector of raw data}
 
-\item{val}{a vector of valid counting values}
+\item{val}{a vector of valid values, \code{NULL} for all values}
 }
 \description{
-Count (cumulative) frequency and percentage using user-defined values
+computes the frequency and percentage of given values
 }
 \examples{
+freq(sample(1:4, 150, replace=TRUE))
 freq(sample(1:4, 150, replace=TRUE), 5:1)
 freq(sample(1:4, 150, replace=TRUE), 1:3)
 }

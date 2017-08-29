@@ -11,7 +11,7 @@ NULL
 #' @param c c parameters
 #' @param iter the number of maximum iterations
 #' @param conv the convergence criterion
-#' @param method the estimation method of item parmaeters
+#' @param method the estimation method of item parameters
 #' @param bound_t the bound of theta parameters
 #' @param bound_a the bound of a parameters
 #' @param bound_b the bound of b parameters
@@ -24,14 +24,14 @@ NULL
 #' @param debug \code{TRUE} to print and report debugging information
 #' @return a list of \code{t, a, b, c} parameters
 #' @details 
-#' When the \code{t, a, b, c} paramters are \code{NULL}, they are free 
+#' When the \code{t, a, b, c} parameters are \code{NULL}, they are free 
 #' to be estimated; otherwise, they are fixed at the provided values. 
 #' When setting values for a parameter, use numeric values to fix parameters
 #' and \code{NA} to free parameters. For instance, an argument of \code{t=c(-1, NA, 1)}
 #' means to fix the 1st and 3rd theta parameters to -1 and 1 and estimate the 2nd theta
 #' parameters. The same is true for the a-, b-, and c-parameters. \cr
 #' The \code{method} argument in \code{estimate_mle} controls whether to use joint (\code{jmle}) 
-#' or maximum (\code{mmle}) liklihood method to estimate item parameters. The \code{scale} 
+#' or maximum (\code{mmle}) likelihood method to estimate item parameters. The \code{scale} 
 #' argument controls where to set the scale: \code{b} or \code{theta} parameters. \cr
 #' When \code{debug} mode is on, print and report additional information regarding the convergence
 #' over the iterations. \cr
@@ -39,7 +39,10 @@ NULL
 #' \dontrun{
 #' library(ggplot2)
 #' library(dplyr)
+#' set.seed(10001)
+#' ### generate data
 #' data <- model_3pl()$gendata(1000, 40)
+#' ### MLE
 #' x <- estimate_mle(data$responses, debug=TRUE)
 #' y <- rbind(data.frame(param='t', true=data$people$theta, est=x$t),
 #'      data.frame(param='a', true=data$items$a, est=x$a),
@@ -51,10 +54,24 @@ NULL
 #'   geom_point(alpha=.5) + facet_wrap(~param, scales="free") + 
 #'   xlab("True Parameters") + ylab("Estimated Parameters") +
 #'   theme_bw()
-#'   summarise(group_by(y, param), corr=cor(true, est), rmse=rmse(true, est), mean=mean(est), sd=sd(est))
+#' group_by(y, param) %>% summarise(corr=cor(true, est), 
+#'     rmse=rmse(true, est), mean=mean(est), sd=sd(est))
+#' ### Bayesian
+#' x <- estimate_bayesian(data$responses, debug=TRUE)
+#' y <- rbind(data.frame(param='t', true=data$people$theta, est=x$t),
+#'      data.frame(param='a', true=data$items$a, est=x$a),
+#'      data.frame(param='b', true=data$items$b, est=x$b),
+#'      data.frame(param='c', true=data$items$c, est=x$c))
+#' group_by(y, param) %>% summarise(corr=cor(true, est), rmse=rmse(true, est))
+#' ggplot(y, aes(x=true, y=est, color=param)) + 
+#'   geom_point(alpha=.5) + facet_wrap(~param, scales="free") + 
+#'   xlab("True Parameters") + ylab("Estimated Parameters") +
+#'   theme_bw()
+#' group_by(y, param) %>% summarise(corr=cor(true, est), 
+#'     rmse=rmse(true, est), mean=mean(est), sd=sd(est))
 #' }
 #' @import ggplot2
-#' @importFrom stats sd
+#' @importFrom stats sd dnorm
 #' @importFrom reshape2 melt
 #' @export
 estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005, method=c("jmle", "mmle"), bound_t=3.5, bound_a=2, bound_b=3.5, bound_c=0.25, mmle_mu=0, mmle_sig=1, scale=c("none", "theta", "b"), scale_mean=0, scale_sd=1, debug=FALSE){
@@ -216,7 +233,7 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
 
 
 #' @rdname estimation
-#' @description \code{estimate_bayesian} estimates parameters using bayesian estimation method
+#' @description \code{estimate_bayesian} estimates parameters using Bayesian estimation method
 #' @param t_mu the mean of the prior distribution of theta parameters
 #' @param t_sig the SD of the prior distribution of theta parameters
 #' @param a_mu the mean of the prior distribution of a parameters
@@ -229,23 +246,8 @@ estimate_mle <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, iter=20, conv=0.005,
 #' @details 
 #' The \code{method} argument in \code{estimate_bayesian} controls whether to use 
 #' maximum (\code{map}) or expected (\code{eap}) a posteriori to estimate theta parameters. \cr 
-#' @examples
-#' \dontrun{
-#' x <- estimate_bayesian(data$responses, debug=TRUE)
-#' y <- rbind(data.frame(param='t', true=data$people$theta, est=x$t),
-#'      data.frame(param='a', true=data$items$a, est=x$a),
-#'      data.frame(param='b', true=data$items$b, est=x$b),
-#'      data.frame(param='c', true=data$items$c, est=x$c))
-#' group_by(y, param) %>% 
-#' summarise(corr=cor(true, est), rmse=rmse(true, est))
-#' ggplot(y, aes(x=true, y=est, color=param)) + 
-#'   geom_point(alpha=.5) + facet_wrap(~param, scales="free") + 
-#'   xlab("True Parameters") + ylab("Estimated Parameters") +
-#'   theme_bw()
-#'   summarise(group_by(y, param), corr=cor(true, est), rmse=rmse(true, est), mean=mean(est), sd=sd(est))
-#' }
 #' @import ggplot2
-#' @importFrom stats sd
+#' @importFrom stats sd dnorm
 #' @importFrom reshape2 melt
 #' @export
 estimate_bayesian <- function(u, t=NULL, a=NULL, b=NULL, c=NULL, method=c("map", "eap"), iter=20, conv=0.005, bound_t=3.5, bound_a=2, bound_b=3.5, bound_c=0.25, scale=c("none", "theta", "b"), scale_mean=0, scale_sd=1, t_mu=0, t_sig=1, a_mu=0, a_sig=0.2, b_mu=0, b_sig=1, c_alpha=5, c_beta=46, report_sd=FALSE, debug=FALSE) {

@@ -10,7 +10,7 @@
 #' The selection, estimation, and stopping rules takes the same set of arguments: 
 #' \code{fucntion(len, theta, stats, admin, pool, opts)}, which are the current test length, 
 #' the current theta estimate, the matrix of statistics, the data.frame of administered items, 
-#' the item pool, and the options. To overrride default rules, first write new rules using the 
+#' the item pool, and the options. To override default rules, first write new rules using the 
 #' same function signature and pass the new rule and its required parameters to \code{cat_sim()}
 #' options. \cr
 #' The returned \code{cat} object contains the remaining item pool, the administration history,
@@ -22,25 +22,28 @@
 #' pool$content <- sample(1:3, 100, replace=TRUE)
 #' pool$time <- round(rlnorm(100, mean=4.1, sd=.2))
 #' ## randomesque to control exposure in selection
-#' cat_sim(1.0, pool, min=10, max=20, randomesque=5)$admin
+#' cat_sim(1.0, pool, min=10, max=20, randomesque=5)
 #' ## use user-defined ID variable to select item sets
-#' cat_sim(1.0, pool, min=10, max=20, selct_id="set")$admin
+#' cat_sim(1.0, pool, min=10, max=20, selct_id="set")
 #' ## use the mle_step estimation rule
-#' cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_mle_step, mle_step=.5)$admin
+#' cat_sim(1.0, pool, min=10, max=20, mle_step=.5, 
+#'     estimate_rule=cat_estimate_mle_step)
 #' ## use the hybrid estimation rule
-#' cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_hybrid)$admin
+#' cat_sim(1.0, pool, min=10, max=20, estimate_rule=cat_estimate_hybrid)
 #' ## use the standard error stopping rule
-#' cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_se=.25)$admin
+#' cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_se=.25)
 #' ## use the 95% confidence interval classification stopping rule
-#' cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_cut=0)$admin
+#' cat_sim(1.0, pool, min=10, max=20, stop_rule=cat_stop_default, stop_cut=0)
 #' ## use the constrained CAT item selection
-#' cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5))$admin
+#' cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, 
+#'     ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5))
 #' ## use the constrained CAT item selection with initial randomness
-#' cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5), ccat_init_rand=5)$admin
+#' cat_sim(1.0, pool, min=10, max=20, select_rule=cat_select_ccat, 
+#'     ccat_var='content', ccat_perc=c('1'=.2, '2'=.3, '3'=.5), ccat_init_rand=5)
 #' ## use the shadow-test CAT 
 #' cons <- data.frame(var='content', level=1:3, min=3, max=5)
 #' cons <- rbind(cons, data.frame(var='time', level=NA, min=55*10, max=65*10))
-#' cat_sim(1.0, pool, min=10, max=10, shadow_constraints=cons, select_id="set_id")$admin
+#' cat_sim(1.0, pool, min=10, max=10, shadow_constraints=cons, select_id="set_id")
 #' @importFrom stats runif
 #' @export
 cat_sim <- function(true, pool, ...){
@@ -67,7 +70,7 @@ cat_sim <- function(true, pool, ...){
     selection <- select_rule(len, theta, stats, admin, pool, opts)
     item <- selection$item
     pool <- selection$pool
-    item <- item[min(nrow(item), opts$max - len), ]   # in case it busts opts$max
+    item <- item[0:min(nrow(item), opts$max - len), ]   # in case it busts opts$max
     n <- nrow(item)
     len <- len + n
     admin <- rbind(admin, item)
@@ -100,7 +103,6 @@ cat_sim <- function(true, pool, ...){
 #' @param theta the current theta estimate
 #' @param stats a matrix of responses and statistics
 #' @param admin a data frame of administered item pool
-#' @param pool a data frame of remaining items in the pool
 #' @param opts a list of options passed in \code{cat_sim} 
 #' @return the estimate rule should return a numeric value
 #' @export
@@ -130,7 +132,7 @@ cat_estimate_mle_step <- function(len, theta, stats, admin, pool, opts){
 }
 
 #' @rdname cat_sim
-#' @description \code{cat_estimate_eap} is an  expected a posteriori estimator of
+#' @description \code{cat_estimate_eap} is an expected a posteriori estimator of
 #' the theta parameter
 #' @export
 cat_estimate_eap <- function(len, theta, stats, admin, pool, opts){
@@ -143,7 +145,7 @@ cat_estimate_eap <- function(len, theta, stats, admin, pool, opts){
 
 #' @rdname cat_sim
 #' @description \code{cat_estimate_hybrid} is a hybrid estimator of
-#' the theta parameter: EAP for all 1s or 0s respones, and MLE otherwise
+#' the theta parameter: EAP for all 1s or 0s responses, and MLE otherwise
 #' @export
 cat_estimate_hybrid <- function(len, theta, stats, admin, pool, opts){
   eap_mean <- ifelse(is.null(opts$eap_mean), 0, opts$eap_mean)
@@ -278,17 +280,17 @@ cat_select_shadow <- function(len, theta, stats, admin, pool, opts){
   if(is.null(opts$select_id)) id <- 1:nrow(pool) else id <- pool[, opts$select_id]
   
   # dummy code categorical variable and transform constraints
-  cons_cat <- filter(constraints, !is.na(level)) 
+  cons_cat <- dplyr::filter_(constraints, !is.na(~level)) 
   pool_cat <- apply(cons_cat, 1, function(xx) {
     as.integer(pool[, xx['var']] == xx['level'])
   }) %>% as.data.frame()
   colnames(pool_cat) <- paste(cons_cat$var, cons_cat$level, sep="_")
   x_pool <- cbind(pool, pool_cat) %>% 
-    mutate(len=1, info=irt_stats(model_3pl(theta=theta, items=pool), "info")[1, ]) %>%
-    aggregate(., by=list(id), sum) %>% 
-    rename(shadow_id=Group.1)
-  constraints <- mutate(cons_cat, var=paste(var, level, sep='_'), level=NA) %>%
-    rbind(., filter(constraints, is.na(level)))
+    dplyr::mutate_(len=1, info=irt_stats(model_3pl(theta=theta, items=pool), "info")[1, ]) %>%
+    aggregate(by=list(id), sum) %>% 
+    dplyr::rename_(shadow_id=~Group.1)
+  constraints <- dplyr::mutate_(cons_cat, var=paste(~var, ~level, sep='_'), level=NA) %>%
+    rbind(dplyr::filter_(constraints, is.na(~level)))
   
   # ata
   x <- ata(x_pool, 1, len=NULL, maxselect=1)
@@ -330,11 +332,11 @@ print.cat <- function(x, ...){
       ", used ", len, " items (", sum(x$admin$u)," correct).\n", sep="")
   cat("Belows is a history of the CAT:\n")
   if(len <= 10) {
-    print(round(x$admin, 2))
+    print(x$admin)
   } else {
-    print(round(x$admin[1:5, ], 2))
+    print(x$admin[1:5, ])
     cat("...\n")
-    print(round(x$admin[1:5 + len - 5, ], 2))
+    print(x$admin[1:5 + len - 5, ])
   }
   
   invisible(x)

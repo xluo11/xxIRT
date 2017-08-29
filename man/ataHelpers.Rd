@@ -35,7 +35,7 @@ ATA Helper Functions
 
 \code{ata_append} adds constraint data into ata
 
-\code{ata_form_index} converts input forms into actual form indeces in LP
+\code{ata_form_index} converts input forms into actual form indices in LP
 
 \code{ata_obj_coef} processes input coefficients for setting objective functions
 }

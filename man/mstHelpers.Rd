@@ -18,7 +18,7 @@ mst_indices_input(x, indices)
 \description{
 MST Helper Functions
 
-\code{mst_reindex_routes} sorts an reindexes the routes map
+\code{mst_reindex_routes} sorts an re-indexes the route map
 
 \code{mst_indices_input} converts indices input to indices of routes in topdown method or modules in bottomup method
 }

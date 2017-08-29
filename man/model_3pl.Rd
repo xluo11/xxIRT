@@ -2,38 +2,52 @@
 % Please edit documentation in R/module0_model_3pl.R
 \name{model_3pl}
 \alias{model_3pl}
-\title{3PL Model}
+\alias{plot.model.3pl}
+\alias{print.model.3pl}
+\title{3-Parameter-Logistic Model}
 \usage{
 model_3pl(people = NULL, items = NULL, responses = NULL, theta = NULL,
   a = NULL, b = NULL, c = NULL)
+
+\method{print}{model.3pl}(x, ...)
+
+\method{plot}{model.3pl}(x, ...)
 }
 \arguments{
-\item{people}{a data frame of \code{theta} parameters}
+\item{people}{people parameters (data.frame)}
 
-\item{items}{a data frame of \code{a}, \code{b}, \code{c} parameters}
+\item{items}{item parameters (data.frame)}
 
-\item{responses}{a data frame or a matrix of dichotomous responses}
+\item{responses}{dichotomous responses (data.frame or matrix)}
 
-\item{theta}{a vector of \code{theta} parameters}
+\item{theta}{the ability parameters (vector)}
 
-\item{a}{a vector of \code{a} parmaeters}
+\item{a}{the discrimination parameters (vector)}
 
-\item{b}{a vector of \code{b} parmaeters}
+\item{b}{the difficulty parameters (vector)}
 
-\item{c}{a vector of \code{c} parmaeters}
+\item{c}{the pseudo-guessing parameters (vector)}
+
+\item{x}{a \code{model.3pl} object}
+
+\item{...}{additional arguments}
 }
 \description{
-Create a 3PL model object
+Create a 3-parameter-logistic (3PL) model object
 }
 \details{
-A 3pl model contains \code{people} (peoeple parameters), \code{items} (item parameters),
-\code{responses} (responses data), and functions to compute \code{P} (probability),
-\code{I} (information), and \code{L} (likelihood). \cr
-Inputs are allowed to be \code{NULL}. When necessary parameters are null, a function returns an error. 
-All arguments in \code{irt.model.3pl} are allowed to be \code{NULL}. The \code{people} argument needs to be
-a one-column data frame or a data frame with a column named theta. The \code{items} argument needs to be
-a three-column data frame or a data frame with columns named a, b, and c. The \code{responses} argument needs
-to be a data frame or matrix whose dimensions match the dimension of \code{people} and \code{items}.
+A 3pl model contains \code{people} (people parameters), \code{items} 
+(item parameters), \code{responses} (responses data), and functions to 
+compute \code{P} (probability), \code{I} (information), and \code{L} 
+(likelihood). \cr
+Arguments are allowed to be \code{NULL}. The \code{people} argument needs 
+to have a column named \code{theta}. The \code{items} argument needs to 
+have columns named \code{a}, \code{b}, and \code{c}. The \code{responses} 
+argument needs to be a data frame or matrix whose dimensionality matches 
+with \code{people} and \code{items}.
+
+In \code{plot.model.3pl}, use the \code{stats} argument to control what IRT statistics to draw.
+Use \code{total} argument to control whether to aggregate results over items or people.
 }
 \examples{
 # create a 3pl model using given parameters
@@ -51,17 +65,26 @@ model_3pl(people=people, a=a, b=b, c=c)
 model_3pl(theta=theta, items=items) 
 # compute P(robability), I(nformation), L(ikelihood)
 x <- model_3pl(people=people, items=items, responses=u)
-x$P(x)
-x$I(x)
-x$L(x)
+x$P()
+x$I()
+x$L()
 model_3pl()$P(x)
 model_3pl()$I(x)
 model_3pl()$L(x)
 # create a 3pl model using generated data
 x <- model_3pl()$gendata(10, 5)
-x
 x$P(x)
 x$I(x)
 x$L(x)
+# draw test/item characteristic curve
+x <- model_3pl()$gendata(20, 5)
+plot(x, stats="prob")
+plot(x, stats="prob", total=FALSE)
+# draw test/iten information function
+plot(x, stats="info")
+plot(x, stats="info", total=FALSE)
+# draw loglikelihood
+plot(x, stats="loglik")
+plot(x, stats="loglik", total=FALSE, theta=seq(-5, 5, .1))
 }
 

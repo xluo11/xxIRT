@@ -6,31 +6,31 @@
 \alias{mst_constraint}
 \alias{mst_get_items}
 \alias{mst_module_mininfo}
-\alias{mst_objective}
+\alias{mst_obj}
+\alias{mst_rdp}
 \alias{mst_route}
-\alias{mst_set_rdp}
 \alias{mst_stage_length}
 \alias{plot.mst}
 \alias{print.mst}
 \title{Computerized Multistage Testing (MST)}
 \usage{
-mst(pool, design, npanel, method, len = NULL, maxselect = NULL)
+mst(pool, design, npanel, method = c("topdown", "bottomup"), len = NULL,
+  maxselect = NULL)
 
-mst_route(x, route, op)
+mst_route(x, route, op = c("+", "-"))
 
-mst_objective(x, theta, indices = NULL, target = NULL, flatten = NULL,
-  theta.step = 2)
+mst_obj(x, theta, indices = NULL, target = NULL, flatten = NULL)
 
 mst_constraint(x, coef, min = NA, max = NA, level = NULL,
   indices = NULL)
 
 mst_stage_length(x, stages, min = NA, max = NA)
 
-mst_set_rdp(x, theta, indices, tol)
+mst_rdp(x, theta, indices, tol)
 
 mst_module_mininfo(x, theta, mininfo, indices)
 
-mst_assemble(x, solver = "lpsolve", verbose = "none", ...)
+mst_assemble(x, ...)
 
 \method{print}{mst}(x, ...)
 
@@ -39,21 +39,21 @@ mst_assemble(x, solver = "lpsolve", verbose = "none", ...)
 mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 }
 \arguments{
-\item{pool}{a data frame of item parameters}
+\item{pool}{the item pool (data.frame)}
 
-\item{design}{a numeric vector of the MST design (e.g., 1-2-3, or 1-2-2)}
+\item{design}{the MST design (string): e.g., "1-2-3", "1-2-2", etc.}
 
 \item{npanel}{the number of panels}
 
-\item{method}{the design method (i.e., 'topdown' or 'bottomup')}
+\item{method}{the design method: 'topdown' or 'bottomup'}
 
 \item{len}{the module/route length}
 
 \item{maxselect}{the maximum selection of items}
 
-\item{x}{the mst object}
+\item{x}{a MST object}
 
-\item{route}{a vector of form indices to represent the route}
+\item{route}{a MST route represented by a vector of module indices}
 
 \item{op}{\code{"+"} for adding a route and \code{"-"} for removing a route}
 
@@ -61,29 +61,23 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 
 \item{indices}{the index of the route (topdown) or the module (bottomup) for adding objectives}
 
-\item{target}{the target valus of the TIF objectives. \code{NULL} for maximization}
+\item{target}{the target values of the TIF objectives. \code{NULL} for maximization}
 
 \item{flatten}{the parameter for getting a flat TIF}
 
-\item{theta.step}{the step parameters to process \code{theta} interval}
-
 \item{coef}{the coefficients of the constraint}
 
-\item{min}{the minimum value of the contraint}
+\item{min}{the lower bound of the constraints}
 
-\item{max}{the maximum value of the contraint}
+\item{max}{the upper bound of the constraints}
 
-\item{level}{the level value for a categorical constraint}
+\item{level}{the constrained level, \code{NA} for continuous variable}
 
 \item{stages}{the stage index}
 
 \item{tol}{tolerance parameter}
 
-\item{mininfo}{the minimum information treshold}
-
-\item{solver}{the ata solver}
-
-\item{verbose}{the verbose parameter}
+\item{mininfo}{the minimum information threshold}
 
 \item{...}{further arguments}
 
@@ -96,15 +90,15 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 \description{
 \code{mst} creates a multistage (MST) object
 
-\code{mst_route} adds and removes routes in the mst
+\code{mst_route} adds and removes routes in the MST
 
-\code{mst_objective} adds objective functions to the mst
+\code{mst_obj} adds objective functions to the MST
 
-\code{mst_constraint} adds constraints to the mst
+\code{mst_constraint} adds constraints to the MST
 
 \code{mst_stage_length} sets the minimum and maximum length for a stage
 
-\code{mst_set_rdp} anchors the routing decision point (rdp) between adjacent modules
+\code{mst_rdp} anchors the routing decision point (rdp) between adjacent modules
 
 \code{mst_module_mininfo} sets the minimum information for modules
 
@@ -113,79 +107,50 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 \code{mst_get_items} extracts items from results
 }
 \details{
-The \code{mst} object contains an item pool (\code{pool}), a test assembler (\code{assembler}), 
-a route map (\code{route}), a stage-module map (\code{module}), a design method (\code{method}),
-and several constants such as \code{npanel}, \code{nstage}, \code{nmodule}, \code{nroute}.\cr
-Two indices are used to index modules/testlets. \code{form} number is a unique identifier for all modules,
-which is used for automated test assembly. \code{index} is a panel-wise unique identifier, which is used for
-routing. \cr
-
-There are two design methods for mst: \code{'bottomup'} and \code{'topdown'}. In the bottomup approach, 
-constraitns are imposed on individual modules. Conversely, in the topdown approach, constraints are imposed on routes.\cr
+The \code{mst} object contains: item pool (\code{pool}), ATA (\code{assembler}), 
+route map (\code{route}), module map (\code{module}), design method (\code{method}), 
+and several constants such as \code{npanel}, \code{nstage}, \code{nmodule}, 
+\code{nroute}.\cr
+Two identifiers are used to index modules/testlets. \code{form} is a unique 
+id for all modules (for ATA), and \code{index} is a panel-wise unique id (for MST).\cr
+There are two methods for designing MST: \code{'bottomup'} and \code{'topdown'}. 
+The bottomup approach adds objectives and constraints on individual modules, whereas
+the topdown approach adds objectives and constraints directly on routes.\cr
 
 \code{plot.mst} draws module information functions if \code{byroute=FALSE}
 and route information functions if \code{byroute=TRUE}
 }
 \examples{
-\dontrun{
-# generate a 300-item pool
-pool <- irt_model("3pl")$gendata(1,300)$items
+library(dplyr)
+## generate item pool
+pool <- model_3pl()$gendata(1, 300)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
 
 ## ex. 1: 1-2-2 MST, 2 panels, topdown
-## 20 items, content = c(10, 5, 5)
-## maximize information at -1 and 1 for easy and hard routes
-x <- mst(pool, design=c(1, 2, 2), npanel=2, method='topdown', len=20, maxselect=1)
-x <- mst_objective(x, theta=-1, indices=1:2)
-x <- mst_objective(x, theta= 1, indices=3:4)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
-x <- mst_constraint(x, coef="content", min=5, max=5, level=2)
-x <- mst_constraint(x, coef="content", min=5, max=5, level=3)
-x <- mst_stage_length(x, stages=c(1, 2, 3), min=1)
+## 20 items in total, 10 items in content area 1
+## maximize info. at -1 and 1 for easy and hard routes
+x <- mst(pool, "1-2-2", 2, 'topdown', len=20, maxselect=1)
+x <- mst_obj(x, theta=-1, indices=1:2)
+x <- mst_obj(x, theta=1, indices=3:4)
+x <- mst_constraint(x, "content", 10, 10, level=1)
 x <- mst_assemble(x, timeout=10)
-x$items
 plot(x)
 plot(x, byroute=TRUE)
 freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
 freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
 
 ## ex. 2: 1-2-3 MST, 2 panels, bottomup, 
-## 10 items in each module, content = c(4, 3, 3)
-## maximize information at -1, 0 and 1 for easy, medium, and hard modules
-x <- mst(pool, design=c(1, 2, 3), npanel=2, method='bottomup', len=10, maxselect=1)
-x <- mst_route(x, c(1, 2, 6), "-")
-x <- mst_route(x, c(1, 3, 4), "-")
-x <- mst_objective(x, theta= 0, indices=1)
-x <- mst_objective(x, theta=-1, indices=c(2,4))
-x <- mst_objective(x, theta= 1, indices=c(3,5))
-x <- mst_constraint(x, coef="content", min=4, max=4, level=1)
-x <- mst_constraint(x, coef="content", min=3, max=3, level=2)
-x <- mst_constraint(x, coef="content", min=3, max=3, level=3)
+## 10 items in total and 4 items in content area 1 in each module
+## maximize info. at -1, 0 and 1 for easy, medium, and hard modules
+x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) \%>\%
+  mst_route(c(1, 2, 6), "-") \%>\%
+  mst_route(c(1, 3, 4), "-") \%>\%
+  mst_obj(theta= 0, indices=1) \%>\%
+  mst_obj(theta=-1, indices=c(2,4)) \%>\%
+  mst_obj(theta= 1, indices=c(3,5)) \%>\%
+  mst_constraint("content", 4, 4, level=1)
 x <- mst_assemble(x, timeout=10)
-plot(x)
-plot(x, byroute=TRUE)
-freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
-freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-
-## ex. 3: 1-2-3 MST, 2 panels, topdown, 30 items, 
-## 10 items in each content area
-## target information at 18 at -1, 0, and 1 for easy, medium and hard routes
-x <- mst(pool, design=c(1, 2, 3), npanel=2, method='topdown', len=30, maxselect=1)
-x <- mst_route(x, c(1, 2, 6), "-")
-x <- mst_route(x, c(1, 3, 4), "-")
-x <- mst_objective(x, theta=-1, indices=1, target=16)
-x <- mst_objective(x, theta= 0, indices=2:3, target=16)
-x <- mst_objective(x, theta= 1, indices=4, target=16)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=1)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=2)
-x <- mst_constraint(x, coef="content", min=10, max=10, level=3)
-x <- mst_stage_length(x, stages=c(1, 2, 3), min=3)
-x <- mst_assemble(x, timeout=20)
-plot(x)
-plot(x, byroute=TRUE)
-freq(mst_get_items(x, panel=1, route=1)$content, 1:3)$freq
-freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
-}
+group_by(x$items, panel, index) \%>\% summarise(n=sum(content==1))
 }
 

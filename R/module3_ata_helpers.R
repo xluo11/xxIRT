@@ -17,7 +17,7 @@ ata_append <- function(x, mat, dir, rhs) {
 }
 
 #' @rdname ataHelpers
-#' @description \code{ata_form_index} converts input forms into actual form indeces in LP
+#' @description \code{ata_form_index} converts input forms into actual form indices in LP
 #' @param forms the forms indices
 #' @param collapse \code{TRUE} to collapse forms
 ata_form_index <- function(x, forms, collapse){

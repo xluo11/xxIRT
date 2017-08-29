@@ -1,20 +1,22 @@
 #' 3-Parameter-Logistic Model
 #' @description Create a 3-parameter-logistic (3PL) model object
-#' @param people a data frame of \code{theta} parameters
-#' @param items a data frame of \code{a}, \code{b}, \code{c} parameters
-#' @param responses a data frame or a matrix of dichotomous responses
-#' @param theta a vector of \code{theta} parameters
-#' @param a a vector of \code{a} parmaeters
-#' @param b a vector of \code{b} parmaeters
-#' @param c a vector of \code{c} parmaeters
+#' @param people people parameters (data.frame)
+#' @param items item parameters (data.frame)
+#' @param responses dichotomous responses (data.frame or matrix)
+#' @param theta the ability parameters (vector)
+#' @param a the discrimination parameters (vector)
+#' @param b the difficulty parameters (vector)
+#' @param c the pseudo-guessing parameters (vector)
 #' @details
-#' A 3pl model contains \code{people} (peoeple parameters), \code{items} (item parameters),
-#' \code{responses} (responses data), and functions to compute \code{P} (probability),
-#' \code{I} (information), and \code{L} (likelihood). \cr
-#' Arguments are allowed to be \code{NULL}. The \code{people} argument needs to have
-#' a column named \code{theta}. The \code{items} argument needs to have columns named 
-#' \code{a}, \code{b}, and \code{c}. The \code{responses} argument needs
-#' to be a data frame or matrix whose dimensions match with \code{people} and \code{items}.
+#' A 3pl model contains \code{people} (people parameters), \code{items} 
+#' (item parameters), \code{responses} (responses data), and functions to 
+#' compute \code{P} (probability), \code{I} (information), and \code{L} 
+#' (likelihood). \cr
+#' Arguments are allowed to be \code{NULL}. The \code{people} argument needs 
+#' to have a column named \code{theta}. The \code{items} argument needs to 
+#' have columns named \code{a}, \code{b}, and \code{c}. The \code{responses} 
+#' argument needs to be a data frame or matrix whose dimensionality matches 
+#' with \code{people} and \code{items}.
 #' @examples
 #' # create a 3pl model using given parameters
 #' theta <- c(-1, 0, 1)
@@ -147,7 +149,7 @@ model_3pl <- function(people=NULL, items=NULL, responses=NULL, theta=NULL, a=NUL
 
 
 #' @rdname model_3pl
-#' @param x a \code{irt.model} object
+#' @param x a \code{model.3pl} object
 #' @param ... additional arguments
 #' @importFrom utils head
 #' @export

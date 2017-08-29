@@ -1,33 +1,30 @@
 Package: xxIRT
 Type: Package
 Title: Practical Item Response Theory and Computer-Based Testing in R
-Version: 2.0.2
+Version: 2.0.3
 Date: 2017-9-01
 Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.com"))
 Author: Xiao Luo [aut, cre]
 Maintainer: Xiao Luo <xluo1986@gmail.com>
-Description: An implementation of item response theory and computer-based testing in R. 
-    designed to bridg the gap between psychometric theoretical advancements and 
-    applications in practice. The latest version consists of five modules:
-    (1) common IRT utility functions, (2) estimation of 3PL model, 
-    (3) automated test assembly framework, (4) computerized adaptive testing framework, 
-    (5) multistage testing framework. Detailed documentation at 
-    <https://github.com/xluo11/xxIRT>.
+Description: An implementation of item response theory (IRT) and computer-based
+    testing (CBT) based on the 3-parameter-logistic (3PL) model, with functions to
+    perform (i) parameter estimation, (2) automated test assembly, (3) computerized
+    adaptive testing (CAT) simulation, and (4) multistage assembly and simulation.
+    More documentation at <https://github.com/xluo11/xxIRT>.
 License: GPL (>= 3)
-Depends: R (>= 3.1.0)
+Depends:
+    R (>= 3.1.0)
 URL: https://github.com/xluo11/xxIRT
 BugReports: https://github.com/xluo11/xxIRT/issues
 Imports:
-    ggplot2, 
+    dplyr,
+    ggplot2,
     graphics,
     lpSolveAPI,
-    reshape2, 
+    magrittr,
+    reshape2,
     stats,
     utils
 RoxygenNote: 5.0.1
 Suggests:
-    dplyr,
-    magrittr,
     testthat
-    
-

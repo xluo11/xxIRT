@@ -47,15 +47,15 @@ To install a stable version from [CRAN](https://cran.r-project.org/package=xxIRT
 4. Computerized Adaptive Testing
 5. Multistage Testing
 
-The application programming interface (API) is for the intermediate R users who are familiar with R, whereas the graphic user interaface (GUI) is for novice users who don't feel like writing code in R. 
+The application programming interface (API) is for the intermediate R users who are familiar with R, whereas the graphic user interface (GUI) is for novice users who don't feel like writing code in R. 
 
 
 #### Package Modules
 
 ##### IRT Models
-The 3-parameter-logistic (3PL) model was introduced by Birnbaum[^1], which uses three item parmaeters (a, b, and c) and one people parameter ( *$\theta$*) to describe the probablistic relationship of the item-people interaction. When fixing the *a*-parmaeters to 0.58 (since D=1.7) and *c*-parameters to 0, this model becomes **mathematically** equivalent to the Rasch model[^2].
+The 3-parameter-logistic (3PL) model was introduced by Birnbaum[^1], which uses three item parameter (a, b, and c) and one people parameter ( *$\theta$*) to describe the probabilistic relationship of the item-people interaction. When fixing the *a*-parameter to 0.58 (since D=1.7) and *c*-parameters to 0, this model becomes **mathematically** equivalent to the Rasch model[^2].
 
-This module creates a S3 R object representing the 3PL model. It contains parameter and response data, as well as functions to compute the probability, information and likelihood. Use `model_3pl(people, items, responses)` or `model_3pl(theta, a, b, c, responses)` to create a *3PL* object. The *people* argument needs to be a data frame with a column named *theta*, the *items* argument a data frame with columns named *a*, *b*, and *c*, and the *responses* argument a matrix or data frame with dimensionality equal to the numbers of people and items. Alternatively, use *theta*, *a*, *b*, and *c* arguments to pass in numeric vectors of parameters directly. Upon its creation, the object comes with functions to compute the probability (`P(x)`), information (`I(x)`), and likelihood (`L(x, log)`) using the 3PL model. It also provides a helper function for generating data (`gendata(n.people, n.items, people, items, ...)`). Pass in the number of people (`n.people`) and items (`n.items`) to generate parameters, or pass in the people (`people`) or item (`items`) parameters to fix parameters in data generation. By default, the *$\theta$* parmaeters are drawn from a normal distribution (`theta.mean=0`, `theta.sd=1`), *a*-parmaeters from a lognormal distribution (`a.mean=0`, `a.sd=0.2`), *b*-parameters from a normal distribution (`b.mean=0`, `b.sd=1`), and *c*-parameters from a beta distribution (`c.alpha=5`, `c.beta=46`).
+This module creates a S3 R object representing the 3PL model. It contains parameter and response data, as well as functions to compute the probability, information and likelihood. Use `model_3pl(people, items, responses)` or `model_3pl(theta, a, b, c, responses)` to create a *3PL* object. The *people* argument needs to be a data frame with a column named *theta*, the *items* argument a data frame with columns named *a*, *b*, and *c*, and the *responses* argument a matrix or data frame with dimensionality equal to the numbers of people and items. Alternatively, use *theta*, *a*, *b*, and *c* arguments to pass in numeric vectors of parameters directly. Upon its creation, the object comes with functions to compute the probability (`P(x)`), information (`I(x)`), and likelihood (`L(x, log)`) using the 3PL model. It also provides a helper function for generating data (`gendata(n.people, n.items, people, items, ...)`). Pass in the number of people (`n.people`) and items (`n.items`) to generate parameters, or pass in the people (`people`) or item (`items`) parameters to fix parameters in data generation. By default, the *$\theta$* parameter are drawn from a normal distribution (`theta.mean=0`, `theta.sd=1`), *a*-parameter from a lognormal distribution (`a.mean=0`, `a.sd=0.2`), *b*-parameters from a normal distribution (`b.mean=0`, `b.sd=1`), and *c*-parameters from a beta distribution (`c.alpha=5`, `c.beta=46`).
 
 [^1]: Birnbaum, A. (1968). Some latent trait models. In F.M. Lord & M.R. Novick, (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
 [^2]: Rasch, G. (1966). An item analysis which takes individual differences into account. British journal of mathematical and statistical psychology, 19(1), 49-57.
@@ -98,12 +98,12 @@ x$L(x)
 
 
 ##### IRT Utils
-Item response theory (IRT) is a family of measurement models describing the relationship between observed responses and unobserved item/people parameters. It has been widely used to design and analyze large-scale high-stakes psychological and educaitonal assessments. It is the foundation of some advanced applications such as computerized adaptive testing and multistage testing. See Hambleton and Swaminathan's [^3] and Lord's [^4] books for more details pertaining to IRT.
+Item response theory (IRT) is a family of measurement models describing the relationship between observed responses and unobserved item/people parameters. It has been widely used to design and analyze large-scale high-stakes psychological and educational assessments. It is the foundation of some advanced applications such as computerized adaptive testing and multistage testing. See Hambleton and Swaminathan's [^3] and Lord's [^4] books for more details pertaining to IRT.
 
 This module provides a collection of functions for commonly-used computations and graphing in IRT. For example,
 
 * `irt_stats(obj, stats, summary, fun)`: compute probability, information, or likelihood, and summarize it over *people* or *item* using customized functions optionally.
-* `irt_select(obj, people.index, items.index)`: subset data
+* `irt_select(obj, people_index, items_index)`: subset data
 * `irt_sample(obj, n.people, n.items)`: sample data
 * `irt_rescale_3pl(obj, parameter, mean, sd)`: rescale parameters to the new scale of the *$\theta$* or *b* parameters. 
 * `plot(obj, stats, total)`: visualize the specified statistics
@@ -144,11 +144,11 @@ plot(x, stats='loglik', total=TRUE)
 
 
 ##### Parameter Estimation
-This module provides an interface for estimating people and item parameters in the 3PL model with dichtomous responses. Two estimators are available: the maximum likelihood estimator `estimate_mle(u, ...)` and the Bayesian estimator `estimate_bayesian(u, ...)`. To fix values, put the values at the corresponding positions in the `a` (discrimination), `b` (difficulty), `c` (pseudo-guessing), and `t` (ability) arguments, and put `NA` to estimate parameters otherwise. The lower bound of *a* and *c* parameters are 0.0 and the upper bound are controlled by `bound_a` (default=2.0) and `bound_c` (default=0.25). The lower and upper bound of *b* and *t* parameters are controlled by `bound_b` and `bound_t`, default = 3.5. Both estimators iteratively update the parameters until the maximum iterations (`iter=20` by default) or parameter converges (`conv=0.005` by default). When `debug=TRUE`, return additional data for debugging. The `scale` argument controls on which parameter the scale is set (`theta` vs. `b`), and the `scale_mean` and `scale_sd` specify the mean and standard deviation of the scale (0.0 and 1.0 by default).
+This module provides an interface for estimating people and item parameters in the 3PL model with dichotomous responses. Two estimators are available: the maximum likelihood estimator `estimate_mle(u, ...)` and the Bayesian estimator `estimate_bayesian(u, ...)`. To fix values, put the values at the corresponding positions in the `a` (discrimination), `b` (difficulty), `c` (pseudo-guessing), and `t` (ability) arguments, and put `NA` to estimate parameters otherwise. The lower bound of *a* and *c* parameters are 0.0 and the upper bound are controlled by `bound_a` (default=2.0) and `bound_c` (default=0.25). The lower and upper bound of *b* and *t* parameters are controlled by `bound_b` and `bound_t`, default = 3.5. Both estimators iteratively update the parameters until the maximum iterations (`iter=20` by default) or parameter converges (`conv=0.005` by default). When `debug=TRUE`, return additional data for debugging. The `scale` argument controls on which parameter the scale is set (`theta` vs. `b`), and the `scale_mean` and `scale_sd` specify the mean and standard deviation of the scale (0.0 and 1.0 by default).
 
 In addition, the maximum likelihood estimator has the following arguments: 
 
-* `method`: `jmle` to use joint maximum likleihood estimation and `mmle` to use maximum likelihood estimation
+* `method`: `jmle` to use joint maximum likelihood estimation and `mmle` to use maximum likelihood estimation
 * `mmle_mu`, `mmle_sig`: the mean and standard deviation of the marginal distribution of *t* parameters when `method='mmle'`
 
 The Bayesian estimator has the following arguments:
@@ -315,7 +315,7 @@ group_by(y, param) %>%
 
 
 ##### Automated Test Assembly
-Automated test assembly (ATA) uses advanced optimization algorithms to assemble test forms to satisfy stringent objetives and constraints. Objectives in ATA can be relative (e.g., maximize or minimize difficulty) or absoulte (e.g., approach a given test information function). While an ATA problem can be solved by heuristic algorithms [^5][^6], this module implements the mixed integer linear programming (MILP) algorithms [^7]. Compared with heuristic algorithms which are usually fast but cannot guarantee the global optiimality, the MILP can arguably solve large and sophisticated problems more efficiently. This module uses the well-known open-source MILP solver:  [lp_solve](http://lpsolve.sourceforge.net/5.5/).
+Automated test assembly (ATA) uses advanced optimization algorithms to assemble test forms to satisfy stringent objectives and constraints. Objectives in ATA can be relative (e.g., maximize or minimize difficulty) or absolute (e.g., approach a given test information function). While an ATA problem can be solved by heuristic algorithms [^5][^6], this module implements the mixed integer linear programming (MILP) algorithms [^7]. Compared with heuristic algorithms which are usually fast but cannot guarantee the global optimality, the MILP can arguably solve large and sophisticated problems more efficiently. This module uses the well-known open-source MILP solver:  [lp_solve](http://lpsolve.sourceforge.net/5.5/).
 
 [^5]: Stocking, M. L., & Swanson, L. (1998). Optimal design of item banks for computerized adaptive tests. Applied Psychological Measurement, 22, 271-279.
 [^6]: Luecht, R. M. (1998). Computer-assisted test assembly using optimization heuristics. Applied Psychological Measurement, 22, 224-236.
@@ -421,7 +421,7 @@ group_by(x, form) %>% summarise(n=n(), content1=sum(content==1), content2=sum(co
 
 ##### Computerized Adaptive Testing
 
-Computerized adaptive testing (CAT) takes advatange of the tremendous computing powers of modern computers to customize the test forms to match the test takers' demonstrated abilities during the administration. Studeis have shown that CAT could massively improve the testing efficiency and enhance the test security. This module provides a framework for conducting CAT simulation studies with the out-of-box or user-defined selection, estimation, or stopping rules. To change a rule, just pass in the corresponding function in the `cat_sim(true, pool, ...)` function -- e.g., `cat_sim(..., select_rule=new_select_func, estimate_rule=new_estimate_func, stop_rule=new_stop_func)`. When writing a new rule, make sure the function signature is as follows: `function(len, theta, stats, admin, pool, opts)`, where 
+Computerized adaptive testing (CAT) takes advantage of the tremendous computing powers of modern computers to customize the test forms to match the test takers' demonstrated abilities during the administration. Studies have shown that CAT could massively improve the testing efficiency and enhance the test security. This module provides a framework for conducting CAT simulation studies with the out-of-box or user-defined selection, estimation, or stopping rules. To change a rule, just pass in the corresponding function in the `cat_sim(true, pool, ...)` function -- e.g., `cat_sim(..., select_rule=new_select_func, estimate_rule=new_estimate_func, stop_rule=new_stop_func)`. When writing a new rule, make sure the function signature is as follows: `function(len, theta, stats, admin, pool, opts)`, where 
 
 * `len` is the current test length
 * `theta` is the current $\theta\ estimate
@@ -435,13 +435,13 @@ The following rules are provided as the out-of-box rules:
 
 * `cat_select_default` selects the item with the maximum information or the item set with the maximum averaged information. When working with item sets, group items in the same set with the same identifier and pass the identifier variable name to the `select_id` argument. Use the `randomesque` argument to implement the randomesque item exposure control procedure[^8][^9]. 
 
-* `cat_select_ccat` selects items or item sets to approach the content-balancing targets[^9]. Use `ccat_var` to define the content variable, and `ccat_perc` to define the targets in percentage (decimal numbers). Make sure the elements names of the `ccat_perc` align with the values in `ccat_var`. Use `ccat_init_rand` to add randomeness in the selection of the initial content areas. The `select_id` and `randomesque` options are also applicable for this rule.
+* `cat_select_ccat` selects items or item sets to approach the content-balancing targets[^9]. Use `ccat_var` to define the content variable, and `ccat_perc` to define the targets in percentage (decimal numbers). Make sure the elements names of the `ccat_perc` align with the values in `ccat_var`. Use `ccat_init_rand` to add randomness in the selection of the initial content areas. The `select_id` and `randomesque` options are also applicable for this rule.
 
-* `cat_select_shadow` implements the shadow-test CAT item selection algorithm[^10]. Use `shadow_constraints` to define the constraints, which should have four columns: `var` (the constrained variable), `level` (the contrained level in that variable, `NA` for continuous variable), `min` (the lower bound) and `max` (the upper bound). The `select_id` and `randomesque` options are also applicable for this rule.
+* `cat_select_shadow` implements the shadow-test CAT item selection algorithm[^10]. Use `shadow_constraints` to define the constraints, which should have four columns: `var` (the constrained variable), `level` (the constrained level in that variable, `NA` for continuous variable), `min` (the lower bound) and `max` (the upper bound). The `select_id` and `randomesque` options are also applicable for this rule.
 
 * `cat_estimate_default` is a maximum likelihood estimator (MLE) of the $\theta\ parameter.
 
-* `cat_estimate_mle_step` is another maximum likelihood estimator of the $\theta\ parameter, but only increment or decreament the $\theta\ by a `mle_step` for all 1s or 0s respones.
+* `cat_estimate_mle_step` is another maximum likelihood estimator of the $\theta\ parameter, but only increment or decrement the $\theta\ by a `mle_step` for all 1s or 0s responses.
 
 * `cat_estimate_eap` is a expected a posteriori (EAP) estimator of the $\theta\ parameter. Use `eap_mean` and `eap_sd` to define the priors.
 
