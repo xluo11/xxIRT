@@ -25,6 +25,7 @@ mst_sim(x, true, rdp = NULL, ...)
 \code{mst_sim} runs a MST simulation
 }
 \examples{
+\dontrun{
 set.seed(10001)
 pool <- model_3pl()$gendata(1,200)$items
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
@@ -37,5 +38,6 @@ x <- mst_stage_length(x, 1, min=5)
 x <- mst_assemble(x, timeout=10)
 rdp <- list(stage1=0)
 mst_sim(x, 1.0, rdp)
+}
 }
 

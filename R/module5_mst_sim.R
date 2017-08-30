@@ -8,6 +8,7 @@
 #' @importFrom magrittr %>%
 #' @import dplyr
 #' @examples 
+#' \dontrun{
 #' set.seed(10001)
 #' pool <- model_3pl()$gendata(1,200)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
@@ -20,6 +21,7 @@
 #' x <- mst_assemble(x, timeout=10)
 #' rdp <- list(stage1=0)
 #' mst_sim(x, 1.0, rdp)
+#' }
 #' @export
 mst_sim <- function(x, true, rdp=NULL, ...){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))

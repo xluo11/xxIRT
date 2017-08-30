@@ -148,9 +148,9 @@ freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
 x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) \%>\%
   mst_route(c(1, 2, 6), "-") \%>\%
   mst_route(c(1, 3, 4), "-") \%>\%
-  mst_obj(theta= 0, indices=1) \%>\%
-  mst_obj(theta=-1, indices=c(2,4)) \%>\%
-  mst_obj(theta= 1, indices=c(3,5)) \%>\%
+  mst_obj(theta= 0, indices=c(1, 5)) \%>\%
+  mst_obj(theta=-1, indices=c(2, 4)) \%>\%
+  mst_obj(theta= 1, indices=c(3, 6)) \%>\%
   mst_constraint("content", 4, 4, level=1)
 x <- mst_assemble(x, timeout=10)
 group_by(x$items, panel, index) \%>\% summarise(n=sum(content==1))
