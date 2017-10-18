@@ -304,9 +304,10 @@ ata_item_use <- function(x, min=NA, max=NA, items=NULL){
   
   n <- sum(!is.na(min), !is.na(max))
   mat <- matrix(0, nrow=nitems*n, ncol=x$nlp)
-  for(i in items) {
-    ind <- i + (1:x$nforms - 1) * x$nitems
+  for(i in 1:length(items)) {
+    ind <- items[i] + (1:x$nforms - 1) * x$nitems
     mat[(i - 1) * n + 1:n, ind] <- 1
+    dim(mat)
   }
   if(!is.na(min) && is.na(max)){
     dir <- rep(">=", nitems)
@@ -315,7 +316,7 @@ ata_item_use <- function(x, min=NA, max=NA, items=NULL){
     dir <- rep("<=", nitems)
     rhs <- rep(max, nitems)
   } else {
-    dir <- rep(c("<=", ">="), nitems)
+    dir <- rep(c(">=", "<="), nitems)
     rhs <- rep(c(min, max), nitems)
   }
   x <- ata_append(x, mat, dir, rhs)
