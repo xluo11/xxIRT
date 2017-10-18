@@ -3,7 +3,7 @@
 #' @param pool item pool
 #' @param nforms the number of forms
 #' @param len the test length
-#' @param maxselect the maximum selection of each item
+#' @param max_use the maximum use of each item
 #' @details
 #' The \code{ata} object stores LP definitions in \code{obj}, \code{mat}, 
 #' \code{dir}, \code{rhs}, \code{types}, \code{bounds}, \code{max}. 
@@ -16,11 +16,11 @@
 #' library(dplyr)
 #' ## generate a 100-item pool
 #' pool <- model_3pl()$gendata(1, 100)$items
+#' pool$id <- 1:100
 #' pool$content <- sample(1:3, 100, replace=TRUE)
 #' pool$time <- round(rlnorm(100, log(60), .2))
-#' 
 #' ## ex. 1: 6 forms, 10 items, maximize b parameter
-#' x <- ata(pool, 6, len=10, maxselect=1)
+#' x <- ata(pool, 6, len=10, max_use=1)
 #' x <- ata_obj_relative(x, "b", "max")
 #' x <- ata_solve(x)
 #' sapply(x$items, function(x) {
@@ -28,7 +28,7 @@
 #' }) %>% t() %>% round(., 2)
 #' 
 #' ## ex. 2: 4 forms, 10 items, minimize b parameter
-#' x <- ata(pool, 3, len=10, maxselect=1)
+#' x <- ata(pool, 3, len=10, max_use=1)
 #' x <- ata_obj_relative(x, "b", "min", negative=TRUE)
 #' x <- ata_solve(x, as.list=FALSE, timeout=5)
 #' group_by(x$items, form) %>% 
@@ -36,7 +36,7 @@
 #'   round(., 2)
 #'   
 #' ## ex. 3: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
-#' x <- ata(pool, 2, len=10, maxselect=1) %>%
+#' x <- ata(pool, 2, len=10, max_use=1) %>%
 #'      ata_obj_absolute(pool$b, 0 * 10) %>%
 #'      ata_obj_absolute((pool$b - 0)^2, 1 * 10) %>%
 #'      ata_constraint("content", min=3, max=3, level=1) %>%
@@ -48,13 +48,13 @@
 #' }) %>% t() %>% round(., 2)
 #' 
 #' # ex. 4: 2 forms, 10 items, flat TIF over [-1, 1]
-#' x <- ata(pool, 2, len=10, maxselect=1) %>%
+#' x <- ata(pool, 2, len=10, max_use=1) %>%
 #'      ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.05)
 #' x <- ata_solve(x)
 #' plot(x)
 #' }
 #' @export
-ata <- function(pool, nforms=1, len=NULL, maxselect=NULL){
+ata <- function(pool, nforms=1, len=NULL, max_use=NULL){
   # vaalidate item pool
   pool <- as.data.frame(pool, stringsAsFactors=FALSE)
   if(!all(c("a","b","c") %in% colnames(pool))) stop("a, b, or c parameters are not found in the pool.")
@@ -81,8 +81,8 @@ ata <- function(pool, nforms=1, len=NULL, maxselect=NULL){
   if(!is.null(len) && length(len) == 1) x <- ata_constraint(x, 1, min=len, max=len)
   if(!is.null(len) && length(len) == 2) x <- ata_constraint(x, 1, min=len[1], max=len[2])
   if(!is.null(len) && length(len) > 2) stop("invalid length.")
-  # add constraint: maxselect
-  if(!is.null(maxselect)) x <- ata_item_maxselect(x, maxselect)
+  # add constraint: max_use
+  if(!is.null(max_use)) x <- ata_item_use(x, max=max_use)
   
   x
 }
@@ -292,27 +292,35 @@ ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, coll
 
 
 #' @rdname ata
-#' @description \code{ata_item_maxselect} sets the maximum selection for items
+#' @description \code{ata_item_use} sets the minimum and maximum use for items
 #' @param items a vector of item indices
 #' @export
-ata_item_maxselect <- function(x, maxselect, items=NULL){
+ata_item_use <- function(x, min=NA, max=NA, items=NULL){
   if(class(x) != "ata") stop("not an 'ata' object")
+  if(is.na(min) && is.na(max)) stop('min and max are both NA')
   if(is.null(items)) items <- 1:x$nitem 
   if(any(!items %in% 1:x$nitem)) stop("invalid items input.")
   nitems <- length(items)
   
-  mat <- matrix(0, nrow=nitems, ncol=x$nlp)
+  n <- sum(!is.na(min), !is.na(max))
+  mat <- matrix(0, nrow=nitems*n, ncol=x$nlp)
   for(i in items) {
     ind <- i + (1:x$nforms - 1) * x$nitems
-    mat[i, ind] <- 1
+    mat[(i - 1) * n + 1:n, ind] <- 1
   }
-  dir <- rep("<=", nitems)
-  rhs <- rep(maxselect, nitems)
-  
+  if(!is.na(min) && is.na(max)){
+    dir <- rep(">=", nitems)
+    rhs <- rep(min, nitems)
+  } else if(is.na(min) && !is.na(max)){
+    dir <- rep("<=", nitems)
+    rhs <- rep(max, nitems)
+  } else {
+    dir <- rep(c("<=", ">="), nitems)
+    rhs <- rep(c(min, max), nitems)
+  }
   x <- ata_append(x, mat, dir, rhs)
   x
 }
-
 
 #' @rdname ata
 #' @description \code{ata_item_enemy} adds enemy item relationship to LP

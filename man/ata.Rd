@@ -5,7 +5,7 @@
 \alias{ata_constraint}
 \alias{ata_item_enemy}
 \alias{ata_item_fixedvalue}
-\alias{ata_item_maxselect}
+\alias{ata_item_use}
 \alias{ata_obj_absolute}
 \alias{ata_obj_relative}
 \alias{ata_solve}
@@ -14,7 +14,7 @@
 \alias{print.ata}
 \title{Automated Test Assembly (ATA)}
 \usage{
-ata(pool, nforms = 1, len = NULL, maxselect = NULL)
+ata(pool, nforms = 1, len = NULL, max_use = NULL)
 
 \method{print}{ata}(x, ...)
 
@@ -28,7 +28,7 @@ ata_obj_absolute(x, coef, target, forms = NULL, collapse = FALSE)
 ata_constraint(x, coef, min = NA, max = NA, level = NULL, forms = NULL,
   collapse = FALSE)
 
-ata_item_maxselect(x, maxselect, items = NULL)
+ata_item_use(x, min = NA, max = NA, items = NULL)
 
 ata_item_enemy(x, items)
 
@@ -47,7 +47,7 @@ ata_solve_lpsolve(x, ...)
 
 \item{len}{the test length}
 
-\item{maxselect}{the maximum selection of each item}
+\item{max_use}{the maximum use of each item}
 
 \item{x}{the ata object}
 
@@ -94,7 +94,7 @@ ata_solve_lpsolve(x, ...)
 
 \code{ata_constraint} adds a constraint to LP
 
-\code{ata_item_maxselect} sets the maximum selection for items
+\code{ata_item_use} sets the minimum and maximum use for items
 
 \code{ata_item_enemy} adds enemy item relationship to LP
 
@@ -135,11 +135,11 @@ When passing control parameters to the GLPK solver, use the correct parameter na
 library(dplyr)
 ## generate a 100-item pool
 pool <- model_3pl()$gendata(1, 100)$items
+pool$id <- 1:100
 pool$content <- sample(1:3, 100, replace=TRUE)
 pool$time <- round(rlnorm(100, log(60), .2))
-
 ## ex. 1: 6 forms, 10 items, maximize b parameter
-x <- ata(pool, 6, len=10, maxselect=1)
+x <- ata(pool, 6, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "max")
 x <- ata_solve(x)
 sapply(x$items, function(x) {
@@ -147,7 +147,7 @@ sapply(x$items, function(x) {
 }) \%>\% t() \%>\% round(., 2)
 
 ## ex. 2: 4 forms, 10 items, minimize b parameter
-x <- ata(pool, 3, len=10, maxselect=1)
+x <- ata(pool, 3, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "min", negative=TRUE)
 x <- ata_solve(x, as.list=FALSE, timeout=5)
 group_by(x$items, form) \%>\% 
@@ -155,7 +155,7 @@ group_by(x$items, form) \%>\%
   round(., 2)
   
 ## ex. 3: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
-x <- ata(pool, 2, len=10, maxselect=1) \%>\%
+x <- ata(pool, 2, len=10, max_use=1) \%>\%
      ata_obj_absolute(pool$b, 0 * 10) \%>\%
      ata_obj_absolute((pool$b - 0)^2, 1 * 10) \%>\%
      ata_constraint("content", min=3, max=3, level=1) \%>\%
@@ -167,7 +167,7 @@ sapply(x$items, function(x) {
 }) \%>\% t() \%>\% round(., 2)
 
 # ex. 4: 2 forms, 10 items, flat TIF over [-1, 1]
-x <- ata(pool, 2, len=10, maxselect=1) \%>\%
+x <- ata(pool, 2, len=10, max_use=1) \%>\%
      ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.05)
 x <- ata_solve(x)
 plot(x)

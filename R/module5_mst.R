@@ -5,7 +5,7 @@
 #' @param npanel the number of panels
 #' @param method the design method: 'topdown' or 'bottomup'
 #' @param len the module/route length
-#' @param maxselect the maximum selection of items
+#' @param max_use the maximum selection of items
 #' @details
 #' The \code{mst} object contains: item pool (\code{pool}), ATA (\code{assembler}), 
 #' route map (\code{route}), module map (\code{module}), design method (\code{method}), 
@@ -28,7 +28,7 @@
 #' ## ex. 1: 1-2-2 MST, 2 panels, topdown
 #' ## 20 items in total, 10 items in content area 1
 #' ## maximize info. at -1 and 1 for easy and hard routes
-#' x <- mst(pool, "1-2-2", 2, 'topdown', len=20, maxselect=1)
+#' x <- mst(pool, "1-2-2", 2, 'topdown', len=20, max_use=1)
 #' x <- mst_obj(x, theta=-1, indices=1:2)
 #' x <- mst_obj(x, theta=1, indices=3:4)
 #' x <- mst_constraint(x, "content", 10, 10, level=1)
@@ -41,7 +41,7 @@
 #' ## ex. 2: 1-2-3 MST, 2 panels, bottomup, 
 #' ## 10 items in total and 4 items in content area 1 in each module
 #' ## maximize info. at -1, 0 and 1 for easy, medium, and hard modules
-#' x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) %>%
+#' x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, max_use=1) %>%
 #'   mst_route(c(1, 2, 6), "-") %>%
 #'   mst_route(c(1, 3, 4), "-") %>%
 #'   mst_obj(theta= 0, indices=c(1, 5)) %>%
@@ -54,7 +54,7 @@
 #' @importFrom magrittr %>%
 #' @import lpSolveAPI
 #' @export
-mst <- function(pool, design, npanel, method=c('topdown', 'bottomup'), len=NULL, maxselect=NULL){
+mst <- function(pool, design, npanel, method=c('topdown', 'bottomup'), len=NULL, max_use=NULL){
   method <- match.arg(method)
   design <- strsplit(design, split="[-]") %>% unlist() %>% as.integer()
   nstage <- length(design)
@@ -85,8 +85,8 @@ mst <- function(pool, design, npanel, method=c('topdown', 'bottomup'), len=NULL,
   if(!is.null(len) && length(len) == 1) x <- mst_constraint(x, 1, len, len)
   if(!is.null(len) && length(len) == 2) x <- mst_constraint(x, 1, len[1], len[2])
   if(!is.null(len) && length(len) > 2) stop("the length argument is too long.")
-  # constraint: maxselect
-  if(!is.null(maxselect)) x$ata <- ata_item_maxselect(x$ata, maxselect)
+  # constraint: max_use
+  if(!is.null(max_use)) x$ata <- ata_item_use(x$ata, max=max_use)
   # constraint: minimum stage length
   x <- mst_stage_length(x, 1:x$nstage, min=1)
   

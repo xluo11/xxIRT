@@ -293,7 +293,7 @@ cat_select_shadow <- function(len, theta, stats, admin, pool, opts){
     rbind(dplyr::filter_(constraints, is.na(~level)))
   
   # ata
-  x <- ata(x_pool, 1, len=NULL, maxselect=1)
+  x <- ata(x_pool, 1, len=NULL, max_use=1)
   x <- ata_obj_relative(x, x_pool$info, mode="max")
   x <- ata_constraint(x, "len", min=opts$min - len, max=opts$max - len)
   for(i in 1:nrow(constraints))
@@ -401,7 +401,7 @@ plot.cat <- function(x, ...){
 #   
 #   # ata
 #   if(method == "info") {
-#     x <- ata(x_pool, 1, len=NULL, maxselect=1)
+#     x <- ata(x_pool, 1, len=NULL, max_use=1)
 #     x <- ata_obj_relative(x, x_pool$info, "max")
 #     x <- ata_constraint(x, "len", min=opts$max - len, max=opts$max - len)
 #     for(i in 1:nrow(constraints))
@@ -409,7 +409,7 @@ plot.cat <- function(x, ...){
 #     x <- ata_solve(x, as.list=FALSE, verbose="neutral")
 #     x <- list(easy=x$items, hard=x$items)
 #   } else if(method == "diff") {
-#     x <- ata(x_pool, 1, len=NULL, maxselect=1)
+#     x <- ata(x_pool, 1, len=NULL, max_use=1)
 #     x <- ata_obj_absolute(x, x_pool$b, (theta + 1.96 * stats[len, "se"]) * (opts$max - len))
 #     x <- ata_constraint(x, "len", min=opts$max - len, max=opts$max - len)
 #     for(i in 1:nrow(constraints))
@@ -417,7 +417,7 @@ plot.cat <- function(x, ...){
 #     x <- ata_solve(x, as.list=FALSE, verbose="neutral")
 #     x_hard <- x$items
 #     
-#     x <- ata(x_pool, 1, len=NULL, maxselect=1)
+#     x <- ata(x_pool, 1, len=NULL, max_use=1)
 #     x <- ata_obj_absolute(x, x_pool$b, (theta - 1.96 * stats[len, "se"]) * (opts$max - len))
 #     x <- ata_constraint(x, "len", min=opts$max - len, max=opts$max - len)
 #     for(i in 1:nrow(constraints))

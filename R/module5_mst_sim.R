@@ -13,7 +13,7 @@
 #' pool <- model_3pl()$gendata(1,200)$items
 #' pool$content <- sample(1:3, nrow(pool), replace=TRUE)
 #' pool$time <- round(rlnorm(nrow(pool), log(60), .2))
-#' x <- mst(pool, "1-2", 2, 'topdown', len=20, maxselect=1)
+#' x <- mst(pool, "1-2", 2, 'topdown', len=20, max_use=1)
 #' x <- mst_obj(x, theta=-1, indices=1)
 #' x <- mst_obj(x, theta= 1, indices=2)
 #' x <- mst_constraint(x, "content", 10, 10, level=1)

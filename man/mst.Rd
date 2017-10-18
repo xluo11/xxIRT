@@ -15,7 +15,7 @@
 \title{Computerized Multistage Testing (MST)}
 \usage{
 mst(pool, design, npanel, method = c("topdown", "bottomup"), len = NULL,
-  maxselect = NULL)
+  max_use = NULL)
 
 mst_route(x, route, op = c("+", "-"))
 
@@ -49,7 +49,7 @@ mst_get_items(x, panel, stage = NULL, module = NULL, route = NULL)
 
 \item{len}{the module/route length}
 
-\item{maxselect}{the maximum selection of items}
+\item{max_use}{the maximum selection of items}
 
 \item{x}{a MST object}
 
@@ -132,7 +132,7 @@ pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
 ## ex. 1: 1-2-2 MST, 2 panels, topdown
 ## 20 items in total, 10 items in content area 1
 ## maximize info. at -1 and 1 for easy and hard routes
-x <- mst(pool, "1-2-2", 2, 'topdown', len=20, maxselect=1)
+x <- mst(pool, "1-2-2", 2, 'topdown', len=20, max_use=1)
 x <- mst_obj(x, theta=-1, indices=1:2)
 x <- mst_obj(x, theta=1, indices=3:4)
 x <- mst_constraint(x, "content", 10, 10, level=1)
@@ -145,7 +145,7 @@ freq(mst_get_items(x, panel=2, route=4)$content, 1:3)$freq
 ## ex. 2: 1-2-3 MST, 2 panels, bottomup, 
 ## 10 items in total and 4 items in content area 1 in each module
 ## maximize info. at -1, 0 and 1 for easy, medium, and hard modules
-x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) \%>\%
+x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, max_use=1) \%>\%
   mst_route(c(1, 2, 6), "-") \%>\%
   mst_route(c(1, 3, 4), "-") \%>\%
   mst_obj(theta= 0, indices=c(1, 5)) \%>\%

@@ -300,11 +300,11 @@ Automated test assembly (ATA) uses advanced optimization algorithms to assemble 
 [^6]: Luecht, R. M. (1998). Computer-assisted test assembly using optimization heuristics. Applied Psychological Measurement, 22, 224-236.
 [^7]: van der Linden, W. J., & Reese, L. M. (1998). A model for optimal constrained adaptive testing. Applied Psychological Measurement, 22, 259-270.
 
-Call `ata(pool, nform, len, maxselect, debug)` to construct an *ata* object. Use `ata_obj_relative(ata, coef, mode, negative, flatten, forms, collapse)` and `ata_obj_absolute(ata, coef, target, forms, collapse)` functions to add relative and absolute objective functions to the problem respectively. The relative objective function is to maximize (`mode='max'`) or minimize (`mode='min'`) a given property, whereas the absolute objective functions is to minimize the discrepancy between the objective function and `target`. The `coef` argument can be a pool-size numeric vector, a variable name, or a numeric vector of theta values (when length is not equal to the number of items in the pool). When the optimum is expected to be negative, set `negative=TRUE`, and this is imperative to obtain the correct results. If not `NULL`, the `forms` argument specifies on which forms objectives are set. When `collapse=TRUE`, forms are collapsed into one combined form; otherwise, the same objective is set for each form. 
+Call `ata(pool, nform, len, max_use, debug)` to construct an *ata* object. Use `ata_obj_relative(ata, coef, mode, negative, flatten, forms, collapse)` and `ata_obj_absolute(ata, coef, target, forms, collapse)` functions to add relative and absolute objective functions to the problem respectively. The relative objective function is to maximize (`mode='max'`) or minimize (`mode='min'`) a given property, whereas the absolute objective functions is to minimize the discrepancy between the objective function and `target`. The `coef` argument can be a pool-size numeric vector, a variable name, or a numeric vector of theta values (when length is not equal to the number of items in the pool). When the optimum is expected to be negative, set `negative=TRUE`, and this is imperative to obtain the correct results. If not `NULL`, the `forms` argument specifies on which forms objectives are set. When `collapse=TRUE`, forms are collapsed into one combined form; otherwise, the same objective is set for each form. 
 
 Use `ata_constraint(ata, coef, min, max, level, forms, collapse)` to add constraints. The `coef` argument can be a variable name, a constant, or a pool-size numeric vector. When `min=NA` or `max=NA`, the lower or the upper bound of the constraint is not set. When `min==max`, the constraint is set to equal to the value. When `coef` is a categorical variable, use `level` to specify which level is constrained. The `forms` and `collapses` work in the same way as in setting objectives.
 
-Use `ata_item_enemy(ata, items)` to add enemy items which should not be selected into the same form. Use `ata_item_fixedvalue(ata, items, min, max, forms, collapse)` to force the selection or not selection of items. Use `ata_item_maxselect(ata, maxselect, items)` to set the maximum number of selection for items.   
+Use `ata_item_enemy(ata, items)` to add enemy items which should not be selected into the same form. Use `ata_item_fixedvalue(ata, items, min, max, forms, collapse)` to force the selection or not selection of items. Use `ata_item_use(ata, min, max, items)` to set the minimum and maximum number of selection for items.   
 
 Finally, use `ata_solve(ata, as.list, timeout, mip_gap, verbose, ...)` to solve the problem. When `as.list=TRUE`, results are returned in a list, instead of a data frame. The `timeout`, `min_gap`, `verbose` arguments are three important MILP parameters. Additional parameters are taken by `...`. See the documentation of *lpSolveAPI** for more detail. When the problem is successfully solved, the following data are added to the original object:
 
@@ -327,14 +327,14 @@ items <- model_3pl()$gendata(1, n)$items %>%
 Example 1: Assemble 6 parallel forms with 10 items each (use 60% of the pool) to maximize/minimize the *b*-parameters.
 ```{r}
 ### maximize difficulty
-x <- ata(items, 6, len=10, maxselect=1)
+x <- ata(items, 6, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "max")
 x <- ata_solve(x, as.list=F)
 group_by(x$items, form) %>%
   summarise(n=n(), mean=mean(b), sd=sd(b)) %>%
   round(., 2)
 ### minimize difficulty
-x <- ata(items, 6, len=10, maxselect=1)
+x <- ata(items, 6, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "min", negative=T)
 x <- ata_solve(x, as.list=F)
 group_by(x$items, form) %>%
@@ -344,7 +344,7 @@ group_by(x$items, form) %>%
 
 Example 2: Assemble 4 parallel forms with 10 items each to have the mean and sd of *b* parameters equal to 0 and 1.
 ```{r}
-x <- ata(items, 4, len=10, maxselect=1)
+x <- ata(items, 4, len=10, max_use=1)
 x <- ata_obj_absolute(x, items$b, target=0*10)
 x <- ata_obj_absolute(x, items$b^2, target=1*10)
 x <- ata_solve(x, as.list=F)
@@ -355,7 +355,7 @@ group_by(x$items, form) %>%
 
 Example 3: Assemble 2 parallel forms with 10 items each to maximize information over $\theta$=[-1, 1]. Each form has 3 items from content #1, 3 items from content #2, 4 items from content #3, and average response time of 55-65 seconds.
 ```{r}
-x <- ata(items, 2, len=10, maxselect=1) %>%
+x <- ata(items, 2, len=10, max_use=1) %>%
   ata_obj_relative(c(-1, 0, 1), "max") %>%
   ata_constraint("content", min=3, max=3, level=1) %>%
   ata_constraint("content", min=3, max=3, level=2) %>%
@@ -381,7 +381,7 @@ items <- cbind(pool, info) %>% group_by(set_id) %>%
             content1=sum(content==1), content2=sum(content==2), content3=sum(content==3),
             a=mean(a), b=mean(b), c=mean(c))
 # solve ata problem: don't use the 'len' argument to set length constraints!
-x <- ata(items, 2, len=NULL, maxselect=1) %>%
+x <- ata(items, 2, len=NULL, max_use=1) %>%
   ata_obj_relative(coef="info1", mode="max") %>%
   ata_obj_relative(coef="info2", mode="max") %>%
   ata_obj_relative(coef="info3", mode="max") %>%
@@ -479,7 +479,7 @@ Multistage testing (MST) navigates test takers through multiple testing stages a
 
 This module provides an interface for designing, assembling and simulating MSTs. To design a MST, use the following functions:
 
-* `mst(pool, design, npanel, method, len, maxselect)` initiates a *mst* object. `pool` must have columns named *a*, *b*, and *c* to represent item parameters. `design` indicates the MST layout using a hyphen-delimited string (e.g., "1-3-3"). `npanel` is the number of parallel panels to assemble. `method` is the design/assembly method: `topdown` or `bottomup`. `len` is the test/module length. `maxselect` is the maximum selection of an item, which is typically 1.
+* `mst(pool, design, npanel, method, len, max_use)` initiates a *mst* object. `pool` must have columns named *a*, *b*, and *c* to represent item parameters. `design` indicates the MST layout using a hyphen-delimited string (e.g., "1-3-3"). `npanel` is the number of parallel panels to assemble. `method` is the design/assembly method: `topdown` or `bottomup`. `len` is the test/module length. `max_use` is the maximum use of an item, which is typically 1.
 * `mst_route(mst, route, op)` adds or removes routes from the MST. 
 * `mst_obj(mst, theta, indices, target, ...)` adds the TIF objectives. When `target` is set, it means to approach the target. Otherwise, maximum TIF at given $\theta$s.
 * `mst_constraint(mst, coef, min, max, level, indices)` adds constraints. When `min` or `max` is `NA`, it means the lower or upper bound is open. When `coef` is a categorical variable, set `level` to indicate which level is constrained. When `coef` is a continuous variable, leave `level` to `NA`.
@@ -505,7 +505,7 @@ pool$time <- round(exp(rnorm(nrow(pool), log(60), .2)))
 
 Example 1: Assemble 2 panels of 1-2-2 MST using the top-down approach. Maximize information at -1 and 1 for easy and hard routes. Each route should have 20 items in total and 10 items in content area 1. Stage 1 should have at least 5 items.
 ```{r}
-x <- mst(pool, "1-2-2", 2, 'topdown', len=20, maxselect=1)
+x <- mst(pool, "1-2-2", 2, 'topdown', len=20, max_use=1)
 x <- mst_obj(x, theta=-1, indices=1:2)
 x <- mst_obj(x, theta=1, indices=3:4)
 x <- mst_constraint(x, "content", 10, 10, level=1)
@@ -519,7 +519,7 @@ for(i in 1:4)
 
 Example 2: Assemble 2 panels of 1-2-3 MST using the bottom-up approach. Remove routes with radical $\theta$ changes. Maximize information at -1.0, 0.0, 1.0 for easy, medium and hard modules. Each module should have 10 items in total and 4 items in content area 1.
 ```{r}
-x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, maxselect=1) %>%
+x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, max_use=1) %>%
   mst_route(c(1, 2, 6), "-") %>%
   mst_route(c(1, 3, 4), "-") %>%
   mst_obj(theta= 0, indices=c(1, 5)) %>%
@@ -535,7 +535,7 @@ group_by(x$items, panel, index) %>%
 
 Example 3: Assemble 2 panels of 1-3-3 MST using the top-down approach. Remove routes with radical $\theta$ changes. Maximize information over [-2, -0.4] for easy routes, [-0.4, 0.4] for medium routes, and [0.4, 2] for hard routes. Each route should have 20 items in total and 8 in content area 1. All E and M modules intersect around -0.4 and M and H modules intersect around 0.4. Information should be at least 5.0 at -0.4 and 0.4 at Stage 1. This may not be the best MST design (probably over-complicated), but a good example to showcase the functionality of this packages with regard to coping with complex MST design.
 ```{r}
-x <- mst(pool, "1-3-3", 2, 'topdown', len=20, maxselect=1)
+x <- mst(pool, "1-3-3", 2, 'topdown', len=20, max_use=1)
 x <- mst_route(x, c(1, 2, 7), "-")
 x <- mst_route(x, c(1, 4, 5), "-")
 x <- mst_obj(x, theta=c(-2, -1, -0.4), indices=c(1, 3))
