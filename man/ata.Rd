@@ -2,23 +2,33 @@
 % Please edit documentation in R/module3_ata.R
 \name{ata}
 \alias{ata}
+\alias{ata}
+\alias{print.ata}
+\alias{plot.ata}
+\alias{ata_append_constraints}
+\alias{ata_form_index}
+\alias{ata_obj_coef}
+\alias{ata_obj_relative}
+\alias{ata_obj_absolute}
 \alias{ata_constraint}
+\alias{ata_item_use}
 \alias{ata_item_enemy}
 \alias{ata_item_fixedvalue}
-\alias{ata_item_use}
-\alias{ata_obj_absolute}
-\alias{ata_obj_relative}
 \alias{ata_solve}
 \alias{ata_solve_lpsolve}
-\alias{plot.ata}
-\alias{print.ata}
 \title{Automated Test Assembly (ATA)}
 \usage{
-ata(pool, nforms = 1, len = NULL, max_use = NULL)
+ata(pool, num_form = 1, len = NULL, max_use = NULL, group = NULL, ...)
 
 \method{print}{ata}(x, ...)
 
 \method{plot}{ata}(x, ...)
+
+ata_append_constraints(x, mat, dir, rhs)
+
+ata_form_index(x, forms, collapse)
+
+ata_obj_coef(x, coef, compensate)
 
 ata_obj_relative(x, coef, mode = c("max", "min"), negative = FALSE,
   flatten = NULL, forms = NULL, collapse = FALSE)
@@ -41,29 +51,39 @@ ata_solve(x, as.list = TRUE, timeout = 10, mip_gap = 0.1,
 ata_solve_lpsolve(x, ...)
 }
 \arguments{
-\item{pool}{item pool}
+\item{pool}{item pool (must include a, b, c parameters), a data.frame}
 
-\item{nforms}{the number of forms}
+\item{num_form}{the number of forms to be assembled}
 
-\item{len}{the test length}
+\item{len}{the length of each form}
 
 \item{max_use}{the maximum use of each item}
 
-\item{x}{the ata object}
+\item{group}{the grouping indices}
 
 \item{...}{further arguments}
 
+\item{x}{the ata object}
+
+\item{mat}{the coefficient matrix}
+
+\item{dir}{direction}
+
+\item{rhs}{right-hand-side value}
+
+\item{forms}{the indices of forms where objectives are added. \code{NULL} for all forms}
+
+\item{collapse}{\code{TRUE} to collapse all forms into one objective function}
+
 \item{coef}{the coefficients of the objective function or the constraint}
+
+\item{compensate}{\code{TRUE} to combine coefficients}
 
 \item{mode}{the optimization mode: 'max' for maximization and 'min' for minimization}
 
 \item{negative}{\code{TRUE} when the expected value of the objective function is negative}
 
 \item{flatten}{the flatten parameter to make the objective function flat}
-
-\item{forms}{the indices of forms where objectives are added. \code{NULL} for all forms}
-
-\item{collapse}{\code{TRUE} to collapse all forms into one objective function}
 
 \item{target}{the target of the objective function}
 
@@ -86,7 +106,15 @@ ata_solve_lpsolve(x, ...)
 \item{warning}{\code{TRUE} to output warning message when LP is not solved}
 }
 \description{
+Automated Test Assembly (ATA)
+
 \code{ata} creates an \code{ata} object
+
+\code{ata_append_constraints} appends constraint definitions to the ata object
+
+\code{ata_form_index} converts input forms into actual form indices in LP
+
+\code{ata_obj_coef} processes input coefficients of the objective functions
 
 \code{ata_obj_relative} adds relative (maximize/minimize) objectives to LP
 
@@ -100,7 +128,7 @@ ata_solve_lpsolve(x, ...)
 
 \code{ata_item_fixedvalue} sets a fixed value range for items
 
-\code{ata_solve} solves the LP
+\code{ata_solve} solves the LP object
 
 \code{ata_solve_lpsolve} solves the LP using LpSolve
 }
@@ -110,67 +138,69 @@ The \code{ata} object stores LP definitions in \code{obj}, \code{mat},
 When calling \code{ata_solve}, it converts these definitions to the 
 real LP object. If solved successfully, two results are added to the object:
 \code{result} (a matrix of binary selection results) and \code{items} (a list 
-or data frame of selected items).\cr
+or data frame of selected items).
 
 To maximize the LP, it is to maximize y while subject to sum(x) - y >= 0 and <= F (flatten parameter).
 To minimize the LP, it is to minimize y while subject to sum(x) - y <= 0 and >= F.
 By default, y is non-negative. When \code{negative=TRUE}, y is set to be negative. \cr 
 When \code{coef} is a pool-size or form-size numeric vector, coefficients are used directly.
 When \code{coef} is a variable name, variable values are used as coefficients.
-When \code{coef} is a numeric vector unequal to pool size, information at those points are used as coefficients.\cr
+When \code{coef} is a numeric vector unequal to pool size, information at those points are used as coefficients.
 
-\code{ata_obj_absolute} is to minimize y while subject to sum(x) + y >= T and sum(x) - y <= T. \cr
+\code{ata_obj_absolute} is to minimize y while subject to sum(x) + y >= T and sum(x) - y <= T.
 
 For \code{ata_constraint}, set \code{coef} to a variable name and \code{level} a level 
 of that variable to add a categorical constraint. Set \code{coef} to a variable name and
 leave \code{level} to default value (\code{NULL} or \code{NA}) to add a quantitative constraint. 
-Set \code{coef} to a constant or a vector to add a constraint directly.\cr
-
-In \code{ata_solve}, additional control parameters will be passed into solvers.
-When passing control parameters to the GLPK solver, use the correct parameter name
-(see \code{?glpkAPI::glpkConstants}).
+Set \code{coef} to a constant or a vector to add a constraint directly.
 }
 \examples{
 \dontrun{
-library(dplyr)
 ## generate a 100-item pool
-pool <- model_3pl()$gendata(1, 100)$items
-pool$id <- 1:100
-pool$content <- sample(1:3, 100, replace=TRUE)
-pool$time <- round(rlnorm(100, log(60), .2))
+nitems <- 100
+pool <- with(model_3pl_gendata(1, nitems), data.frame(id=1:nitems, a=a, b=b, c=c))
+pool$id <- 1:nitems
+pool$content <- sample(1:3, nitems, replace=TRUE)
+pool$time <- round(rlnorm(nitems, log(60), .2))
+pool$group <- sort(sample(1:round(nitems/3), nitems, replace=TRUE))
+
 ## ex. 1: 6 forms, 10 items, maximize b parameter
 x <- ata(pool, 6, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "max")
-x <- ata_solve(x)
-sapply(x$items, function(x) {
-  c(mean=mean(x$b), sd=sd(x$b), min=min(x$b), max=max(x$b))
-}) \%>\% t() \%>\% round(., 2)
+x <- ata_solve(x, timeout=5)
+sapply(x$items, function(x) summary(x$b))
 
-## ex. 2: 4 forms, 10 items, minimize b parameter
+## ex. 2: 3 forms, 10 items, minimize b parameter
 x <- ata(pool, 3, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "min", negative=TRUE)
 x <- ata_solve(x, as.list=FALSE, timeout=5)
-group_by(x$items, form) \%>\% 
-  summarise(mean=mean(b), sd=sd(b), min=min(b), max=max(b)) \%>\%
-  round(., 2)
+aggregate(x$items$b, by=list(form=x$items$form), summary)
   
 ## ex. 3: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
-x <- ata(pool, 2, len=10, max_use=1) \%>\%
-     ata_obj_absolute(pool$b, 0 * 10) \%>\%
-     ata_obj_absolute((pool$b - 0)^2, 1 * 10) \%>\%
-     ata_constraint("content", min=3, max=3, level=1) \%>\%
-     ata_constraint("content", min=3, max=3, level=2) \%>\%
-     ata_constraint("content", min=4, max=4, level=3)
-x <- ata_solve(x, verbose="normal", timeout=5)
-sapply(x$items, function(x) {
-  c(mean=mean(x$b), sd=sd(x$b))
-}) \%>\% t() \%>\% round(., 2)
+x <- ata(pool, 2, len=10, max_use=1)
+x <- ata_obj_absolute(x, pool$b, 0 * 10)
+x <- ata_obj_absolute(x, (pool$b - 0)^2, 1 * 10)
+x <- ata_constraint(x, "content", min=3, max=3, level=1)
+x <- ata_constraint(x, "content", min=3, max=3, level=2)
+x <- ata_constraint(x, "content", min=4, max=4, level=3)
+x <- ata_solve(x, timeout=5)
+sapply(x$items, function(x) c(mean=mean(x$b), sd=sd(x$b)))
 
-# ex. 4: 2 forms, 10 items, flat TIF over [-1, 1]
-x <- ata(pool, 2, len=10, max_use=1) \%>\%
-     ata_obj_relative(seq(-1, 1, .5), "max", flatten=0.05)
+## ex. 4: same with ex. 3, but group-based
+x <- ata(pool, 2, len=10, max_use=1, group="group")
+x <- ata_obj_absolute(x, pool$b, 0 * 10)
+x <- ata_obj_absolute(x, (pool$b - 0)^2, 1 * 10)
+x <- ata_constraint(x, "content", min=3, max=3, level=1)
+x <- ata_constraint(x, "content", min=3, max=3, level=2)
+x <- ata_constraint(x, "content", min=4, max=4, level=3)
+x <- ata_solve(x, timeout=5)
+sapply(x$items, function(x) c(mean=mean(x$b), sd=sd(x$b), 
+       n_items=length(unique(x$id)), n_groups=length(unique(x$group))))
+
+# ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
+x <- ata(pool, 2, len=10, max_use=1)
+x <- ata_obj_relative(x, seq(-1, 1, .5), "max", flatten=0.05)
 x <- ata_solve(x)
 plot(x)
 }
 }
-

@@ -2,42 +2,53 @@
 % Please edit documentation in R/module5_mst_sim.R
 \name{mst_sim}
 \alias{mst_sim}
-\alias{plot.mst.sim}
-\alias{print.mst.sim}
-\title{MST Simulation}
+\alias{mst_sim}
+\alias{print.mst_sim}
+\alias{plot.mst_sim}
+\title{Simulation of Multistage Testing}
 \usage{
 mst_sim(x, true, rdp = NULL, ...)
 
-\method{print}{mst.sim}(x, ...)
+\method{print}{mst_sim}(x, ...)
 
-\method{plot}{mst.sim}(x, ...)
+\method{plot}{mst_sim}(x, ...)
 }
 \arguments{
 \item{x}{the assembled MST}
 
-\item{true}{the true theta parameter}
+\item{true}{the true theta parameter (numeric)}
 
-\item{rdp}{a list of routing decision points}
+\item{rdp}{routing decision points (list)}
 
 \item{...}{additional option/control parameters}
 }
 \description{
-\code{mst_sim} runs a MST simulation
+Simulation of Multistage Testing
+
+\code{mst_sim} simulates a MST administration
 }
 \examples{
 \dontrun{
-set.seed(10001)
-pool <- model_3pl()$gendata(1,200)$items
+## assemble a MST
+nitems <- 200
+pool <- with(model_3pl_gendata(1, nitems), data.frame(a=a, b=b, c=c))
 pool$content <- sample(1:3, nrow(pool), replace=TRUE)
-pool$time <- round(rlnorm(nrow(pool), log(60), .2))
-x <- mst(pool, "1-2", 2, 'topdown', len=20, max_use=1)
+x <- mst(pool, "1-2-2", 2, 'topdown', len=20, max_use=1)
 x <- mst_obj(x, theta=-1, indices=1)
-x <- mst_obj(x, theta= 1, indices=2)
-x <- mst_constraint(x, "content", 10, 10, level=1)
-x <- mst_stage_length(x, 1, min=5)
-x <- mst_assemble(x, timeout=10)
-rdp <- list(stage1=0)
-mst_sim(x, 1.0, rdp)
-}
-}
+x <- mst_obj(x, theta=0, indices=2:3)
+x <- mst_obj(x, theta=1, indices=4)
+x <- mst_constraint(x, "content", 6, 6, level=1)
+x <- mst_constraint(x, "content", 6, 6, level=2)
+x <- mst_constraint(x, "content", 8, 8, level=3)
+x <- mst_stage_length(x, 1:2, min=5)
+x <- mst_assemble(x, timeout=3)
 
+## ex. 1: administer the MST using fixed RDP for routing
+x_sim <- mst_sim(x, .5, list(stage1=0, stage2=0))
+plot(x_sim)
+
+## ex. 2: administer the MST using the max. info. for routing
+x_sim <- mst_sim(x, .5)
+plot(x_sim, ylim=c(-5, 5))
+}
+}
