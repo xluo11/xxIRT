@@ -1,6 +1,6 @@
 xxIRT: Item Response Theory and Computer-Based Testing in R
 ================
-July 05, 18
+July 05, 2018
 
 ### Table of Contents
 
