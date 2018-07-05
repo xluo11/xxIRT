@@ -1,7 +1,6 @@
 xxIRT: Item Response Theory and Computer-Based Testing in R
 ================
-Xiao Luo
-05 July 2018
+July 05, 18
 
 ### Table of Contents
 
@@ -258,9 +257,9 @@ Automated test assembly (ATA) applies advanced optimization algorithms to assemb
 
 The following ATA functions are available:
 
--   `ata <- function(pool, num_form, len, max_use, group, ...)`: Create an ATA job. Use `len` and `max_use` to conveniently set test length constraint and the maximum item usage constraint. Use `group` (a string to refer to a variable in the item pool or a numeric vector of group coding) to group item belonging to the same sets.
+-   `ata(pool, num_form, len, max_use, group, ...)`: Create an ATA job. Use `len` and `max_use` to conveniently set test length constraint and the maximum item usage constraint. Use `group` (a string to refer to a variable in the item pool or a numeric vector of group coding) to group item belonging to the same sets.
 -   `ata_obj_relative(x, coef, mode, negative, flatten, forms, collapse)`: Add a relative objective function to the ATA job. Use `mode` to indicate whether to maximize (`mode="max"`) or minimize (`mode="min"`) the objective functions. `coef` is the coefficients in the objective functions, which can be a variable of the item pool or a pool-long numeric vector. When being a numeric vector unequal to the number of items in the pool, it is interpreted as *θ* points at which the information is optimized. Use `negative=TRUE` to indicate that the value of the objective function is expected to be negative. Use `forms` to indicate onto which forms objective functions are set (*NULL* for all forms). Use `collapse=TRUE` to collapse objective functions on different forms into one objective function. Tune the `flatten` argument if a flat TIF is desired.
--   `ata_obj_absolute <- function(x, coef, target, forms, collapse)`: Add an absolute objective function to the ATA job. Use `target` to set the target values.
+-   `ata_obj_absolute(x, coef, target, forms, collapse)`: Add an absolute objective function to the ATA job. Use `target` to set the target values.
 -   `ata_constraint(x, coef, min, max, level, forms, collapse)`: Add a constraint to the ATA job. `coef` can be either a variable of the item pool, a pool-long numeric vector, or a single value (broadcasted to all items). When `coef` refers to a categorical variable, use `level` to indicate for which level the constraint is set. When `coef` refers to a quantitative variable, leave `level=NULL`.
 -   `ata_item_use(x, min, max, items)`: Set the minimum and maximum usage constraints on items. `items` should be a vector of item indices in the pool.
 -   `ata_item_enemy(x, items)`: Set the enemy relationship constraints on items.
