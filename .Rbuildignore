@@ -4,4 +4,4 @@
 ^README.*$
 ^tests$
 
-
+^change_logs.txt$

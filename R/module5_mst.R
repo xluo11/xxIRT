@@ -22,7 +22,7 @@
 #' for(p in 1:x$num_panel)
 #'   for(r in 1:x$num_route) {
 #'      route <- paste(x$route[r, 1:x$num_stage], collapse='-')
-#'      count <- sum(mst_get_items(x, panel=p, route_index=r)$content==1)
+#'      count <- sum(mst_get_items(x, panel_ix=p, route_ix=r)$content==1)
 #'      cat('panel=', p, ', route=', route, ': ', count, ' items in content area #1\n', sep='')
 #'   }
 #' 
@@ -41,7 +41,7 @@
 #' plot(x, byroute=FALSE)
 #' for(p in 1:x$num_panel)
 #'   for(m in 1:x$num_module){
-#'     count <- sum(mst_get_items(x, panel=p, module=m)$content==2)
+#'     count <- sum(mst_get_items(x, panel_ix=p, module_ix=m)$content==2)
 #'     cat('panel=', p, ', module=', m, ': ', count, ' items in content area #2\n', sep='')
 #'   }
 #'  
@@ -56,7 +56,7 @@
 #' plot(x, byroute=FALSE)
 #' for(p in 1:x$num_panel)
 #'   for(m in 1:x$num_module){
-#'     items <- mst_get_items(x, panel=p, module=m)
+#'     items <- mst_get_items(x, panel_ix=p, module_ix=m)
 #'     cat('panel=', p, ', module=', m, ': ', length(unique(items$id)), ' items from ', 
 #'         length(unique(items$group)), ' groups\n', sep='')
 #'   }
@@ -77,7 +77,7 @@
 #' plot(x, byroute=FALSE)
 #' for(p in 1:x$num_panel)
 #'   for(s in 1:x$num_stage){
-#'     items <- mst_get_items(x, panel=p, stage=s)
+#'     items <- mst_get_items(x, panel_ix=p, stage_ix=s)
 #'     cat('panel=', p, ', stage=', s, ': ', length(unique(items$id)), ' items\n', sep='')
 #'   }
 #' 
@@ -181,8 +181,9 @@ mst_route <- function(x, route, op=c("+", "-")){
   x
 }
 
-#' @rdname mst
+#' @rdname helpers
 #' @description \code{mst_get_indices} maps the input indices to the actual indices
+#' @keywords internal
 mst_get_indices <- function(x, indices){
   if(x$method == 'topdown'){
     if(is.null(indices)) indices <- x$route[, 1:x$num_stage] else indices <- subset(x$route, x$route$index %in% indices)[, 1:x$num_stage]
@@ -197,9 +198,8 @@ mst_get_indices <- function(x, indices){
 #' @param theta a theta point or interval over which the TIF is optimized
 #' @param indices the indices of the route (topdown) or the module (bottomup) where objectives are added
 #' @param target the target values of the TIF objectives. \code{NULL} for maximization
-#' @param flatten the parameter for getting a flat TIF
 #' @export
-mst_obj <- function(x, theta, indices=NULL, target=NULL, flatten=NULL) {
+mst_obj <- function(x, theta, indices=NULL, target=NULL, ...) {
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   indices <- mst_get_indices(x, indices)
   theta <- round(theta, 2)
@@ -208,9 +208,9 @@ mst_obj <- function(x, theta, indices=NULL, target=NULL, flatten=NULL) {
     for(j in 1:nrow(indices)) {
       f <- unlist(indices[j, ]) + (i - 1) * x$num_module
       if(is.null(target) || is.na(target)) {
-        x$ata <- ata_obj_relative(x$ata, theta, mode="max", flatten=flatten, forms=f, collapse=TRUE)
+        x$ata <- ata_obj_relative(x$ata, theta, mode="max", forms=f, collapse=TRUE, ...)
       } else {
-        x$ata <- ata_obj_absolute(x$ata, theta, target=target, forms=f, collapse=TRUE)
+        x$ata <- ata_obj_absolute(x$ata, theta, target=target, forms=f, collapse=TRUE, ...)
       }      
     }
   }
@@ -267,7 +267,7 @@ mst_stage_length <- function(x, stages, min=NA, max=NA){
 #' @param tol tolerance parameter (numeric)
 #' @importFrom stats aggregate
 #' @export
-mst_rdp <- function(x, theta, indices, tol) {
+mst_rdp <- function(x, theta, indices, tol=0) {
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(length(theta) != 1) stop("rdp is not a single theta point")
   if(length(indices) != 2 || abs(indices[1] - indices[2]) != 1) stop("modules are not adjacent") 
@@ -283,17 +283,23 @@ mst_rdp <- function(x, theta, indices, tol) {
 
 #' @rdname mst
 #' @description \code{mst_module_mininfo} sets the minimum information for modules
-#' @param mininfo the minimum information threshold
+#' @param thetas theta points, a vector
 #' @importFrom stats aggregate
 #' @export
-mst_module_mininfo <- function(x, theta, mininfo, indices) {
+mst_module_info <- function(x, thetas, min, max, indices) {
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(any(indices < 1 | indices > x$num_module)) stop("invalid module index")
-  if(length(theta) != 1) stop("set min info at one theta point at each time")
-
-  coef <- round(aggregate(model_3pl_info(theta, x$pool$a, x$pool$b, x$pool$c, D=x$opts$D)[1,], by=list(gorup=x$ata$group), sum)[, 2], 2)
-  for(i in 1:x$num_panel)
-    x$ata <- ata_constraint(x$ata, coef, min=mininfo, forms=indices + (i - 1) * x$num_module)
+  if(length(min) == 1) min <- rep(min, length(thetas))
+  if(length(max) == 1) max <- rep(max, length(thetas))
+  if(length(min) != length(thetas) || length(max) != length(thetas)) stop('min/max has a different length from thetas')
+  
+  for(i in 1:length(thetas)){
+    info <- with(x$pool, model_3pl_info(thetas[i], a, b, c, D=x$opts$D))[1, ]
+    coef <- aggregate(info, by=list(group=x$ata$group), sum)[, 2]
+    coef <- round(coef, 2)
+    for(j in 1:x$num_panel)
+      x$ata <- ata_constraint(x$ata, coef, min=min[i], max=max[i], forms=indices+(j-1)*x$num_module)
+  }
 
   x
 }
@@ -304,6 +310,9 @@ mst_module_mininfo <- function(x, theta, mininfo, indices) {
 #' @export
 mst_assemble <- function(x, ...){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
+  opts <- list(...)
+  
+  solver <- ifelse(is.null(opts$solver), 'lpsolve', opts$solver)
   x$ata <- ata_solve(x$ata, as.list=FALSE, ...)
   
   if(!is.null(x$ata$items)) {
@@ -314,6 +323,7 @@ mst_assemble <- function(x, ...){
     items$form <- NULL
     x$items <- items
   }
+  
   x
 }
 
@@ -325,17 +335,21 @@ print.mst <- function(x, ...){
   cat("The MST design has", x$num_stage, "stages,", x$num_module, "modules, and", x$num_route, "routes:\n")
   cat("route map:\n")
   print(x$route)
-  cat("\nAssembled forms:\n")
-  items <- x$items
-  if(!is.data.frame(x$items)) items <- Reduce(rbind, items, NULL)
-  if(nrow(items) > 10){
-    print(items[1:5, ])
-    cat("...\n")
-    print(items[-4:0 + nrow(items),])
+  if(!is.null(x$items)){
+    cat("\nAssembled forms:\n")
+    items <- x$items
+    if(!is.data.frame(x$items)) items <- Reduce(rbind, items, NULL)
+    if(nrow(items) > 10){
+      print(items[1:5, ])
+      cat("...\n")
+      print(items[-4:0 + nrow(items),])
+    } else {
+      print(items)
+    }
+    cat("See more results in 'items'.")
   } else {
-    print(items)
+    cat("MST hasn't been assembled yet.")
   }
-  cat("See more results in 'items'.")
   invisible(x)
 }
 
@@ -357,10 +371,9 @@ plot.mst <- function(x, ...){
   data <- NULL
   if(opts$byroute) {
     for(i in 1:x$num_route){
-      r <- subset(x$route, x$route$index == i)[1:x$num_stage]
       for(j in 1:x$num_panel){
-        items <- subset(x$items, (x$items$module %in% r) & (x$items$panel == j))
-        info <- rowSums(model_3pl_info(opts$theta, items$a, items$b, items$c, D=x$opts$D))
+        items <- mst_get_items(x, panel_ix=j, route_ix=i)
+        info <- with(items, rowSums(model_3pl_info(opts$theta, a, b, c, D=x$opts$D)))
         data <- rbind(data, data.frame(t=opts$theta, info=info, panel=j, route=i))
       }
     }
@@ -374,8 +387,8 @@ plot.mst <- function(x, ...){
   } else {
     for(i in 1:x$num_panel){
       for(j in 1:x$num_module){
-        items <- subset(x$items, x$items$panel == i & x$items$module == j)
-        info <- rowSums(model_3pl_info(opts$theta, items$a, items$b, items$c, D=x$opts$D))
+        items <- mst_get_items(x, panel_ix=i, module_ix=j)
+        info <- with(items, rowSums(model_3pl_info(opts$theta, a, b, c, D=x$opts$D)))
         data <- rbind(data, data.frame(t=opts$theta, info=info, panel=items$panel[1], stage=items$stage[1], module=items$module[1]))
       }
     }
@@ -395,26 +408,22 @@ plot.mst <- function(x, ...){
 
 #' @rdname mst
 #' @description \code{mst_get_items} extracts items from the assembly results
-#' @param panel the panel indices (numeric vector)
-#' @param stage the stage indices (numeric vector)
-#' @param module the module indices (numeric vector)
-#' @param route_index the route indices (integer)
+#' @param panel_ix the panel index, an int vector
+#' @param stage_ix the stage index, an int vector
+#' @param module_ix the module index, an int vector
+#' @param route_ix the route index, an integer
 #' @export
-mst_get_items <- function(x, panel=NULL, stage=NULL, module=NULL, route=NULL, route_index=NULL){
+mst_get_items <- function(x, panel_ix=NULL, stage_ix=NULL, module_ix=NULL, route_ix=NULL){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(is.null(x$items)) stop('the mst has not been assembled yet.')
-  
-  input <- list(p=panel, s=stage, m=module, r=route, r_ix=route_index)
-  if(!is.null(panel))
-    items <- subset(x$items, x$items$panel %in% input$p)
-  if(!is.null(stage))
-    items <- subset(items, items$stage %in% input$s)
-  if(!is.null(module))
-    items <- subset(items, items$module %in% input$m)
-  if(!is.null(route))
-    items <- subset(items, items$module %in% input$r)
-  if(!is.null(route_index))
-    items <- subset(items, items$module %in% unlist(x$route[x$route$index == 1, 1:x$num_stage]))
-  
+  items <- x$items
+  if(!is.null(panel_ix))
+    items <- subset(items, items$panel %in% panel_ix)
+  if(!is.null(stage_ix))
+    items <- subset(items, items$stage %in% stage_ix)
+  if(!is.null(module_ix))
+    items <- subset(items, items$module %in% module_ix)
+  if(!is.null(route_ix))
+    items <- subset(items, items$module %in% unlist(x$route[x$route$index == route_ix, 1:x$num_stage]))
   items
 }

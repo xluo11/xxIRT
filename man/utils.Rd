@@ -4,20 +4,11 @@
 \alias{utils}
 \alias{rmse}
 \alias{freq}
-\alias{hermite_gauss}
-\alias{evaluate_3pl_estimation}
-\alias{evaluate_gpcm_estimation}
 \title{Utility functions}
 \usage{
 rmse(x, y)
 
 freq(x, values = NULL)
-
-hermite_gauss(num_quad = 20)
-
-evaluate_3pl_estimation(data_tru, data_est)
-
-evaluate_gpcm_estimation(data_tru, data_est)
 }
 \arguments{
 \item{x}{a vector/matrix of numeric values}
@@ -25,12 +16,6 @@ evaluate_gpcm_estimation(data_tru, data_est)
 \item{y}{a vector/matrix of numeric values}
 
 \item{values}{a vector of valid values, \code{NULL} for all values}
-
-\item{num_quad}{the number of quadrature points}
-
-\item{data_tru}{a list of true parameters}
-
-\item{data_est}{a list of estimated parameters}
 }
 \description{
 Utility functions
@@ -38,10 +23,6 @@ Utility functions
 \code{rmse} computes the root mean squared error of two numeric vectors/matrices
 
 \code{freq} computes the frequency and percentage of given values
-
-\code{evaluate_3pl_estimation} evaluates estimation results against true values
-
-\code{evaluate_gpcm_estimation} evaluates estimation results against true values
 }
 \examples{
 rmse(1 + rnorm(100), 2 + rnorm(100))

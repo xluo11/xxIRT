@@ -41,7 +41,7 @@ x <- mst_constraint(x, "content", 6, 6, level=1)
 x <- mst_constraint(x, "content", 6, 6, level=2)
 x <- mst_constraint(x, "content", 8, 8, level=3)
 x <- mst_stage_length(x, 1:2, min=5)
-x <- mst_assemble(x, timeout=3)
+x <- mst_assemble(x)
 
 ## ex. 1: administer the MST using fixed RDP for routing
 x_sim <- mst_sim(x, .5, list(stage1=0, stage2=0))

@@ -37,8 +37,9 @@ freq <- function(x, values=NULL){
 }
 
 
-#' @rdname utils
+#' @rdname helpers
 #' @param num_quad the number of quadrature points
+#' @keywords internal
 hermite_gauss <- function(num_quad=20){
   if(num_quad == 20){
     quad_t <- c(-5.38748089001123,-4.60368244955074,-3.94476404011562,-3.34785456738321,-2.78880605842813,-2.25497400208927,-1.73853771211658,-1.23407621539532,-0.737473728545394,-0.245340708300901,0.245340708300901,0.737473728545394,1.23407621539532,1.73853771211658,2.25497400208927,2.78880605842813,3.34785456738321,3.94476404011562,4.60368244955074,5.38748089001123)
@@ -50,56 +51,5 @@ hermite_gauss <- function(num_quad=20){
     stop('unsupported num_quad: use 20 or 11')
   }
   list(t=quad_t, w=quad_w)
-}
-
-
-#' @rdname utils
-#' @description \code{evaluate_3pl_estimation} evaluates estimation results against true values
-#' @param data_tru a list of true parameters
-#' @param data_est a list of estimated parameters
-#' @import ggplot2
-#' @importFrom stats cor
-#' @export
-evaluate_3pl_estimation <- function(data_tru, data_est){
-  data <- rbind(data.frame(param='t', tru=data_tru$t, est=data_est$t),
-                data.frame(param='a', tru=data_tru$a, est=data_est$a),
-                data.frame(param='b', tru=data_tru$b, est=data_est$b),
-                data.frame(param='c', tru=data_tru$c, est=data_est$c))
-  g <- ggplot(data, aes_string(x="tru", y="est", color="param")) +
-    geom_point(alpha=.3) + geom_smooth(method='gam', se=FALSE) +
-    facet_wrap(~param, nrow=1, scales='free') +
-    xlab('True Parameter') + ylab('Est. Parameter') + theme_bw()
-  print(g)
-  for(p in unique(data$param)){
-    x <- subset(data, data$param == p)
-    cat('Parameter ', p, ': corr=', round(cor(x$tru, x$est), 2),
-        ', rmse=', round(rmse(x$tru, x$est), 2), '\n', sep='')
-  }
-  invisible(NULL)
-}
-
-
-#' @rdname utils
-#' @description \code{evaluate_gpcm_estimation} evaluates estimation results against true values
-#' @import ggplot2
-#' @importFrom stats cor
-#' @export
-evaluate_gpcm_estimation <- function(data_tru, data_est){
-  num_category <- dim(data_tru$b)[2]
-  data <- rbind(data.frame(param='t', tru=data_tru$t, est=data_est$t),
-                data.frame(param='a', tru=data_tru$a, est=data_est$a))
-  for(i in 2:num_category)
-    data <- rbind(data, data.frame(param=paste('b', i, sep=''), tru=data_tru$b[,i], est=data_est$b[,i]))
-  g <- ggplot(data, aes_string(x="tru", y="est", color="param")) +
-    geom_point(alpha=.3) + geom_smooth(method='gam', se=FALSE) +
-    facet_wrap(~param, scales='free') + 
-    xlab('True Parameter') + ylab('Est. Parameter') + theme_bw()
-  print(g)
-  for(p in unique(data$param)){
-    x <- subset(data, data$param == p)
-    cat('Parameter ', p, ': corr=', round(cor(x$tru, x$est), 2),
-        ', rmse=', round(rmse(x$tru, x$est), 2), '\n', sep='')
-  }
-  invisible(NULL)
 }
 

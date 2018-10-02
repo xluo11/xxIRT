@@ -4,12 +4,11 @@
 \alias{mst}
 \alias{mst}
 \alias{mst_route}
-\alias{mst_get_indices}
 \alias{mst_obj}
 \alias{mst_constraint}
 \alias{mst_stage_length}
 \alias{mst_rdp}
-\alias{mst_module_mininfo}
+\alias{mst_module_info}
 \alias{mst_assemble}
 \alias{print.mst}
 \alias{plot.mst}
@@ -21,18 +20,16 @@ mst(pool, design, num_panel, method = c("topdown", "bottomup"), len = NULL,
 
 mst_route(x, route, op = c("+", "-"))
 
-mst_get_indices(x, indices)
-
-mst_obj(x, theta, indices = NULL, target = NULL, flatten = NULL)
+mst_obj(x, theta, indices = NULL, target = NULL, ...)
 
 mst_constraint(x, coef, min = NA, max = NA, level = NULL,
   indices = NULL)
 
 mst_stage_length(x, stages, min = NA, max = NA)
 
-mst_rdp(x, theta, indices, tol)
+mst_rdp(x, theta, indices, tol = 0)
 
-mst_module_mininfo(x, theta, mininfo, indices)
+mst_module_info(x, thetas, min, max, indices)
 
 mst_assemble(x, ...)
 
@@ -40,8 +37,8 @@ mst_assemble(x, ...)
 
 \method{plot}{mst}(x, ...)
 
-mst_get_items(x, panel = NULL, stage = NULL, module = NULL,
-  route = NULL, route_index = NULL)
+mst_get_items(x, panel_ix = NULL, stage_ix = NULL, module_ix = NULL,
+  route_ix = NULL)
 }
 \arguments{
 \item{pool}{the item pool (data.frame)}
@@ -66,13 +63,11 @@ mst_get_items(x, panel = NULL, stage = NULL, module = NULL,
 
 \item{op}{"+" to add a route and "-" to remove a route}
 
-\item{indices}{the indices of the route (topdown) or the module (bottomup) where objectives are added}
-
 \item{theta}{a theta point or interval over which the TIF is optimized}
 
-\item{target}{the target values of the TIF objectives. \code{NULL} for maximization}
+\item{indices}{the indices of the route (topdown) or the module (bottomup) where objectives are added}
 
-\item{flatten}{the parameter for getting a flat TIF}
+\item{target}{the target values of the TIF objectives. \code{NULL} for maximization}
 
 \item{coef}{the coefficients of the constraint}
 
@@ -86,15 +81,15 @@ mst_get_items(x, panel = NULL, stage = NULL, module = NULL,
 
 \item{tol}{tolerance parameter (numeric)}
 
-\item{mininfo}{the minimum information threshold}
+\item{thetas}{theta points, a vector}
 
-\item{panel}{the panel indices (numeric vector)}
+\item{panel_ix}{the panel index, an int vector}
 
-\item{stage}{the stage indices (numeric vector)}
+\item{stage_ix}{the stage index, an int vector}
 
-\item{module}{the module indices (numeric vector)}
+\item{module_ix}{the module index, an int vector}
 
-\item{route_index}{the route indices (integer)}
+\item{route_ix}{the route index, an integer}
 }
 \description{
 Computerized Multistage Testing (MST)
@@ -102,8 +97,6 @@ Computerized Multistage Testing (MST)
 \code{mst} creates a multistage (MST) object for assembly
 
 \code{mst_route} adds/removes a route to/from the MST
-
-\code{mst_get_indices} maps the input indices to the actual indices
 
 \code{mst_obj} adds objective functions to the MST
 
@@ -149,7 +142,7 @@ plot(x, byroute=TRUE)
 for(p in 1:x$num_panel)
   for(r in 1:x$num_route) {
      route <- paste(x$route[r, 1:x$num_stage], collapse='-')
-     count <- sum(mst_get_items(x, panel=p, route_index=r)$content==1)
+     count <- sum(mst_get_items(x, panel_ix=p, route_ix=r)$content==1)
      cat('panel=', p, ', route=', route, ': ', count, ' items in content area #1\\n', sep='')
   }
 
@@ -168,7 +161,7 @@ x <- mst_assemble(x, timeout=10)
 plot(x, byroute=FALSE)
 for(p in 1:x$num_panel)
   for(m in 1:x$num_module){
-    count <- sum(mst_get_items(x, panel=p, module=m)$content==2)
+    count <- sum(mst_get_items(x, panel_ix=p, module_ix=m)$content==2)
     cat('panel=', p, ', module=', m, ': ', count, ' items in content area #2\\n', sep='')
   }
  
@@ -183,7 +176,7 @@ x <- mst_assemble(x, timeout=10)
 plot(x, byroute=FALSE)
 for(p in 1:x$num_panel)
   for(m in 1:x$num_module){
-    items <- mst_get_items(x, panel=p, module=m)
+    items <- mst_get_items(x, panel_ix=p, module_ix=m)
     cat('panel=', p, ', module=', m, ': ', length(unique(items$id)), ' items from ', 
         length(unique(items$group)), ' groups\\n', sep='')
   }
@@ -204,7 +197,7 @@ head(x$items)
 plot(x, byroute=FALSE)
 for(p in 1:x$num_panel)
   for(s in 1:x$num_stage){
-    items <- mst_get_items(x, panel=p, stage=s)
+    items <- mst_get_items(x, panel_ix=p, stage_ix=s)
     cat('panel=', p, ', stage=', s, ': ', length(unique(items$id)), ' items\\n', sep='')
   }
 

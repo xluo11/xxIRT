@@ -52,9 +52,10 @@ model_gpcm_info <- function(t, a, b, d, D=1.702, add_initial=NULL){
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
 #' @description \code{model_gpcm_onehot_response} converts 2-dimensional score
 #' matrix to a 3-dimensional one-hot vector of score category
+#' @keywords internal
 model_gpcm_onehot_response <- function(u, num_category=NULL){
   if(is.null(num_category)) num_category <- length(unique(as.vector(u)))
   rs <- apply(u, c(1, 2), function(x){
@@ -66,8 +67,9 @@ model_gpcm_onehot_response <- function(u, num_category=NULL){
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
 #' @param data the 3-dimensional data
+#' @keywords internal
 model_gpcm_extract_3Ddata <- function(data, u){
   if(length(dim(data)) != 3) stop('data is not 3-dimensional')
   if(length(dim(u)) != 2) stop('response is not 2-dimensional')
@@ -205,8 +207,9 @@ model_gpcm_plot_loglik <- function(u, a, b, d, D=1.702, add_initial=NULL, xaxis=
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
 #' @param prior parameters of the prior distribution
+#' @keywords internal
 model_gpcm_dv_t <- function(u, t, a, b, D, prior=NULL){
   p <- model_gpcm_prob(t, a, b, NULL, D, NULL)
   num_people <- dim(p)[1]
@@ -229,8 +232,9 @@ model_gpcm_dv_t <- function(u, t, a, b, D, prior=NULL){
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
 #' @param post_prob posterior distribution of the theta
+#' @keywords internal
 model_gpcm_dv_a <- function(u, t, a, b, D, prior=NULL, post_prob=NULL){
   if(is.null(post_prob)) post_prob <- 1
   p <- model_gpcm_prob(t, a, b, NULL, D, NULL)
@@ -254,7 +258,8 @@ model_gpcm_dv_a <- function(u, t, a, b, D, prior=NULL, post_prob=NULL){
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
+#' @keywords internal
 model_gpcm_dv_b <- function(u, t, a, b, D, prior=NULL, post_prob=NULL){
   if(is.null(post_prob)) post_prob <- 1
   p <- model_gpcm_prob(t, a, b, NULL, D, NULL)
@@ -273,8 +278,9 @@ model_gpcm_dv_b <- function(u, t, a, b, D, prior=NULL, post_prob=NULL){
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
 #' @importFrom stats rnorm
+#' @keywords internal
 model_gpcm_estimate_inits <- function(u, t, a, b, d, set_initial){
   num_people <- dim(u)[1]
   num_item <- dim(u)[2]
@@ -312,10 +318,11 @@ model_gpcm_estimate_inits <- function(u, t, a, b, d, set_initial){
 }
 
 
-#' @rdname model_gpcm
+#' @rdname helpers
 #' @param param the parameters to be updated
 #' @param h change of parameters in the newton-raphson method
 #' @param is_free TRUE to estimate parameters and FALSE to fix parameters
+#' @keywords internal
 model_gpcm_estimate_nr <- function(param, h, is_free, h_max, bounds){
   h[h > h_max] <- h_max
   h[h < -h_max] <- -h_max
@@ -421,4 +428,29 @@ model_gpcm_jmle <- function(u, t=NA, a=NA, b=NA, d=NA, D=1.702, set_initial=0, n
   }
   
   list(t=t, a=a, b=b)
+}
+
+
+#' @rdname helpers
+#' @description \code{evaluate_gpcm_estimation} evaluates estimation results against true values
+#' @import ggplot2
+#' @importFrom stats cor
+#' @keywords internal
+evaluate_gpcm_estimation <- function(data_tru, data_est){
+  num_category <- dim(data_tru$b)[2]
+  data <- rbind(data.frame(param='t', tru=data_tru$t, est=data_est$t),
+                data.frame(param='a', tru=data_tru$a, est=data_est$a))
+  for(i in 2:num_category)
+    data <- rbind(data, data.frame(param=paste('b', i, sep=''), tru=data_tru$b[,i], est=data_est$b[,i]))
+  g <- ggplot(data, aes_string(x="tru", y="est", color="param")) +
+    geom_point(alpha=.3) + geom_smooth(method='gam', se=FALSE) +
+    facet_wrap(~param, scales='free') + 
+    xlab('True Parameter') + ylab('Est. Parameter') + theme_bw()
+  print(g)
+  for(p in unique(data$param)){
+    x <- subset(data, data$param == p)
+    cat('Parameter ', p, ': corr=', round(cor(x$tru, x$est), 2),
+        ', rmse=', round(rmse(x$tru, x$est), 2), '\n', sep='')
+  }
+  invisible(NULL)
 }

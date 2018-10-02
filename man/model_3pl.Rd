@@ -9,16 +9,10 @@
 \alias{model_3pl_gendata}
 \alias{model_3pl_plot}
 \alias{model_3pl_plot_loglik}
-\alias{model_3pl_dv_t}
-\alias{model_3pl_dv_a}
-\alias{model_3pl_dv_b}
-\alias{model_3pl_dv_c}
-\alias{model_3pl_estimate_inits}
-\alias{model_3pl_estimate_nr}
 \alias{model_3pl_jmle}
-\alias{model_3pl_posterior_dist}
 \alias{model_3pl_mmle}
 \alias{model_3pl_eap_scoring}
+\alias{model_3pl_fitplot}
 \title{3-parameter-logistic model}
 \usage{
 model_3pl_prob(t, a, b, c, D = 1.702)
@@ -39,25 +33,11 @@ model_3pl_plot(a, b, c, D = 1.702, type = c("prob", "info"),
 model_3pl_plot_loglik(u, a, b, c, D = 1.702, xaxis = seq(-4, 4, 0.1),
   show_mle = FALSE)
 
-model_3pl_dv_t(u, t, a, b, c, D, prior = NULL)
-
-model_3pl_dv_a(u, t, a, b, c, D, prior = NULL, post_prob = NULL)
-
-model_3pl_dv_b(u, t, a, b, c, D, prior = NULL, post_prob = NULL)
-
-model_3pl_dv_c(u, t, a, b, c, D, prior = NULL, post_prob = NULL)
-
-model_3pl_estimate_inits(u, t, a, b, c)
-
-model_3pl_estimate_nr(param, h, is_free, h_max, bounds)
-
 model_3pl_jmle(u, t = NA, a = NA, b = NA, c = NA, D = 1.702,
   num_iter = 100, num_nr = 15, h_max = 1, conv = 0.1, decay = 0.95,
   scale = NULL, bounds = list(t = c(-4, 4), a = c(0.1, 2), b = c(-4, 4), c =
   c(0.01, 0.3)), priors = list(t = c(0, 1), a = c(0, 0.2), b = c(0, 1), c =
   c(5, 46)), debug = FALSE)
-
-model_3pl_posterior_dist(u, a, b, c, D, quad_t, quad_w)
 
 model_3pl_mmle(u, a = NA, b = NA, c = NA, D = 1.702, num_iter = 100,
   num_nr = 15, num_quad = c("11", "20"), h_max = 1, conv = 0.1,
@@ -66,6 +46,8 @@ model_3pl_mmle(u, a = NA, b = NA, c = NA, D = 1.702, num_iter = 100,
   c(0, 1), c = c(5, 46)), debug = FALSE)
 
 model_3pl_eap_scoring(u, a, b, c, D)
+
+model_3pl_fitplot(u, t, a, b, c, index = NULL, intervals = seq(-3, 3, 0.5))
 }
 \arguments{
 \item{t}{ability parameter, 1d vector}
@@ -110,21 +92,11 @@ model_3pl_eap_scoring(u, a, b, c, D)
 
 \item{show_mle}{TRUE to print maximum likelihood values}
 
-\item{prior}{parameters of the prior distribution}
-
-\item{post_prob}{posterior distribution of the theta}
-
-\item{h}{change of parameters in the newton-raphson method}
-
-\item{is_free}{TRUE to estimate parameters and FALSE to fix parameters}
-
-\item{h_max}{the maximum value of h in the newton-raphson method}
-
-\item{bounds}{the bounds of parameters, a list}
-
 \item{num_iter}{the maximum number of overall iterations}
 
 \item{num_nr}{the maximum number of the newton-raphson iterations}
+
+\item{h_max}{the maximum value of h in the newton-raphson method}
 
 \item{conv}{the convergence criterion in -2 log-likelihood of model fit}
 
@@ -132,15 +104,17 @@ model_3pl_eap_scoring(u, a, b, c, D)
 
 \item{scale}{the scale of theta parameters}
 
+\item{bounds}{the bounds of parameters, a list}
+
 \item{priors}{the priors of parameters used in the maximum a posteriori estimation}
 
 \item{debug}{TRUE to print debugging information}
 
-\item{quad_t}{values of quadrature points}
-
-\item{quad_w}{weights of quadrature points}
-
 \item{num_quad}{the number of quadrature points}
+
+\item{index}{items whose fit plots are drawn}
+
+\item{intervals}{theta intervals on which fit plots are drawn}
 }
 \value{
 \code{model_3pl_prob} returns a 2d matrix of probabilities, dim = n_people x n_items
@@ -184,6 +158,8 @@ item information function curve (IIFC)
 \code{model_3pl_mmle} estimates parameters using the marginal MLE method
 
 \code{model_3pl_eap_scoring} computes scores using the EAP method
+
+\code{model_3pl_fitplot} draws the fit plots
 }
 \examples{
 model_3pl_prob(c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.702)
@@ -208,4 +184,6 @@ data_tru <- model_3pl_gendata(3000, 50)
 data_est <- model_3pl_mmle(u=data_tru$u, scale=NULL, priors=NULL, debug=TRUE)
 evaluate_3pl_estimation(data_tru, data_est)
 }
+x <- model_3pl_gendata(1000, 20)
+with(x, model_3pl_fitplot(u, t, a, b, c, c(1, 3, 5)))
 }

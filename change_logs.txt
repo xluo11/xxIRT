@@ -1,0 +1,20 @@
+Log v2.1.1
+1. ata: update the objective function setup, expanding from y to y0-y1
+2. misc: add a new modules for some common psychometric computations, such cronbach's alpha
+3. cat & mst: allow for item sets
+4. mst_sim: allow users to set theta priors for estimation
+5. mst: fix errors in mst_get_items
+6. mst: fix errors in mst_print
+7. model_3pl: add a function to draw fit plot
+8. helpers: a document page to hide helper functions
+
+Issues for the next version:
+1. grm
+2. combine dichotomous and polytomous models
+3. dac
+
+
+
+
+
+

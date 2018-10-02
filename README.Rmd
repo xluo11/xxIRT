@@ -62,6 +62,7 @@ The following functions are available for the 3PL model:
 + `model_3pl_gendata(num_people, num_item, ...)`: Generate response data and parameters using the 3PL model. Pass in `t`, `a`, `b`, and `c` to fix parameters. Otherwise, draw these parameters from the normal, log-normal, normal and beta distributions respectively. Use `t_dist`, `a_dist`, `b_dist`, and `c_dist` to set the sampling distribution. Use `missing` argument to add missing response data.
 + `model_3pl_plot(a, b, c, D, type, total, ...)`: Plot the item characteristic curves (ICCs; `type='prob'`) or the item information function curves (IIFCs; `type='info'`). When `total=TRUE`, results are summed over items into test characteristic curve (TCC) or the test information function (TIF) curve. 
 + `model_3pl_plot_loglik(u, a, b, c, D, ...)`: Plot each person's log-likelihood functions. Use `show_mle=TRUE` to print a rough maximum likelihood estimate for each response vector. 
++ `model_3pl_fitplot(u, t, a, b, c, index, intervals)`: Plot the item fit information. Use `index` to select items, and `intervals` to set the intervals for the fit plots.
 
 [^1]: Birnbaum, A. (1968). Some latent trait models. In F.M. Lord & M.R. Novick, (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
 [^2]: Rasch, G. (1966). An item analysis which takes individual differences into account. British journal of mathematical and statistical psychology, 19(1), 49-57.
@@ -92,6 +93,8 @@ model_3pl_plot(x$a, x$b, x$c, type="prob")
 model_3pl_plot(x$a, x$b, x$c, type="info", total=TRUE)
 # log-likelihood
 model_3pl_plot_loglik(x$u, x$a, x$b, x$c)
+# item fit plot
+model_3pl_fitplot(x$u, x$t, x$a, x$b, x$c, c(1, 3, 5))
 ```
 
 
@@ -205,7 +208,7 @@ theta_est <- with(data_tru, model_3pl_eap_scoring(u=u, a=a, b=b, c=c, D=1.702))
 cat('corr=', round(cor(theta_est, data_tru$t), 2), ', rmse=', round(rmse(theta_est, data_tru$t), 2), '\n', sep='')
 ```
 
-The effect of sample sizes and test lengths on estimation
+The effect of sample size and test length on estimation
 ```{r, echo=FALSE, fig.height=3, fig.width=9}
 rs <- NULL
 for(ns in seq(1000, 5000, by=1000)){
@@ -265,18 +268,18 @@ rs %>% group_by(n_miss, param) %>%
 
 
 ##### Automated Test Assembly
-Automated test assembly (ATA) applies advanced optimization algorithms to assemble test forms that optimize the objective functions while satisfying a set of constraints. Objectives in ATA can be relative (e.g., maximize or minimize difficulty) or absolute (e.g., approach a TIF target). While there are many ATA methods in psychometric literature [^5][^6][^7], the mixed integer linear programming (MILP) algorithm is chosen as the implementation method in this package for its versality and flexibility. This module uses the open source solver [lp_solve](http://lpsolve.sourceforge.net/5.5/) and the package [lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI).
+Automated test assembly (ATA) applies advanced optimization algorithms to assemble test forms that optimize the objective functions while satisfying a set of constraints. Objectives in ATA can be relative (e.g., maximize or minimize difficulty) or absolute (e.g., approach a TIF target). While there are many ATA methods in psychometric literature [^5][^6][^7], the mixed integer programming (MIP) algorithm is chosen as the implementation method in this package for its versality and flexibility. This module uses the open source solver [lp_solve](http://lpsolve.sourceforge.net/5.5/) via the package [lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI) and [GNU Linear Programming Kit](https://www.gnu.org/software/glpk/) via the package [glpkAPI](https://CRAN.R-project.org/package=glpkAPI).
 
 The following ATA functions are available:
 
 + `ata(pool, num_form, len, max_use, group, ...)`: Create an ATA job. Use `len` and `max_use` to conveniently set test length constraint and the maximum item usage constraint. Use `group` (a string to refer to a variable in the item pool or a numeric vector of group coding) to group item belonging to the same sets.
-+ `ata_obj_relative(x, coef, mode, negative, flatten, forms, collapse)`: Add a relative objective function to the ATA job. Use `mode` to indicate whether to maximize (`mode="max"`) or minimize (`mode="min"`) the objective functions. `coef` is the coefficients in the objective functions, which can be a variable of the item pool or a pool-long numeric vector. When being a numeric vector unequal to the number of items in the pool, it is interpreted as $\theta$ points at which the information is optimized. Use `negative=TRUE` to indicate that the value of the objective function is expected to be negative. Use `forms` to indicate onto which forms objective functions are set (*NULL* for all forms). Use `collapse=TRUE` to collapse objective functions on different forms into one objective function. Tune the `flatten` argument if a flat TIF is desired.
-+ `ata_obj_absolute(x, coef, target, forms, collapse)`: Add an absolute objective function to the ATA job. Use `target` to set the target values.
-+ `ata_constraint(x, coef, min, max, level, forms, collapse)`: Add a constraint to the ATA job. `coef` can be either a variable of the item pool, a pool-long numeric vector, or a single value (broadcasted to all items). When `coef` refers to a categorical variable, use `level` to indicate for which level the constraint is set. When `coef` refers to a quantitative variable, leave `level=NULL`.
++ `ata_obj_relative(x, coef, mode, negative, forms, ...)`: Add a relative objective function to the ATA job. Use `mode` to indicate whether to maximize (`mode="max"`) or minimize (`mode="min"`) the objective functions. `coef` is the coefficients in the objective functions, which can be a variable of the item pool or a pool-long numeric vector. When being a numeric vector unequal to the number of items in the pool, it is interpreted as $\theta$ points at which the information is optimized. Use `negative=TRUE` to indicate that the value of the objective function is expected to be negative. Use `forms` to indicate onto which forms objective functions are set (*NULL* for all forms). Use `collapse=TRUE` to collapse objective functions on different forms into one objective function. Use `no_cap` to remove the tolerance parameter $\beta$ which is added to model to control the objective overflow. Use `beta_max` to set a limit on the tolerance parameter.
++ `ata_obj_absolute(x, coef, target, forms, ...)`: Add an absolute objective function to the ATA job. Use `target` to set the target values. By default, the objective function minimizes the sum of two tolerance parameters, one for negative and one for positive discrepancy. Use `lb_max` and `ub_max` to set limits on the negative and positive tolerance parameters respectively. Use `equal_band=TRUE` to have equal negative and positive tolerance parameters.
++ `ata_constraint(x, coef, min, max, level, forms, ...)`: Add a constraint to the ATA job. `coef` can be either a variable of the item pool, a pool-long numeric vector, or a single value (broadcasted to all items). When `coef` refers to a categorical variable, use `level` to indicate for which level the constraint is set. When `coef` refers to a quantitative variable, leave `level=NULL`.
 + `ata_item_use(x, min, max, items)`: Set the minimum and maximum usage constraints on items. `items` should be a vector of item indices in the pool.
 + `ata_item_enemy(x, items)`: Set the enemy relationship constraints on items.
-+ `ata_item_fixedvalue(x, items, min, max, forms, collapse)`: Fix the results of decision variables on items
-+ `ata_solve(x, as.list, timeout, ...)`: Solve the ATA job. Use `as.list=TRUE` to return results as list; otherwise, data frame. Use `timeout` to set the time limits of the job in seconds. Pass additional control parameters in `...`. See the documentation of *lp_solve* and *lpSolveAPI* for more details. Once solved, the ATA job is added with four objects: `status` (status code of the solution), `optimum` (final optimal value of the objective function), `result` (a binary matrix of assembly results), and `item` (a list of data frame of assembled test forms).
++ `ata_item_fixedvalue(x, items, min, max, forms)`: Fix the results of decision variables on items
++ `ata_solve(x, solver, as.list, details, time_limit, message, ...)`: Solve the ATA job. Use `solver` to choose the *lp_solve* or the *glpk* solver. Use `as.list=TRUE` to return results as list; otherwise, data frame. Use `time_limit` to set the time limits of the job in seconds. Pass additional control parameters in `...` (See the documentation of *lpSolveAPI* and *glpkAPI* for more details). Use `details=TRUE` and `message=TRUE` to print messages from the master function and the solver. Once solved, the ATA job is added with four objects: `status` (status code of the solution), `optimum` (final optimal value of the objective function), `obj_var` (values of two essential objective variables), `result` (a binary matrix of assembly results), and `item` (a list of data frame of assembled test forms).
 + `plot.ata(x, ...)`: Plot the TIFs of assembled test forms.
 
 [^5]: Stocking, M. L., & Swanson, L. (1998). Optimal design of item banks for computerized adaptive tests. Applied Psychological Measurement, 22, 271-279.
@@ -341,7 +344,7 @@ group_by(x$items, form) %>% summarise(n=n(), b_mean=mean(b), b_sd=sd(b), n_items
 Ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
 ```{r}
 x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_relative(x, seq(-1, 1, by=.5), "max", flatten=0.1)
+x <- ata_obj_relative(x, seq(-1, 1, by=.5), "max")
 x <- ata_solve(x)
 plot(x)
 ```
@@ -376,7 +379,7 @@ The following functions are available in this module:
 [^8]: Weiss, D. J., & Kingsbury, G. (1984). Application of computerized adaptive testing to educational problems. Journal of Educational Measurement, 21, 361-375.
 [^9]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4, 241-261.
 [^10]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
-[^11]: Luo, X., Doyoung, K., & Dickison, P. (2018). Projection-based stopping rules for computerized adaptive testing in licensure testing. Applied Psychological Measurement, 42, 275-290
+[^11]: Luo, X., Kim, D., & Dickison, P. (2018). Projection-based stopping rules for computerized adaptive testing in licensure testing. Applied Psychological Measurement, 42, 275-290
 
 
 ###### Examples
@@ -443,15 +446,15 @@ The following functions are available in this module:
 
 + `mst(pool, design, num_panel, method, len, max_use, group, ...)`: Create a MST assembly job. Use `design` to specify the design/configuration of the MST (e.g., "1-3", "1-2-2", "1-2-3"). Use `num_panel` to simultaneously assembly multiple panels. `method` can be either *topdown*[^12] or *bottomup*[^13]. Use `len` and `max_use` to conveniently set the test length and maximum item usage. Use `group` to group item sets.
 + `mst_route(x, route, op)`: Add or remove a route from the MST
-+ `mst_obj(x, theta, indices, target, flatten)`: Add objective functions to the assembly job. Use `theta` to specify at which $\theta$ points the information is optimized. When `target` is `NULL`, the information is maximized at $\theta$ points; otherwise, the information approaches the given targets. Use `flatten` argument to obtain a flatter TIF by curbing the information difference between $\theta$ points. `indices` sets on which modules or routes the objective functions are added.
++ `mst_obj(x, theta, indices, target, ...)`: Add objective functions to the assembly job. Use `theta` to specify at which $\theta$ points the information is optimized. When `target` is `NULL`, the information is maximized at $\theta$ points; otherwise, the information approaches the given targets. `indices` sets on which modules or routes the objective functions are added.
 + `mst_constraint(x, coef, min, max, level, indices)`: Add constraints to the assembly job. `coef` should be a variable name of pool-long numeric vector. Set `level=NULL` for a quantitative variable and a specific level for a categorical variable.
 + `mst_stage_length(x, stages, min, max)`: Add the length constraints on modules in given stages.
 + `mst_rdp(x, theta, indices, tol)`: Set the routing decision points between two adjacent modules.
-+ `mst_module_mininfo(x, theta, mininfo, indices)`:  Set the minimum information at given $\theta$ points for some modules.
++ `mst_module_info(x, theta, min, max, indices)`:  Set the min and max information requirements at given $\theta$ points for some modules.
 + `mst_assemble(x, ...)`: Assemble MST panels.
-+ `mst_get_items(x, panel, stage, module, route, route_index)`: Extract assembled modules.
++ `mst_get_items(x, panel_ix, stage_ix, module_ix, route_ix)`: Extract assembled modules.
 + `plot.mst(x, ...)`: Plot TIFs of assembled routes (when `byroute=TRUE`) or modules (when `byroute=FALSE`). 
-+ `mst_sim(x, true, rdp, ...)`: Simulate a MST administration. When `rdp=NULL`, test takers are routed to the module with the maximum information; otherwise test takers are routed according to given routing decision points.
++ `mst_sim(x, true, rdp, ...)`: Simulate a MST administration. When `rdp=NULL`, test takers are routed to the module with the maximum information; otherwise test takers are routed according to given routing decision points. Use `t_prior` to pass in the prior distribution for estimation.
 
 [^12]: Luo, X., & Kim, D. (2018). A Top‐Down Approach to Designing the Computerized Adaptive Multistage Test. Journal of Educational Measurement, 55(2), 243-263.
 [^13]: Luecht, R. M., & Nungester, R. J. (1998). Some practical examples of computer‐adaptive sequential testing. Journal of Educational Measurement, 35(3), 229-249.
@@ -485,7 +488,7 @@ Ex. 2: Assemble 2 panels of 1-2-3 MST using the bottom-up approach
 Remove two routes with large theta change: 1-2-6, 1-3-4 
 10 items in total and 4 items in content area 2 in each module
 Maximize info. at -1, 0 and 1 for easy, medium, and hard modules
-```{r, fig.height=6, fig.width=11}
+```{r, fig.height=4, fig.width=9}
 x <- mst(pool, "1-2-3", 2, 'bottomup', len=10, max_use=1)
 x <- mst_route(x, c(1, 2, 6), "-")
 x <- mst_route(x, c(1, 3, 4), "-")

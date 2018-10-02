@@ -68,7 +68,7 @@ a selection rule should return a list of (a) the selected item and (b) the updat
 \description{
 Simulation of Computerized Adaptive Testing (CAT)
 
-\code{cat_sim} uns a simulation of CAT. Use \code{theta} in options to set the starting
+\code{cat_sim} runs a simulation of CAT. Use \code{theta} in options to set the starting
 value of theta estimate.
 
 \code{cat_estimate_mle} is the maximum likelihood estimation rule. Use 

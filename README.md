@@ -1,6 +1,6 @@
 xxIRT: Item Response Theory and Computer-Based Testing in R
 ================
-July 05, 2018
+October 02, 2018
 
 ### Table of Contents
 
@@ -245,7 +245,7 @@ cat('corr=', round(cor(theta_est, data_tru$t), 2), ', rmse=', round(rmse(theta_e
 
     ## corr=0.97, rmse=0.25
 
-The effect of sample sizes and test lengths on estimation ![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
+The effect of sample size and test length on estimation ![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
 The effects of fixed items on estimation (3000 people and 50 items) ![](README_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
@@ -376,8 +376,13 @@ Ex. 5: 2 forms, 10 items, flat TIF over \[-1, 1\]
 
 ``` r
 x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_relative(x, seq(-1, 1, by=.5), "max", flatten=0.1)
+x <- ata_obj_relative(x, seq(-1, 1, by=.5), "max")
 x <- ata_solve(x)
+```
+
+    ## the model is sub-optimal, optimum: 4.848 (4.942, 0.094)
+
+``` r
 plot(x)
 ```
 
@@ -719,7 +724,7 @@ Please send comments, questions and feature requests to the [author](mailto:xluo
 
 [10] van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
 
-[11] Luo, X., Doyoung, K., & Dickison, P. (2018). Projection-based stopping rules for computerized adaptive testing in licensure testing. Applied Psychological Measurement, 42, 275-290
+[11] Luo, X., Kim, D., & Dickison, P. (2018). Projection-based stopping rules for computerized adaptive testing in licensure testing. Applied Psychological Measurement, 42, 275-290
 
 [12] Luo, X., & Kim, D. (2018). A Top‐Down Approach to Designing the Computerized Adaptive Multistage Test. Journal of Educational Measurement, 55(2), 243-263.
 

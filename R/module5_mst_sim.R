@@ -14,7 +14,7 @@
 #' x <- mst_constraint(x, "content", 6, 6, level=2)
 #' x <- mst_constraint(x, "content", 8, 8, level=3)
 #' x <- mst_stage_length(x, 1:2, min=5)
-#' x <- mst_assemble(x, timeout=3)
+#' x <- mst_assemble(x)
 #' 
 #' ## ex. 1: administer the MST using fixed RDP for routing
 #' x_sim <- mst_sim(x, .5, list(stage1=0, stage2=0))
@@ -37,10 +37,11 @@ mst_sim <- function(x, true, rdp=NULL, ...){
   if(class(x) != "mst") stop("not a 'mst' object: ", class(x))
   if(is.null(x$items)) stop("the mst has not been assembled yet")
   opts <- list(...)
-  
+  if(is.null(opts$t_prior)) prior <- NULL else prior <- list(t=opts$t_prior)
+
   # inits
   if(is.null(opts$panel)) opts$panel <- sample(1:x$num_panel, 1)
-  panel_items <- mst_get_items(x, panel=opts$panel)
+  panel_items <- mst_get_items(x, panel_ix=opts$panel)
   theta <- ifelse(is.null(opts$theta), 0, opts$theta)
   admin <- NULL
   stats <- matrix(nrow=x$num_stage, ncol=4, dimnames=list(NULL, c("route", "t", "info", "se")))
@@ -80,7 +81,7 @@ mst_sim <- function(x, true, rdp=NULL, ...){
     admin <- rbind(admin, cbind(items, rsp=rsp))
 
     # estimate ability
-    theta <- model_3pl_jmle(matrix(rep(admin$rsp, each=2), nrow=2), a=admin$a, b=admin$b, c=admin$c, scale=NULL, priors=NULL)$t[1]
+    theta <- model_3pl_jmle(matrix(rep(admin$rsp, each=2), nrow=2), a=admin$a, b=admin$b, c=admin$c, scale=NULL, priors=prior)$t[1]
     info <- sum(model_3pl_info(theta, admin$a, admin$b, admin$c))
     se <- 1 / sqrt(info)
     stats[i, c('route', 't', 'info', 'se')] <- c(next_module, theta, info, se)

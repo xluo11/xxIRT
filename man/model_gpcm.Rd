@@ -4,27 +4,16 @@
 \alias{model_gpcm}
 \alias{model_gpcm_prob}
 \alias{model_gpcm_info}
-\alias{model_gpcm_onehot_response}
-\alias{model_gpcm_extract_3Ddata}
 \alias{model_gpcm_lik}
 \alias{model_gpcm_gendata}
 \alias{model_gpcm_plot}
 \alias{model_gpcm_plot_loglik}
-\alias{model_gpcm_dv_t}
-\alias{model_gpcm_dv_a}
-\alias{model_gpcm_dv_b}
-\alias{model_gpcm_estimate_inits}
-\alias{model_gpcm_estimate_nr}
 \alias{model_gpcm_jmle}
 \title{Generalized partial credit model}
 \usage{
 model_gpcm_prob(t, a, b, d, D = 1.702, add_initial = NULL)
 
 model_gpcm_info(t, a, b, d, D = 1.702, add_initial = NULL)
-
-model_gpcm_onehot_response(u, num_category = NULL)
-
-model_gpcm_extract_3Ddata(data, u)
 
 model_gpcm_lik(u, t, a, b, d, D = 1.702, add_initial = NULL, log = FALSE)
 
@@ -38,16 +27,6 @@ model_gpcm_plot(a, b, d, D = 1.702, add_initial = NULL, type = c("prob",
 
 model_gpcm_plot_loglik(u, a, b, d, D = 1.702, add_initial = NULL,
   xaxis = seq(-6, 6, 0.1), show_mle = FALSE)
-
-model_gpcm_dv_t(u, t, a, b, D, prior = NULL)
-
-model_gpcm_dv_a(u, t, a, b, D, prior = NULL, post_prob = NULL)
-
-model_gpcm_dv_b(u, t, a, b, D, prior = NULL, post_prob = NULL)
-
-model_gpcm_estimate_inits(u, t, a, b, d, set_initial)
-
-model_gpcm_estimate_nr(param, h, is_free, h_max, bounds)
 
 model_gpcm_jmle(u, t = NA, a = NA, b = NA, d = NA, D = 1.702,
   set_initial = 0, num_iter = 100, num_nr = 15, h_max = 1, conv = 0.1,
@@ -70,15 +49,13 @@ model_gpcm_jmle(u, t = NA, a = NA, b = NA, d = NA, D = 1.702,
 
 \item{u}{the observed scores (starting from 0), 2d matrix}
 
-\item{num_category}{the number of score categories}
-
-\item{data}{the 3-dimensional data}
-
 \item{log}{TRUE to return log-likelihood}
 
 \item{num_people}{the number of people to be generated}
 
 \item{num_item}{the number of items to be generated}
+
+\item{num_category}{the number of score categories}
 
 \item{sort_b}{TRUE to sort b parameters of each item}
 
@@ -102,29 +79,19 @@ model_gpcm_jmle(u, t = NA, a = NA, b = NA, d = NA, D = 1.702,
 
 \item{show_mle}{TRUE to print maximum likelihood values}
 
-\item{prior}{parameters of the prior distribution}
-
-\item{post_prob}{posterior distribution of the theta}
-
-\item{param}{the parameters to be updated}
-
-\item{h}{change of parameters in the newton-raphson method}
-
-\item{is_free}{TRUE to estimate parameters and FALSE to fix parameters}
-
-\item{h_max}{the maximum value of h in the newton-raphson method}
-
-\item{bounds}{the bounds of parameters, a list}
-
 \item{num_iter}{the maximum number of overall iterations}
 
 \item{num_nr}{the maximum number of the newton-raphson iterations}
+
+\item{h_max}{the maximum value of h in the newton-raphson method}
 
 \item{conv}{the convergence criterion in -2 log-likelihood of model fit}
 
 \item{decay}{the epoch decay parameter}
 
 \item{scale}{the scale of theta parameters}
+
+\item{bounds}{the bounds of parameters, a list}
 
 \item{priors}{the priors of parameters used in the maximum a posteriori estimation}
 
@@ -143,9 +110,6 @@ Generalized partial credit model
 \code{model_gpcm_prob} computes the probability of all score categories
 
 \code{model_gpcm_info} computes the informations of all score categories
-
-\code{model_gpcm_onehot_response} converts 2-dimensional score
-matrix to a 3-dimensional one-hot vector of score category
 
 \code{model_gpcm_lik} computes the (log-)likelihood of the responses
 

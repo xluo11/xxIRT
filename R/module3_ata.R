@@ -14,14 +14,14 @@
 #' x <- ata(pool, 6, len=10, max_use=1)
 #' x <- ata_obj_relative(x, "b", "max")
 #' x <- ata_solve(x, timeout=5)
-#' sapply(x$items, function(x) summary(x$b))
+#' sapply(x$items, function(x) c(mean=mean(x$b), std=sd(x$b)))
 #' 
 #' ## ex. 2: 3 forms, 10 items, minimize b parameter
 #' x <- ata(pool, 3, len=10, max_use=1)
 #' x <- ata_obj_relative(x, "b", "min", negative=TRUE)
 #' x <- ata_solve(x, as.list=FALSE, timeout=5)
-#' aggregate(x$items$b, by=list(form=x$items$form), summary)
-#'   
+#' with(x$items, aggregate(b, by=list(form=form), mean))
+#'
 #' ## ex. 3: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
 #' x <- ata(pool, 2, len=10, max_use=1)
 #' x <- ata_obj_absolute(x, pool$b, 0 * 10)
@@ -45,7 +45,7 @@
 #' 
 #' # ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
 #' x <- ata(pool, 2, len=10, max_use=1)
-#' x <- ata_obj_relative(x, seq(-1, 1, .5), "max", flatten=0.05)
+#' x <- ata_obj_relative(x, seq(-1, 1, .5), "max")
 #' x <- ata_solve(x)
 #' plot(x)
 #' }
@@ -57,32 +57,54 @@ NULL
 #' @param num_form the number of forms to be assembled
 #' @param len the length of each form
 #' @param max_use the maximum use of each item
-#' @param group the grouping indices
+#' @param ... options, e.g. group, common_items, overlap_items
 #' @details
-#' The \code{ata} object stores LP definitions in \code{obj}, \code{mat}, 
-#' \code{dir}, \code{rhs}, \code{types}, \code{bounds}, \code{max}. 
-#' When calling \code{ata_solve}, it converts these definitions to the 
-#' real LP object. If solved successfully, two results are added to the object:
-#' \code{result} (a matrix of binary selection results) and \code{items} (a list 
-#' or data frame of selected items).
+#' The \code{ata} object stores the definition of a LP model. \code{ata_solve} 
+#' converts definitions to the real LP object and attempts to solve it. When
+#' successfully solved, \code{result} (a matrix of binary values) and \code{items}
+#' (a list or data.frame of items) are added to the \code{ata} object.
 #' @export
-ata <- function(pool, num_form=1, len=NULL, max_use=NULL, group=NULL, ...){
+ata <- function(pool, num_form=1, len=NULL, max_use=NULL, ...){
   if(!is.data.frame(pool)) pool <- as.data.frame(pool, stringsAsFactors=FALSE)
-  if(!all(c("a","b","c") %in% colnames(pool))) stop("a, b, or c parameters are not found in the pool")
+  if(!'b' %in% colnames(pool)) stop('b parameters are not found in the pool')
+  if(!'a' %in% colnames(pool)) warning('a parameters are not found in the pool and it is assumed a=1')
+  if(!'c' %in% colnames(pool)) warning('c parameters are not found in the pool and it is assumed c=0')
+  
   opts <- list(...)
   if(is.null(opts$D)) opts$D <- 1.702
   
-  if(is.null(group)) group <- 1:nrow(pool)
-  if(is.character(group) && (group %in% colnames(pool))) group <- pool[, group]
-  group <- as.numeric(factor(group))
-  num_item <- length(unique(group))
-  num_lpvar <- num_item * num_form + 1
+  # break down forms for common items and overlap items
+  if(!is.null(opts$common_items)){
+    form_map <- cbind(1:num_form, num_form + 1)
+  } else if(!is.null(opts$overlap_items)){
+    form_map <- cbind(1:num_form, 1:num_form+num_form, c(num_form*2, 1:(num_form-1)+num_form))
+  } else if(!is.null(opts$form_map)) {
+    form_map <- opts$form_map
+  } else {
+    form_map <- matrix(1:num_form, ncol=1)
+  }
+  num_form <- max(form_map)
   
-  # LP: x's (binary) + y (continuous)
-  obj <- matrix(c(rep(0, num_lpvar - 1), 1), nrow=1)
-  colnames(obj) <- c(paste("f", rep(1:num_form, each=num_item), "v", rep(1:num_item, num_form), sep=""), "y")
+  # group item sets
+  if(is.null(opts$group)) {
+    group <- 1:nrow(pool)
+  } else if(is.character(opts$group)) {
+    if(opts$group %in% colnames(pool)) group <- pool[, opts$group] else stop('the item-set grouping variable is not found in the pool')
+  } else if(length(group) != nrow(pool)) {
+    stop('the item-set grouping variable has a different length from the number of items')
+  } else {
+    group <- opts$group
+  }
+  group <- as.numeric(factor(group))
+  
+  num_item <- length(unique(group))
+  num_lpvar <- num_item * num_form + 2
+  
+  # LP: x's (binary) + y_lb (continuous) + y_ub (continuous)
+  obj <- c(rep(0, num_lpvar - 2), 1, 1)
+  names(obj) <- c(paste("f", rep(1:num_form, each=num_item), "v", rep(1:num_item, num_form), sep=""), "y_lb", "y_ub")
   # x's are binary and y is continuous
-  types <- c(rep("B", num_lpvar - 1), "C")
+  types <- c(rep("B", num_lpvar - 2), "C", "C")
   # placehoders for fixing values
   bounds <- list(idx=c(), lb=c(), ub=c())
   # TRUE to maximize, FALSE to minimize
@@ -90,17 +112,21 @@ ata <- function(pool, num_form=1, len=NULL, max_use=NULL, group=NULL, ...){
   # TRUE if the y is expected to be negative
   negative <- FALSE
   # constraints: coefficient matrix, directions, and right-hand-side values
-  mat <- matrix(nrow=0, ncol=num_lpvar, dimnames=list(NULL, colnames(obj)))
+  mat <- matrix(nrow=0, ncol=num_lpvar, dimnames=list(NULL, names(obj)))
   dir <- rhs <- NULL
   
-  x <- list(num_item=num_item, num_form=num_form, num_lpvar=num_lpvar, pool=pool, group=group, obj=obj,
-            mat=mat, dir=dir, rhs=rhs, types=types, bounds=bounds, max=max, negative=negative, opts=opts)
+  x <- list(num_item=num_item, num_form=num_form, num_lpvar=num_lpvar, pool=pool, group=group, form_map=form_map, 
+            obj=obj, mat=mat, dir=dir, rhs=rhs, types=types, bounds=bounds, max=max, negative=negative, opts=opts)
   class(x) <- "ata"
   
   # add constraint: test length
   if(!is.null(len) && length(len) == 1) x <- ata_constraint(x, 1, min=len, max=len)
   if(!is.null(len) && length(len) == 2) x <- ata_constraint(x, 1, min=len[1], max=len[2])
   if(!is.null(len) && length(len) > 2) stop("invalid length.")
+  if(!is.null(opts$common_items))
+    x <- ata_constraint(x, 1, min=opts$common_items, max=opts$common_items, forms=num_form, internal_index=TRUE)
+  if(!is.null(opts$overlap_items))
+    x <- ata_constraint(x, 1, min=opts$overlap_items, max=opts$overlap_items, forms=unique(as.vector(form_map[,-1])), internal_index=TRUE)
   # add constraint: max_use
   if(!is.null(max_use)) x <- ata_item_use(x, max=max_use)
   
@@ -110,7 +136,6 @@ ata <- function(pool, num_form=1, len=NULL, max_use=NULL, group=NULL, ...){
 
 #' @rdname ata
 #' @param x the ata object
-#' @param ... further arguments
 #' @export
 print.ata <- function(x, ...){
   cat("Assemble", x$num_form, "forms from", x$num_item, "items.\n")
@@ -163,11 +188,12 @@ plot.ata <- function(x, ...){
 }
 
 
-#' @rdname ata
+#' @rdname helpers
 #' @description \code{ata_append_constraints} appends constraint definitions to the ata object
 #' @param mat the coefficient matrix
 #' @param dir direction
 #' @param rhs right-hand-side value
+#' @keywords internal
 ata_append_constraints <- function(x, mat, dir, rhs) {
   x$mat <- rbind(x$mat, mat)
   x$dir <- c(x$dir, dir)
@@ -175,24 +201,33 @@ ata_append_constraints <- function(x, mat, dir, rhs) {
   x
 }
 
-#' @rdname ata
-#' @description \code{ata_form_index} converts input forms into actual form indices in LP
-ata_form_index <- function(x, forms, collapse){
-  if(is.null(forms)) {
-    forms <- 1:x$num_form 
-  } else if(!all(forms %in% 1:x$num_form)) {
-    stop("invalid form indices.")
+#' @rdname helpers
+#' @description \code{ata_form_index} converts input forms into actual form indices in the LP model
+#' @keywords internal
+ata_form_index <- function(x, forms, collapse, internal_index){
+  if(internal_index){
+    if(is.null(forms))
+      forms <- 1:x$num_form
+    if(any(!forms %in% 1:x$num_form))
+      stop('invalid form indices')
+    forms <- as.matrix(forms)
+  } else {
+    if(is.null(forms))
+      forms <- 1:nrow(x$form_map)
+    if(any(!forms %in% 1:nrow(x$form_map)))
+      stop('invalid form indices')
+    forms <- x$form_map[forms, , drop=FALSE]
   }
-  forms <- matrix(forms, ncol=1)
-  if(collapse) forms <- t(forms)
+  if(collapse) forms <- matrix(unique(as.vector(forms)), nrow=1)
   forms
 }
 
 
-#' @rdname ata
+#' @rdname helpers
 #' @description \code{ata_obj_coef} processes input coefficients of the objective functions
 #' @param compensate \code{TRUE} to combine coefficients
 #' @importFrom stats aggregate
+#' @keywords internal
 ata_obj_coef <- function(x, coef, compensate){
   if(length(coef) == x$num_item){ 
     # if a vector of given values (item-group-level), then convert to matrix
@@ -223,58 +258,84 @@ ata_obj_coef <- function(x, coef, compensate){
 #' @param coef the coefficients of the objective function or the constraint
 #' @param mode the optimization mode: 'max' for maximization and 'min' for minimization
 #' @param negative \code{TRUE} when the expected value of the objective function is negative
-#' @param flatten the flatten parameter to make the objective function flat
 #' @param forms the indices of forms where objectives are added. \code{NULL} for all forms
 #' @param collapse \code{TRUE} to collapse all forms into one objective function
+#' @param internal_index \code{TRUE} to use internal form indices
 #' @details 
-#' To maximize the LP, it is to maximize y while subject to sum(x) - y >= 0 and <= F (flatten parameter).
-#' To minimize the LP, it is to minimize y while subject to sum(x) - y <= 0 and >= F.
-#' By default, y is non-negative. When \code{negative=TRUE}, y is set to be negative. \cr 
-#' When \code{coef} is a pool-size or form-size numeric vector, coefficients are used directly.
-#' When \code{coef} is a variable name, variable values are used as coefficients.
-#' When \code{coef} is a numeric vector unequal to pool size, information at those points are used as coefficients.
+#' \code{ata_obj_relative}, maximize (y - beta) subject to y <= sum(x) <= y + beta, or
+#' minimize (y + beta) subject to y - beta <= subject sum(x) <= y.
+#' When \code{negative=TRUE}, y and beta are negative; otherwise positive.  
+#' When \code{coef} is a numeric vector of the same length with the pool or forms, the given coefficients 
+#' are used directly; when a variable name, variable values are used; when a numeric vector with different 
+#' length with the pool, informations at those theta points are used.
 #' @export
-ata_obj_relative <- function(x, coef, mode=c('max', 'min'), negative=FALSE, flatten=NULL, forms=NULL, collapse=FALSE){
+ata_obj_relative <- function(x, coef, mode=c('max', 'min'), negative=FALSE, forms=NULL, collapse=FALSE, internal_index=FALSE, ...){
   if(class(x) != "ata") stop("not an 'ata' object")
-  forms <- ata_form_index(x, forms, collapse)
+  opts <- list(...)
+  
+  forms <- ata_form_index(x, forms, collapse, internal_index)
   coef <- ata_obj_coef(x, coef, compensate=FALSE)
   x$negative <- negative
-  x$max <- switch(match.arg(mode), "max"=TRUE, "min"=FALSE)
   
-  mat <- matrix(0, nrow=nrow(forms) * nrow(coef), ncol=x$num_lpvar)
-  dir <- rhs <- rep(NA, nrow(forms) * nrow(coef))
+  x$max <- switch(match.arg(mode), "max"=TRUE, "min"=FALSE)
+  if(x$max){
+    x$obj[(x$num_lpvar-1):x$num_lpvar] <- c(1, -1)
+  } else {
+    x$obj[(x$num_lpvar-1):x$num_lpvar] <- c(1,  1)
+  }
+  
+  if(!is.null(opts$no_cap) && opts$no_cap)
+    x$obj[x$num_lpvar] <- 0
+  
+  mat <- matrix(0, nrow=nrow(forms) * nrow(coef) * 2, ncol=x$num_lpvar)
+  dir <- rhs <- rep(NA, nrow(forms) * nrow(coef) * 2)
   for(i in 1:nrow(forms)) {
     f <- forms[i, ]
     ind <- outer(1:x$num_item, (f - 1) * x$num_item, "+")
     ind <- as.vector(ind)
     for(j in 1:nrow(coef)) {
-      row <- j + (i - 1) * nrow(coef)
-      mat[row, ind] <- rep(coef[j, ], length(f))
-      mat[row, x$num_lpvar] <- -1
-      dir[row] <- ifelse(x$max, ">=", "<=")
-      rhs[row] <- 0
+      row <- (j - 1) * 2 + (i - 1) * nrow(coef) * 2
+      mat[row + 1, ind] <- rep(coef[j, ], length(f))
+      mat[row + 2, ind] <- rep(coef[j, ], length(f))
+      if(x$max){
+        mat[row + 1, (x$num_lpvar-1):x$num_lpvar] <- c(-1, 0)
+        mat[row + 2, (x$num_lpvar-1):x$num_lpvar] <- c(-1, -1)
+      } else {
+        mat[row + 1, (x$num_lpvar-1):x$num_lpvar] <- c(-1, 1)
+        mat[row + 2, (x$num_lpvar-1):x$num_lpvar] <- c(-1, 0)
+      }
+      dir[row + 1:2] <- c(">=", "<=")
+      rhs[row + 1:2] <- 0
     }
   }
   
-  if(!is.null(flatten)) {
-    mat <- rbind(mat, mat)
-    dir <- c(dir, rep(ifelse(x$max, "<=", ">="), nrow(forms) * nrow(coef)))
-    rhs <- c(rhs, rep(flatten, nrow(forms) * nrow(coef)))
+  if(!is.null(opts$beta_max)) {
+    if(negative){
+      x$bounds$idx <- c(x$bounds$idx, x$num_lpvar)
+      x$bounds$lb <- c(x$bounds$lb, -opts$beta_max)
+      x$bounds$ub <- c(x$bounds$ub, NA)
+    } else {
+      x$bounds$idx <- c(x$bounds$idx, x$num_lpvar)
+      x$bounds$lb <- c(x$bounds$lb, NA)
+      x$bounds$ub <- c(x$bounds$ub, opts$beta_max)
+    }
   }
-  
+
   ata_append_constraints(x, mat, dir, rhs)
 }
 
 
 #' @rdname ata
-#' @description \code{ata_obj_absolute} adds absolute objectives to LP
-#' @param target the target of the objective function
+#' @description \code{ata_obj_absolute} adds absolute objectives to the LP model
+#' @param target the target values of the objective function
 #' @details 
-#' \code{ata_obj_absolute} is to minimize y while subject to sum(x) + y >= T and sum(x) - y <= T. 
+#' \code{ata_obj_absolute} minimizes y0+y1 subject to t-y0 <= sum(x) <= t+y1. 
 #' @export
-ata_obj_absolute <- function(x, coef, target, forms=NULL, collapse=FALSE){
+ata_obj_absolute <- function(x, coef, target, forms=NULL, collapse=FALSE, internal_index=FALSE, ...){
   if(class(x) != "ata") stop("not an 'ata' object")
-  forms <- ata_form_index(x, forms, collapse)
+  opts <- list(...)
+  
+  forms <- ata_form_index(x, forms, collapse, internal_index)
   coef <- ata_obj_coef(x, coef, compensate=FALSE)
   if(length(target) == 1) target <- rep(target, nrow(coef))
   if(length(target) != nrow(coef)) stop("invalid target length.")
@@ -289,12 +350,28 @@ ata_obj_absolute <- function(x, coef, target, forms=NULL, collapse=FALSE){
     for(j in 1:nrow(coef)){
       row <- (j - 1) * 2 + (i - 1) * nrow(coef) * 2
       mat[row + 1, ind] <- rep(coef[j, ], length(f))
-      mat[row + 1, x$num_lpvar] <- 1
+      mat[row + 1, x$num_lpvar - 1] <- 1
       mat[row + 2, ind] <- rep(coef[j, ], length(f))
-      mat[row + 2, x$num_lpvar] <- -1
+      mat[row + 2, x$num_lpvar - 0] <- -1
       dir[row + 1:2] <- c(">=", "<=")
       rhs[row + 1:2] <- target[j]
     }
+  }
+  
+  if(!is.null(opts$equal_band) && opts$equal_band){
+    mat <- rbind(mat, c(rep(0, x$num_lpvar - 2), 1, -1))
+    dir <- c(dir, '=')
+    rhs <- c(rhs, 0)
+  }
+  if(!is.null(opts$lb_max)){
+    x$bounds$idx <- c(x$bounds$idx, x$num_lpvar - 1)
+    x$bounds$lb <- c(x$bounds$lb, NA)
+    x$bounds$ub <- c(x$bounds$ub, opts$lb_max)
+  }
+  if(!is.null(opts$ub_max)){
+    x$bounds$idx <- c(x$bounds$idx, x$num_lpvar - 0)
+    x$bounds$lb <- c(x$bounds$lb, NA)
+    x$bounds$ub <- c(x$bounds$ub, opts$ub_max)
   }
   
   ata_append_constraints(x, mat, dir, rhs)
@@ -302,22 +379,21 @@ ata_obj_absolute <- function(x, coef, target, forms=NULL, collapse=FALSE){
 
 
 #' @rdname ata
-#' @description \code{ata_constraint} adds a constraint to LP
-#' @param level the level value for categorical variable
+#' @description \code{ata_constraint} adds a constraint to the LP model
+#' @param level the level of the categorical variable to be constrained
 #' @param min the lower bound of the constraint
 #' @param max the upper bound of the constraint
 #' @details 
-#' For \code{ata_constraint}, set \code{coef} to a variable name and \code{level} a level 
-#' of that variable to add a categorical constraint. Set \code{coef} to a variable name and
-#' leave \code{level} to default value (\code{NULL} or \code{NA}) to add a quantitative constraint. 
-#' Set \code{coef} to a constant or a vector to add a constraint directly.
+#' When \code{level} is NA, it is assumed to impose constraints on a quantitative item property;
+#' otherwise, a categorical item property. \code{coef} can be a variable name, a constant, or 
+#' a numeric vector of the same length with the pool.
 #' @importFrom stats aggregate
 #' @export
-ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, collapse=FALSE){
+ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, collapse=FALSE, internal_index=FALSE){
   if(class(x) != "ata") stop("not an 'ata' object")
   if(is.na(min) && is.na(max)) return(x)
   if(!is.na(min) && !is.na(max) && min > max) stop("min is greater than max.")
-  forms <- ata_form_index(x, forms, collapse)
+  forms <- ata_form_index(x, forms, collapse, internal_index)
   
   if(length(coef) == 1 && is.character(coef) && coef %in% colnames(x$pool)) {
     # if a variable name, then retrieve and aggregate
@@ -354,7 +430,7 @@ ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, coll
       rhs[i] <- max
     } else if(min == max) {
       mat[i, ind] <- coef
-      dir[i] <- "=="
+      dir[i] <- "="
       rhs[i] <- min
     } else {
       mat[(i - 1) * 2 + 1, ind] <- coef
@@ -369,7 +445,7 @@ ata_constraint <- function(x, coef, min=NA, max=NA, level=NULL, forms=NULL, coll
 
 
 #' @rdname ata
-#' @description \code{ata_item_use} sets the minimum and maximum use for items
+#' @description \code{ata_item_use} sets the minimum and maximum usage for items
 #' @param items a vector of item indices
 #' @export
 ata_item_use <- function(x, min=NA, max=NA, items=NULL){
@@ -400,15 +476,16 @@ ata_item_use <- function(x, min=NA, max=NA, items=NULL){
 }
 
 #' @rdname ata
-#' @description \code{ata_item_enemy} adds enemy item relationship to LP
+#' @description \code{ata_item_enemy} adds enemy item relationships to the LP model
 #' @export
 ata_item_enemy <- function(x, items){
   if(class(x) != "ata") stop("not an 'ata' object")
   if(any(!items %in% 1:x$num_item)) stop("invalid item index")
   
-  mat <- matrix(0, nrow=x$num_form, ncol=x$num_lpvar)
-  for(i in 1:x$num_form){
-    ind <- items + (i - 1) * x$num_item
+  mat <- matrix(0, nrow=nrow(x$form_map), ncol=x$num_lpvar)
+  for(i in 1:nrow(x$form_map)){
+    f <- x$form_map[i, ]
+    ind <- items + (f - 1) * x$num_item
     mat[i, ind] <- 1
   }
   dir <- rep("<=", x$num_form)
@@ -421,47 +498,56 @@ ata_item_enemy <- function(x, items){
 #' @rdname ata
 #' @description \code{ata_item_fixedvalue} sets a fixed value range for items
 #' @export
-ata_item_fixedvalue <- function(x, items, min=NA, max=NA, forms=NULL, collapse=FALSE){
+ata_item_fixedvalue <- function(x, items, min=NA, max=NA, forms){
   if(class(x) != "ata") stop("not an 'ata' object")
   if(any(!items %in% 1:x$num_item)) stop("invalid items input.")
-  forms <- ata_form_index(x, forms, collapse)
+  if(length(forms) > 1) stop('fix values in one form at each time.')
+  
   n <- length(items)
   if(length(min) == 1) min <- rep(min, n)
   if(length(max) == 1) max <- rep(max, n)
   if(length(min) != n || length(max) != n) stop("invalid min or max length.")
-  idx <- as.vector(outer(items, (forms - 1) * x$num_item, "+"))
-  x$bounds$idx <- c(x$bounds$idx, idx)
-  x$bounds$lb <- c(x$bounds$lb, rep(min, length(forms)))
-  x$bounds$ub <- c(x$bounds$ub, rep(max, length(forms)))
+  x$bounds$idx <- c(x$bounds$idx, items+(forms-1)*x$num_item)
+  x$bounds$lb <- c(x$bounds$lb, min)
+  x$bounds$ub <- c(x$bounds$ub, max)
+  
   x
 }
 
 
 #' @rdname ata
-#' @description \code{ata_solve} solves the LP object
+#' @description \code{ata_solve} solves the LP model
+#' @param solver use 'lpsolve' or 'glpk' solver
 #' @param as.list \code{TRUE} to return results in a list; otherwise, data frame
-#' @param timeout the time limit in seconds
-#' @param mip_gap the mip gap parameter
-#' @param verbose the message parameter
-#' @param warning \code{TRUE} to output warning message when LP is not solved
+#' @param details \code{TRUE} to print detailed information
+#' @param time_limit the time limit in seconds passed along to solvers
+#' @param message \code{TRUE} to print messages from solvers
+#' @details 
+#' \code{ata_solve} takes control options in \code{...}. 
+#' For lpsolve, see \code{lpSolveAPI::lp.control.options}.
+#' For glpk, see \code{glpkAPI::glpkConstants}
 #' @export
-ata_solve <- function(x, as.list=TRUE, timeout=10, mip_gap=0.1, verbose="neutral", warning=FALSE, ...) {
+ata_solve <- function(x, solver=c('lpsolve', 'glpk'), as.list=TRUE, details=TRUE, time_limit=10, message=FALSE, ...) {
   if(class(x) != "ata") stop("not an 'ata' object")
-  rs <- ata_solve_lpsolve(x, timeout=timeout, mip.gap=mip_gap, verbose=verbose, ...)
-  if(!rs$status %in% c(0, 1)) rs$result <- array(0L, dim(rs$result))
-  
+  rs <- switch(match.arg(solver, solver), 'lpsolve'=ata_solve_lpsolve(x, time_limit, message, ...), 'glpk'=ata_solve_glpk(x, time_limit, message, ...))
+
+  x$code <- rs$code
   x$status <- rs$status
   x$optimum <- rs$optimum
+  x$obj_vars <- rs$obj_vars
   if(all(rs$result == 0)) {
     x$result <- x$items <- NULL
-    if(warning) cat("No solution for LP.\n")
+    if(details) warning("No solution for the LP model.\n")
   } else {
+    if(details) cat(rs$status, ', optimum: ', round(rs$optimum, 3), ' (', paste(round(rs$obj_vars, 3), collapse=', '), ')\n', sep='')
     x$result <- rs$result
     items <- list()
-    for(i in 1:x$num_form){
-      # items[[i]] <- cbind(x$pool[x$result[,i] == 1, ], form=i)
-      selected_groups <- (1:x$num_item)[x$result[,i] == 1]
-      items[[i]] <- cbind(x$pool[x$group %in% selected_groups, ], form=i)
+    for(i in 1:nrow(x$form_map)){
+      f <- x$form_map[i, ]
+      f <- f[!is.na(f)]
+      selection <- apply(x$result[, f, drop=FALSE] == 1, 1, any)
+      selection <- seq(x$num_item)[selection]
+      items[[i]] <- cbind(x$pool[x$group %in% selection, ], form=i)
     } 
     if(!as.list) items <- Reduce(rbind, items, NULL)
     x$items <- items
@@ -470,81 +556,136 @@ ata_solve <- function(x, as.list=TRUE, timeout=10, mip_gap=0.1, verbose="neutral
   x
 }
 
-#' @rdname ata
-#' @description \code{ata_solve_lpsolve} solves the LP using LpSolve
+#' @rdname helpers
+#' @description \code{ata_solve_lpsolve} solves the the LP model using lp_solve
 #' @import lpSolveAPI
-ata_solve_lpsolve <- function(x, ...) {
+#' @keywords internal
+ata_solve_lpsolve <- function(x, time_limit, message, ...) {
   if(class(x) != "ata") stop("not an 'ata' object")
   lp <- make.lp(0, x$num_lpvar)
   # (max): direction
   lp.control(lp, sense=ifelse(x$max, "max", "min"))
   # set bound for y: positive = (lb=0); negative = (ub = 0)
-  if(x$negative) set.bounds(lp, lower=-Inf, upper=0, x$num_lpvar)
+  if(x$negative) set.bounds(lp, lower=rep(-Inf, 2), upper=rep(0, 2), (x$num_lpvar-1):x$num_lpvar)
   # (obj): objective function
-  for(i in seq_along(x$obj))
-    if(x$obj[i] != 0)
-      set.objfn(lp, x$obj[i], i) 
+  set.objfn(lp, x$obj, seq_along(x$obj))
   # (type): x's = binary, y = continuous
   types <- sapply(x$types, function(x) switch(x, "B"="binary", "I"="integer", "C"="real"))
   for(i in seq_along(types))
     set.type(lp, i, types[i])
   # (bounds): column bounds
-  with(x$bounds, for(i in seq_along(idx)) {
-    set.bounds(lp, if(!is.na(lb[i])) lower=lb[i], if(!is.na(ub[i])) upper=ub[i], columns=idx[i])
-  })
+  if(!is.null(x$bounds$idx))
+    with(x$bounds, for(i in 1:length(idx)) {
+      set.bounds(lp, if(!is.na(lb[i])) lower=lb[i], if(!is.na(ub[i])) upper=ub[i], columns=idx[i])
+    })
   # (mat): constraints
-  dir <- gsub("==", "=", x$dir)
   for(i in 1:nrow(x$mat))
-    add.constraint(lp, x$mat[i,], dir[i], x$rhs[i])
+    add.constraint(lp, x$mat[i,], x$dir[i], x$rhs[i])
   # solve
-  lp.control(lp, mip.gap=c(.01, .10), epsint=.10, presolve="lindep", timeout=10)
+  lp.control(lp, mip.gap=c(.01, .01), epsint=.10, presolve="lindep", timeout=time_limit)
+  lp.control(lp, verbose=ifelse(message, 'normal', 'neutral'))
   lp.control(lp, ...)
-  status <- solve(lp)
+  code <- solve(lp)
+  status <- switch(as.character(code),
+                   '0'="optimal solution found",
+                   '1'="the model is sub-optimal",
+                   '2'="the model is infeasible",
+                   '3'="the model is unbounded",
+                   '4'="the model is degenerate",
+                   '5'="numerical failure encountered",
+                   '6'="process aborted",
+                   '7'="timeout",
+                   '9'="the model was solved by presolve",
+                   '10'="the branch and bound routine failed",
+                   '11'="the branch and bound was stopped because of a break-at-first or break-at-value",
+                   '12'="a feasible branch and bound solution was found",
+                   '13'="no feasible branch and bound solution was found")
   optimum <- get.objective(lp)
-  result <- matrix(get.variables(lp)[2:x$num_lpvar - 1], ncol=x$num_form, byrow=FALSE)
-  list(status=status, optimum=optimum, result=result)
+  result <- matrix(get.variables(lp)[1:(x$num_lpvar-2)], ncol=x$num_form, byrow=FALSE)
+  obj_vars <- get.variables(lp)[(x$num_lpvar-1):x$num_lpvar]
+  
+  if(!code %in% c(0, 1, 9)) result <- matrix(0, nrow=nrow(result), ncol=ncol(result))
+  list(code=code, status=status, optimum=optimum, result=result, obj_vars=obj_vars)
 }
 
-# ata_solve_glpk <- function(x, ...) {
-#   if(class(x) != "ata") stop("not an 'ata' object")
-#   lp <- initProbGLPK()
-#   addRowsGLPK(lp, nrow(x$mat))
-#   addColsGLPK(lp, ncol(x$mat))
-#   # (max): optimization direction
-#   setObjDirGLPK(lp, ifelse(x$max, GLP_MAX, GLP_MIN))
-#   # (types): x's = binary, y = continuous
-#   types <- sapply(x$types, function(x) switch(x, "C"=GLP_CV, "I"=GLP_IV, "B"=GLP_BV))
-#   for(i in seq_along(types)) setColKindGLPK(lp, i, types[i])
-#   # (obj): omit coef=0
-#   for(i in seq_along(x$obj))
-#     if(x$obj[i] != 0) setObjCoefGLPK(lp, i, x$obj[i])
-#   # (dir & rhs): row bounds
-#   dir <- sapply(x$dir, function(x) switch(x, "<="=GLP_UP, ">="=GLP_LO, "=="=GLP_FX))
-#   for(i in 1:nrow(x$mat)) setRowBndGLPK(lp, i, dir[i], lb=x$rhs[i], ub=x$rhs[i])
-#   # (bounds): column bounds
-#   bounds.lb <- sapply(x$types, function(x) switch(x, "C"=0, "I"=0, "B"=0))
-#   bounds.ub <- sapply(x$types, function(x) switch(x, "C"=Inf, "I"=Inf, "B"=1))
-#   with(x$bounds, for(i in seq_along(ind)) {
-#     if(!is.na(lb[i])) bounds.lb[ind[i]] <- lb[i]
-#     if(!is.na(ub[i])) bounds.ub[ind[i]] <- ub[i]
-#   })
-#   # (mat)
-#   ind <- x$mat != 0
-#   ia <- rep(1:nrow(x$mat), ncol(x$mat))[ind]
-#   ja <- rep(1:ncol(x$mat), each=nrow(x$mat))[ind]
-#   ar <- x$mat[ind]
-#   loadMatrixGLPK(lp, length(ar), ia, ja, ar)
-#   # mip control parameters:
-#   setMIPParmGLPK(PRESOLVE, GLP_ON)
-#   setMIPParmGLPK(MIP_GAP, 0.01)
-#   setMIPParmGLPK(TM_LIM, 1000 * 10)
-#   opts <- list(...)
-#   for(i in seq_along(opts)) setMIPParmGLPK(get(names(opts)[i]), opts[[i]])
-#   # set bound for y: positive = (lb=0); negative = (ub = 0)
-#   setColBndGLPK(lp, x$nlp, ifelse(x$negative, GLP_UP, GLP_LO), 0, 0)
-#   # solve
-#   status <- solveMIPGLPK(lp)
-#   optimum <- mipObjValGLPK(lp)
-#   result <- matrix(mipColsValGLPK(lp)[2:x$nlp - 1], ncol=x$nforms, byrow=FALSE)
-#   list(status=status, optimum=optimum, result=result)
-# }
+#' @rdname helpers
+#' @description \code{ata_solve_glpk} solves the the LP model using GLPK
+#' @import glpkAPI
+#' @keywords internal
+ata_solve_glpk <- function(x, time_limit, message, ...) {
+  if(class(x) != "ata") stop("not an 'ata' object")
+  opts <- list(...)
+  
+  # set up the problem
+  lp <- initProbGLPK()
+  addRowsGLPK(lp, nrow(x$mat))
+  addColsGLPK(lp, ncol(x$mat))
+  # (max): optimization direction
+  setObjDirGLPK(lp, ifelse(x$max, GLP_MAX, GLP_MIN))
+  # (obj): obj functions
+  setObjCoefsGLPK(lp, seq(x$num_lpvar), x$obj)
+  # (types): x's = binary, y's = continuous
+  for(j in seq(x$num_lpvar)[x$types == 'B'])
+    setColKindGLPK(lp, j, GLP_BV)
+  for(j in seq(x$num_lpvar)[x$types == 'C'])
+    setColBndGLPK(lp, j, ifelse(x$negative, GLP_UP, GLP_LO), 0, 0)
+  ## fixed values
+  if(!is.null(x$bounds$idx))
+    for(j in 1:length(x$bounds$idx))
+      if(is.na(x$bound$lb[j])){
+        setColBndGLPK(lp, x$bounds$idx[j], GLP_UP, 0, x$bounds$ub[j])
+      } else if(is.na(x$bound$ub[j])){
+        setColBndGLPK(lp, x$bounds$idx[j], GLP_LO, x$bounds$lb[j], 0)
+      } else {
+        setColBndGLPK(lp, x$bounds$idx[j], GLP_DB, x$bounds$lb[j], x$bounds$ub[j])
+      }
+  # # check column bounds
+  # cbind(getColsLowBndsGLPK(lp, 1:x$num_lpvar), getColsUppBndsGLPK(lp, 1:x$num_lpvar))
+  
+  # (mat)
+  ind <- x$mat != 0
+  ia <- rep(1:nrow(x$mat), ncol(x$mat))[ind]
+  ja <- rep(1:ncol(x$mat), each=nrow(x$mat))[ind]
+  ar <- x$mat[ind]
+  loadMatrixGLPK(lp, length(ar), ia, ja, ar)
+  # (dir & rhs): row bounds
+  dir <- sapply(x$dir, function(x) switch(x, '>='=GLP_LO, '<='=GLP_UP, '='=GLP_FX))
+  setRowsBndsGLPK(lp, 1:nrow(x$mat), x$rhs, x$rhs, dir)
+  # # check row bounds
+  # cbind(getRowsLowBndsGLPK(lp, 1:nrow(x$mat)), getRowsUppBndsGLPK(lp, 1:nrow(x$mat)))
+  
+  # solve
+  setMIPParmGLPK(PRESOLVE, GLP_ON)
+  setMIPParmGLPK(MIP_GAP, 0.01)
+  setMIPParmGLPK(TM_LIM, 1000 * time_limit)
+  setMIPParmGLPK(MSG_LEV, ifelse(message, GLP_MSG_ON, GLP_MSG_OFF))
+  for(i in seq_along(opts)) setMIPParmGLPK(get(names(opts)[i]), opts[[i]])
+  code <- solveMIPGLPK(lp)
+  status <- switch(as.character(code),
+                   '0'="optimal solution found",
+                   '1'='invalid basis',
+                   '2'='singular matrix',
+                   '3'='ill-conditioned matrix',
+                   '4'='invalid bounds',
+                   '5'='solver failed',
+                   '6'='objective lower limit reached',
+                   '7'='objective upper limit reached',
+                   '8'='iteration limit exceeded',
+                   '9'='time limit exceeded',
+                   '10'='no primal feasible solution',
+                   '11'='no dual feasible solution',
+                   '12'='root LP optimum not provided',
+                   '13'='search terminated by application',
+                   '14'='relative mip gap tolerance reached',
+                   '15'='no primal/dual feasible solution',
+                   '16'='no convergence',
+                   '17'='numerical instability',
+                   '18'='invalid data',
+                   '19'='result out of range')
+  optimum <- mipObjValGLPK(lp)
+  result <- matrix(mipColsValGLPK(lp)[1:(x$num_lpvar-2)], ncol=x$num_form, byrow=FALSE)
+  obj_vars <- mipColsValGLPK(lp)[(x$num_lpvar-1):x$num_lpvar]
+  
+  list(code=code, status=status, optimum=optimum, result=result, obj_vars=obj_vars)
+}
+

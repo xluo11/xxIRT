@@ -47,7 +47,7 @@ NULL
 
 
 #' @rdname cat_sim
-#' @description \code{cat_sim} uns a simulation of CAT. Use \code{theta} in options to set the starting
+#' @description \code{cat_sim} runs a simulation of CAT. Use \code{theta} in options to set the starting
 #' value of theta estimate.
 #' @param true the true theta
 #' @param pool the item pool (data.frame)
@@ -250,9 +250,9 @@ cat_select_shadow <- function(len, theta, stats, admin, pool, opts){
   x <- ata(pool, 1, len=c(opts$min, opts$max), 1)
   x <- ata_obj_relative(x, theta, "max")
   for(i in 1:nrow(opts$constraints))
-    x <- with(opts$constraints, ata_constraint(x, var[i], min=min[i], max=max[i], level=level[i]))
-  x <- ata_item_fixedvalue(x, admin$shadow_id, min=1)
-  x <- ata_solve(x, as.list=FALSE)
+    x <- with(opts$constraints[i,], ata_constraint(x, var, min=min, max=max, level=level))
+  if(!is.null(admin)) x <- ata_item_fixedvalue(x, match(admin$shadow_id, pool$shadow_id), min=1, forms=1)
+  x <- ata_solve(x, as.list=FALSE, details=F)
   if(is.null(x$items)) stop("Failed to assemble a shadow test")
   x$items <- x$items[!x$items$shadow_id %in% admin$shadow_id, ]
   
@@ -336,8 +336,8 @@ cat_stop_projection <- function(len, theta, stats, admin, pool, opts){
     x <- ata_obj_relative(x, theta, "max")
     for(i in 1:nrow(opts$constraints))
       x <- with(opts$constraints, ata_constraint(x, var[i], min=min[i], max=max[i], level=level[i]))
-    x <- ata_item_fixedvalue(x, admin$shadow_id, min=1)
-    x <- ata_solve(x, as.list=FALSE)
+    x <- ata_item_fixedvalue(x, admin$shadow_id, min=1, forms=1)
+    x <- ata_solve(x, as.list=FALSE, details=F)
     if(is.null(x$items)) stop("Failed to assemble a projection test")
     
     u <- c(stats[1:len, "u"], rep(1, opts$max - len))
@@ -353,8 +353,8 @@ cat_stop_projection <- function(len, theta, stats, admin, pool, opts){
     x <- ata_obj_absolute(x, "b", (theta + opts$proj_width * stats[len, "se"]) * opts$max)
     for(i in 1:nrow(opts$constraints))
       x <- with(opts$constraints, ata_constraint(x, var[i], min=min[i], max=max[i], level=level[i]))
-    x <- ata_item_fixedvalue(x, admin$shadow_id, min=1)
-    x <- ata_solve(x, as.list=FALSE)
+    x <- ata_item_fixedvalue(x, admin$shadow_id, min=1, forms=1)
+    x <- ata_solve(x, as.list=FALSE, details=F)
     if(is.null(x$items)) stop("Failed to assemble a projection test")
     u <- c(stats[1:len, "u"], rep(1, opts$max - len))
     u <- matrix(rep(u, each=2), nrow=2)
@@ -364,8 +364,8 @@ cat_stop_projection <- function(len, theta, stats, admin, pool, opts){
     x <- ata_obj_absolute(x, "b", (theta - opts$proj_width * stats[len, "se"]) * opts$max)
     for(i in 1:nrow(opts$constraints))
       x <- with(opts$constraints, ata_constraint(x, var[i], min=min[i], max=max[i], level=level[i]))
-    x <- ata_item_fixedvalue(x, admin$shadow_id, min=1)
-    x <- ata_solve(x, as.list=FALSE)
+    x <- ata_item_fixedvalue(x, admin$shadow_id, min=1, forms=1)
+    x <- ata_solve(x, as.list=FALSE, details=F)
     if(is.null(x$items)) stop("Failed to assemble a projection test")
     u <- c(stats[1:len, "u"], rep(0, opts$max - len))
     u <- matrix(rep(u, each=2), nrow=2)

@@ -153,8 +153,9 @@ model_3pl_plot_loglik <- function(u, a, b, c, D=1.702, xaxis=seq(-4, 4, .1), sho
 }
 
 
-#' @rdname model_3pl
+#' @rdname helpers
 #' @param prior parameters of the prior distribution
+#' @keywords internal
 model_3pl_dv_t <- function(u, t, a, b, c, D, prior=NULL){
   p <- t(model_3pl_prob(t, a, b, c, D))
   u <- t(u)
@@ -169,9 +170,10 @@ model_3pl_dv_t <- function(u, t, a, b, c, D, prior=NULL){
   list(dv1=dv1, dv2=dv2)
 }
 
-#' @rdname model_3pl
+#' @rdname helpers
 #' @param post_prob posterior distribution of the theta
 #' @importFrom stats dnorm
+#' @keywords internal
 model_3pl_dv_a <- function(u, t, a, b, c, D, prior=NULL, post_prob=NULL){
   p <- t(model_3pl_prob(t, a, b, c, D))
   u <- t(u)
@@ -187,7 +189,8 @@ model_3pl_dv_a <- function(u, t, a, b, c, D, prior=NULL, post_prob=NULL){
   list(dv1=dv1, dv2=dv2)
 }
 
-#' @rdname model_3pl
+#' @rdname helpers
+#' @keywords internal
 model_3pl_dv_b <- function(u, t, a, b, c, D, prior=NULL, post_prob=NULL){
   p <- t(model_3pl_prob(t, a, b, c, D))
   u <- t(u)
@@ -203,7 +206,8 @@ model_3pl_dv_b <- function(u, t, a, b, c, D, prior=NULL, post_prob=NULL){
   list(dv1=dv1, dv2=dv2)  
 }
 
-#' @rdname model_3pl
+#' @rdname helpers
+#' @keywords internal
 model_3pl_dv_c <- function(u, t, a, b, c, D, prior=NULL, post_prob=NULL){
   p <- t(model_3pl_prob(t, a, b, c, D))
   u <- t(u)
@@ -219,8 +223,9 @@ model_3pl_dv_c <- function(u, t, a, b, c, D, prior=NULL, post_prob=NULL){
   list(dv1=dv1, dv2=dv2)  
 }
 
-#' @rdname model_3pl
+#' @rdname helpers
 #' @importFrom stats rnorm
+#' @keywords internal
 model_3pl_estimate_inits <- function(u, t, a, b, c){
   if(!all(u %in% c(0, 1, NA))) stop('invalid responses. only [0, 1] are allowed.')
   num_people <- dim(u)[1]
@@ -240,9 +245,10 @@ model_3pl_estimate_inits <- function(u, t, a, b, c){
   list(u=u, t=t, a=a, b=b, c=c, t_free=t_free, a_free=a_free, b_free=b_free, c_free=c_free)
 }
 
-#' @rdname model_3pl
+#' @rdname helpers
 #' @param h change of parameters in the newton-raphson method
 #' @param is_free TRUE to estimate parameters and FALSE to fix parameters
+#' @keywords internal
 model_3pl_estimate_nr <- function(param, h, is_free, h_max, bounds){
   h[h > h_max] <- h_max
   h[h < -h_max] <- -h_max
@@ -364,9 +370,10 @@ model_3pl_jmle <- function(u, t=NA, a=NA, b=NA, c=NA, D=1.702, num_iter=100, num
 }
 
 
-#' @rdname model_3pl
+#' @rdname helpers
 #' @param quad_t values of quadrature points
 #' @param quad_w weights of quadrature points
+#' @keywords internal
 model_3pl_posterior_dist <- function(u, a, b, c, D, quad_t, quad_w){
   num_people <- dim(u)[1]
   num_quad <- length(quad_t)
@@ -518,3 +525,58 @@ model_3pl_eap_scoring <- function(u, a, b, c, D){
 }
 
 
+#' @rdname model_3pl
+#' @description \code{model_3pl_fitplot} draws the fit plots
+#' @param index items whose fit plots are drawn
+#' @param intervals theta intervals on which fit plots are drawn
+#' @examples 
+#' x <- model_3pl_gendata(1000, 20)
+#' with(x, model_3pl_fitplot(u, t, a, b, c, c(1, 3, 5)))
+#' @importFrom reshape2 melt
+#' @import ggplot2
+#' @export
+model_3pl_fitplot <- function(u, t, a, b, c, index=NULL, intervals=seq(-3, 3, .5)){
+  if(is.null(index)) index <- seq(b)
+  groups <- cut(t, intervals, labels=(intervals[-length(intervals)] + intervals[-1]) / 2)
+  
+  obs <- aggregate(u, by=list(intervals=groups), mean, na.rm=TRUE)[, c(1, index+1)]
+  obs <- melt(obs, id.vars='intervals', variable.name='items')
+  obs[, 'type'] <- 'Observed'
+  p <- model_3pl_prob(t, a, b, c)
+  exp <- aggregate(p, by=list(intervals=groups), mean, na.rm=TRUE)[, c(1, index+1)]
+  exp <- melt(exp, id.vars='intervals', variable.name='items')
+  exp[, 'type'] <- 'Expected'
+  data <- rbind(obs, exp)
+  data$intervals <- as.numeric(data$intervals)
+  levels(data$items) <- gsub('V', 'Item ', levels(data$items))
+
+  ggplot(data, aes_string('intervals', 'value', color='type', group='type')) + 
+    geom_line() + facet_wrap(~items) + xlab(expression(theta)) + ylab('Probability') + 
+    scale_color_discrete(guide=guide_legend("")) + theme_bw()    
+}
+
+
+#' @rdname helpers
+#' @description \code{evaluate_3pl_estimation} evaluates estimation results against true values
+#' @param data_tru a list of true parameters
+#' @param data_est a list of estimated parameters
+#' @import ggplot2
+#' @importFrom stats cor
+#' @keywords internal
+evaluate_3pl_estimation <- function(data_tru, data_est){
+  data <- rbind(data.frame(param='t', tru=data_tru$t, est=data_est$t),
+                data.frame(param='a', tru=data_tru$a, est=data_est$a),
+                data.frame(param='b', tru=data_tru$b, est=data_est$b),
+                data.frame(param='c', tru=data_tru$c, est=data_est$c))
+  g <- ggplot(data, aes_string(x="tru", y="est", color="param")) +
+    geom_point(alpha=.3) + geom_smooth(method='gam', se=FALSE) +
+    facet_wrap(~param, nrow=1, scales='free') +
+    xlab('True Parameter') + ylab('Est. Parameter') + theme_bw()
+  print(g)
+  for(p in unique(data$param)){
+    x <- subset(data, data$param == p)
+    cat('Parameter ', p, ': corr=', round(cor(x$tru, x$est), 2),
+        ', rmse=', round(rmse(x$tru, x$est), 2), '\n', sep='')
+  }
+  invisible(NULL)
+}
