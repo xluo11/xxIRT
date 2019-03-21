@@ -2,7 +2,7 @@ Package: xxIRT
 Type: Package
 Title: Item Response Theory and Computer-Based Testing in R
 Version: 2.1.2
-Date: 2018-10-1
+Date: 2019-3-21
 Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.com"))
 Author: Xiao Luo [aut, cre]
 Maintainer: Xiao Luo <xluo1986@gmail.com>
@@ -22,9 +22,6 @@ Imports:
     glpkAPI,
     lpSolveAPI,
     reshape2,
-    stats,
-    utils
-RoxygenNote: 6.0.1
-Suggests: 
-    testthat
-
+    stats
+RoxygenNote: 6.1.1
+Encoding: UTF-8

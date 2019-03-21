@@ -1,8 +1,3 @@
-#' #' Statistical Utility Functions
-#' #' @name stat_utils
-#' NULL
-
-
 #' Root Mean Squared Error
 #' @description Root mean squared error (RMSE) of two numeric vectors/matrices
 #' @param x a numeric vector/matrix
@@ -40,6 +35,7 @@ freq <- function(x, values=NULL, rounding=NULL){
 #' Hermite-Gauss Quadrature
 #' @description Pre-computed hermite gaussian quadratures points and weights
 #' @param degree the degree of hermite-gauss quadrature: '20', '11', '7'
+#' @keywords internal
 hermite_gauss <- function(degree=c('20', '11', '7')){
   switch(match.arg(degree),
          '20'=list(t=c(-5.38748089001123,-4.60368244955074,-3.94476404011562,-3.34785456738321,-2.78880605842813,-2.25497400208927,-1.73853771211658,-1.23407621539532,-0.737473728545394,-0.245340708300901,0.245340708300901,0.737473728545394,1.23407621539532,1.73853771211658,2.25497400208927,2.78880605842813,3.34785456738321,3.94476404011562,4.60368244955074,5.38748089001123),

@@ -1,8 +1,3 @@
-#' #' Utility Functions of Item Response Theory 
-#' #' @name irt_utils
-#' NULL
-
-
 #' #' Distribution of Expected Raw Scores
 #' @description Calculate the distribution of expected raw scores
 #' @param t the ability parameters, 1d vector

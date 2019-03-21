@@ -2,7 +2,6 @@
 % Please edit documentation in R/module4_cat.R
 \name{cat_sim}
 \alias{cat_sim}
-\alias{cat_sim}
 \alias{cat_estimate_mle}
 \alias{cat_estimate_eap}
 \alias{cat_estimate_hybrid}
@@ -66,8 +65,6 @@ a stopping rule should return a boolean: \code{TRUE} to stop the CAT, \code{FALS
 a selection rule should return a list of (a) the selected item and (b) the updated pool
 }
 \description{
-Simulation of Computerized Adaptive Testing (CAT)
-
 \code{cat_sim} runs a simulation of CAT. Use \code{theta} in options to set the starting
 value of theta estimate.
 

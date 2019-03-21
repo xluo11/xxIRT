@@ -8,7 +8,7 @@ NULL
 #' @param prior the prior distribution
 #' @examples 
 #' with(model_3pl_gendata(10, 40), cbind(true=t, est=model_3pl_eap_scoring(u, a, b, c)$t))
-#' @importFrom stat dnorm 
+#' @importFrom stats dnorm 
 #' @export
 model_3pl_eap_scoring <- function(u, a, b, c, D=1.702, prior=c(0, 1), bound=c(-3, 3)){
   if(is.null(prior)) prior <- c(0, 1)
@@ -127,6 +127,7 @@ model_3pl_dv_jmle <- function(dv, u){
 #' # no priors
 #' y <- model_3pl_estimate_jmle(x$u, priors=NULL, iter=30, debug=T)
 #' }
+#' @importFrom stats cor
 #' @importFrom reshape2 melt
 #' @import ggplot2
 #' @export
@@ -231,7 +232,7 @@ model_3pl_estimate_jmle <- function(u, t=NA, a=NA, b=NA, c=NA, D=1.702, iter=100
   if(debug){
     xx <- with(tracking, data.frame(iteration=1:iter, fit=fit, t=t, a=a, b=b, c=c))[1:k, ]
     xx <- melt(xx, id.vars='iteration')
-    xx <- subset(xx, !is.na(value))
+    xx <- xx[!is.na(xx$value), ]
     g <- ggplot(xx, aes_string(x="iteration", y="value", color="variable")) + 
       geom_line() + facet_wrap(~variable, scales="free") + guides(color=F) + 
       xlab('Iterations') + ylab('') + theme_bw()
@@ -314,6 +315,7 @@ model_3pl_dv_mmle <- function(pdv_fn, u, quad, a, b, c, D){
 #' # no priors
 #' y <- model_3pl_estimate_mmle(x$u, priors=NULL, iter=30, debug=T)
 #' }
+#' @importFrom stats cor
 #' @importFrom reshape2 melt
 #' @import ggplot2
 #' @export
@@ -400,7 +402,7 @@ model_3pl_estimate_mmle <- function(u, t=NA, a=NA, b=NA, c=NA, D=1.702, iter=100
   if(debug){
     xx <- with(tracking, data.frame(iteration=1:iter, fit=fit, a=a, b=b, c=c))[1:k, ]
     xx <- melt(xx, id.vars='iteration')
-    xx <- subset(xx, !is.na(value))
+    xx <- xx[!is.na(xx$value), ]
     g <- ggplot(xx, aes_string(x="iteration", y="value", color="variable")) + 
       geom_line() + facet_wrap(~variable, scales="free") + guides(color=F) + 
       xlab('Iterations') + ylab('') + theme_bw()

@@ -39,6 +39,6 @@ model_polytomous_3dindex <- function(u){
 model_polytomous_3dresponse <- function(u){
   n_c <- max(u) + 1
   x <- array(0, dim=c(dim(u), n_c))
-  x[model_gpcm_3dindex(u)] <- 1
+  x[model_polytomous_3dindex(u)] <- 1
   x
 }

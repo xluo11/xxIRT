@@ -2,7 +2,6 @@
 % Please edit documentation in R/module5_mst_sim.R
 \name{mst_sim}
 \alias{mst_sim}
-\alias{mst_sim}
 \alias{print.mst_sim}
 \alias{plot.mst_sim}
 \title{Simulation of Multistage Testing}
@@ -23,8 +22,6 @@ mst_sim(x, true, rdp = NULL, ...)
 \item{...}{additional option/control parameters}
 }
 \description{
-Simulation of Multistage Testing
-
 \code{mst_sim} simulates a MST administration
 }
 \examples{

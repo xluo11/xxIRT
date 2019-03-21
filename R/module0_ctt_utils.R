@@ -1,10 +1,5 @@
-#' #' Utility Functions of Classical Test Theory
-#' #' @name ctt_utils
-#' NULL
-
-
-#' Cronbach's Alpha Reliability
-#' @description Cronbach's alpha internal consistency reliability
+#' Cronbach's alpha
+#' @description \code{cronbach_alpha} computes Cronbach's alpha internal consistency reliability
 #' @param responses the oberved responses, 2d matrix
 #' @examples
 #' cronbach_alpha(model_3pl_gendata(1000, 20)$u)

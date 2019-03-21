@@ -125,7 +125,7 @@ model_gpcm_rescale <- function(t, a, b, d, param=c("t", "b"), mean=0, sd=1){
 #' model_gpcm_plot(a=c(1,1,.7), b=rowMeans(b), d=rowMeans(b)-b, D=1.0, insert_d0=0)
 #' # Figure 2 in Muraki, 1992 (APM)
 #' b <- matrix(c(.5,0,NA,0,0,0), nrow=2, byrow=TRUE)
-#' model_gpcm_plot(a=.7, b=rowMeans(b, na.rm=T), d=rowMeans(b, na.rm=T)-b, D=1.0, insert_d0=0)
+#' model_gpcm_plot(a=.7, b=rowMeans(b, na.rm=TRUE), d=rowMeans(b, na.rm=TRUE)-b, D=1.0, insert_d0=0)
 #' # Figure 3 in Muraki, 1992 (APM)
 #' b <- matrix(c(1.759,-1.643,3.970,-2.764), nrow=2, byrow=TRUE)
 #' model_gpcm_plot(a=c(.778,.946), b=rowMeans(b), d=rowMeans(b)-b, D=1.0, insert_d0=0)
@@ -149,7 +149,7 @@ model_gpcm_plot <- function(a, b, d, D=1.702, insert_d0=NULL, type=c('prob', 'in
   if(by_item) y <- rbind(y, cbind(aggregate(y$x, by=list(theta=y$theta, item=y$item), sum), category='Total'))
   if(total) y <- cbind(aggregate(y$x, by=list(theta=y$theta, category=y$category), sum), item='Total')
   
-  y <- subset(y, !is.na(x))
+  y <- y[!is.na(y$x),]
   ggplot(y, aes_string(x="theta", y="x", color="category")) +
     geom_line() + facet_wrap(~item, scales='free') +
     xlab(expression(theta)) + ylab(type) +

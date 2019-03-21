@@ -181,7 +181,7 @@ mst_route <- function(x, route, op=c("+", "-")){
   x
 }
 
-#' @rdname helpers
+#' @rdname mst
 #' @description \code{mst_get_indices} maps the input indices to the actual indices
 #' @keywords internal
 mst_get_indices <- function(x, indices){

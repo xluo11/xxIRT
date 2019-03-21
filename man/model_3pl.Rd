@@ -4,53 +4,33 @@
 \alias{model_3pl}
 \alias{model_3pl_prob}
 \alias{model_3pl_info}
-\alias{model_3pl_lik}
+\alias{model_3pl_lh}
 \alias{model_3pl_rescale}
 \alias{model_3pl_gendata}
 \alias{model_3pl_plot}
-\alias{model_3pl_plot_loglik}
-\alias{model_3pl_jmle}
-\alias{model_3pl_mmle}
-\alias{model_3pl_eap_scoring}
-\alias{model_3pl_fitplot}
+\alias{model_3pl_plot_loglh}
 \title{3-parameter-logistic model}
 \usage{
 model_3pl_prob(t, a, b, c, D = 1.702)
 
 model_3pl_info(t, a, b, c, D = 1.702)
 
-model_3pl_lik(u, t, a, b, c, D = 1.702, log = FALSE)
+model_3pl_lh(u, t, a, b, c, D = 1.702, log = FALSE)
 
 model_3pl_rescale(t, a, b, c, param = c("t", "b"), mean = 0, sd = 1)
 
-model_3pl_gendata(num_people, num_item, t = NULL, a = NULL, b = NULL,
-  c = NULL, D = 1.702, t_dist = c(0, 1), a_dist = c(0, 0.2),
-  b_dist = c(0, 1), c_dist = c(5, 46), missing = NULL)
+model_3pl_gendata(n_p, n_i, t = NULL, a = NULL, b = NULL, c = NULL,
+  D = 1.702, t_dist = c(0, 1), a_dist = c(-0.1, 0.2), b_dist = c(0,
+  0.7), c_dist = c(5, 46), missing = NULL)
 
 model_3pl_plot(a, b, c, D = 1.702, type = c("prob", "info"),
   total = FALSE, xaxis = seq(-4, 4, 0.1))
 
-model_3pl_plot_loglik(u, a, b, c, D = 1.702, xaxis = seq(-4, 4, 0.1),
+model_3pl_plot_loglh(u, a, b, c, D = 1.702, xaxis = seq(-4, 4, 0.1),
   show_mle = FALSE)
-
-model_3pl_jmle(u, t = NA, a = NA, b = NA, c = NA, D = 1.702,
-  num_iter = 100, num_nr = 15, h_max = 1, conv = 0.1, decay = 0.95,
-  scale = NULL, bounds = list(t = c(-4, 4), a = c(0.1, 2), b = c(-4, 4), c =
-  c(0.01, 0.3)), priors = list(t = c(0, 1), a = c(0, 0.2), b = c(0, 1), c =
-  c(5, 46)), debug = FALSE)
-
-model_3pl_mmle(u, a = NA, b = NA, c = NA, D = 1.702, num_iter = 100,
-  num_nr = 15, num_quad = c("11", "20"), h_max = 1, conv = 0.1,
-  decay = 0.98, scale = NULL, bounds = list(t = c(-4, 4), a = c(0.1, 2), b
-  = c(-4, 4), c = c(0.01, 0.3)), priors = list(t = c(0, 1), a = c(0, 0.2), b =
-  c(0, 1), c = c(5, 46)), debug = FALSE)
-
-model_3pl_eap_scoring(u, a, b, c, D)
-
-model_3pl_fitplot(u, t, a, b, c, index = NULL, intervals = seq(-3, 3, 0.5))
 }
 \arguments{
-\item{t}{ability parameter, 1d vector}
+\item{t}{ability parameters, 1d vector}
 
 \item{a}{discrimination parameters, 1d vector}
 
@@ -64,126 +44,45 @@ model_3pl_fitplot(u, t, a, b, c, index = NULL, intervals = seq(-3, 3, 0.5))
 
 \item{log}{True to return log-likelihood}
 
-\item{param}{the parameter of the new scale, t or b}
+\item{param}{the parameter of the new scale: 't' or 'b'}
 
 \item{mean}{the mean of the new scale}
 
-\item{sd}{the SD of the new scale}
+\item{sd}{the standard deviation of the new scale}
 
-\item{num_people}{the number of people to be generated}
+\item{n_p}{the number of people to be generated}
 
-\item{num_item}{the number of items to be generated}
+\item{n_i}{the number of items to be generated}
 
-\item{t_dist}{the normal distribution parameters of t-parameters, a vector: c(mean, sd)}
+\item{t_dist}{parameters of the normal distribution used to generate t-parameters}
 
-\item{a_dist}{the lognormal distribution parameters of a-parameters, a vector: c(meanlog, sdlog)}
+\item{a_dist}{parameters of the lognormal distribution used to generate a-parameters}
 
-\item{b_dist}{the normal distribution parameters of b-parameters, a vector: c(mean, sd)}
+\item{b_dist}{parameters of the normal distribution used to generate b-parameters}
 
-\item{c_dist}{the beta distribution pamameters of c-parameters, a vector: c(alpha, beta)}
+\item{c_dist}{parameters of the beta distribution used to generate c-parameters}
 
 \item{missing}{the proportion or number of missing responses}
 
-\item{type}{the type of plot, prob for ICC and info for IIFC}
+\item{type}{the type of plot: 'prob' for item characteristic curve (ICC) and 
+'info' for item information function curve (IIFC)}
 
 \item{total}{TRUE to sum values over items}
 
 \item{xaxis}{the values of x-axis}
 
-\item{show_mle}{TRUE to print maximum likelihood values}
-
-\item{num_iter}{the maximum number of overall iterations}
-
-\item{num_nr}{the maximum number of the newton-raphson iterations}
-
-\item{h_max}{the maximum value of h in the newton-raphson method}
-
-\item{conv}{the convergence criterion in -2 log-likelihood of model fit}
-
-\item{decay}{the epoch decay parameter}
-
-\item{scale}{the scale of theta parameters}
-
-\item{bounds}{the bounds of parameters, a list}
-
-\item{priors}{the priors of parameters used in the maximum a posteriori estimation}
-
-\item{debug}{TRUE to print debugging information}
-
-\item{num_quad}{the number of quadrature points}
-
-\item{index}{items whose fit plots are drawn}
-
-\item{intervals}{theta intervals on which fit plots are drawn}
-}
-\value{
-\code{model_3pl_prob} returns a 2d matrix of probabilities, dim = n_people x n_items
-
-\code{model_3pl_info} returns a 2d matrix of informations, dim = n_people x n_items
-
-\code{model_3pl_lik} returns a 2d matrix of likelihood, dim = n_people x n_items
-
-\code{model_3pl_rescale} returns a list of rescaled t, a, b, c parameters
-
-\code{model_3pl_gendata} returns a list of generated data
-
-\code{model_3pl_plot} returns a ggplot graph
-
-\code{model_3pl_plot} returns a ggplot graph
-
-\code{model_3pl_jmle} returns estimated parameters
-
-\code{model_3pl_eap_scoring} returns the EAP scores
+\item{show_mle}{TRUE to print maximum likelihood estimates}
 }
 \description{
-3-parameter-logistic model
-
-\code{model_3pl_prob} computes the probability of a correct response for given parameters
-
-\code{model_3pl_info} computes the information for given parameters
-
-\code{model_3pl_lik} computes the likelihood of observed responses
-
-\code{model_3pl_rescale} transforms parameterrs to a given scale
-
-\code{model_3pl_gendata} generates data using the 3pl model
-
-\code{model_3pl_plot} plots the item characteristics curve (ICC) or 
-item information function curve (IIFC)
-
-\code{model_3pl_plot_loglik} plots the log-likelihood curves for each response vector
-
-\code{model_3pl_jmle} estimates parameters using the joint MLE method
-
-\code{model_3pl_mmle} estimates parameters using the marginal MLE method
-
-\code{model_3pl_eap_scoring} computes scores using the EAP method
-
-\code{model_3pl_fitplot} draws the fit plots
+Routine functions for the 3PL model
 }
 \examples{
-model_3pl_prob(c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.702)
-model_3pl_prob(c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.0)
-model_3pl_info(c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.702)
-model_3pl_info(c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.0)
-u <- matrix(c(1, 0, 1, 0, 1, 0), nrow=2)
-model_3pl_lik(u, c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.702, FALSE)
-model_3pl_lik(u, c(-1, 1), c(1, .8, .8), c(-1, 1, 1), c(0, 0, .2), 1.0, TRUE)
+with(model_3pl_gendata(10, 5), model_3pl_prob(t, a, b, c))
+with(model_3pl_gendata(10, 5), model_3pl_info(t, a, b, c))
+with(model_3pl_gendata(10, 5), model_3pl_lh(u, t, a, b, c))
 model_3pl_gendata(10, 5)
 model_3pl_gendata(10, 5, a=1, c=0, missing=.1)
 with(model_3pl_gendata(10, 5), model_3pl_plot(a, b, c, type="prob"))
 with(model_3pl_gendata(10, 5), model_3pl_plot(a, b, c, type="info", total=TRUE))
-with(model_3pl_gendata(5, 50), model_3pl_plot_loglik(u, a, b, c, show_mle=TRUE))
-\dontrun{
-data_tru <- model_3pl_gendata(3000, 50)
-data_est <- model_3pl_jmle(u=data_tru$u, scale=c(0, 1), priors=NULL, debug=TRUE)
-evaluate_3pl_estimation(data_tru, data_est)
-}
-\dontrun{
-data_tru <- model_3pl_gendata(3000, 50)
-data_est <- model_3pl_mmle(u=data_tru$u, scale=NULL, priors=NULL, debug=TRUE)
-evaluate_3pl_estimation(data_tru, data_est)
-}
-x <- model_3pl_gendata(1000, 20)
-with(x, model_3pl_fitplot(u, t, a, b, c, c(1, 3, 5)))
+with(model_3pl_gendata(5, 50), model_3pl_plot_loglh(u, a, b, c, show_mle=TRUE))
 }

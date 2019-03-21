@@ -2,7 +2,6 @@
 % Please edit documentation in R/module3_ata.R
 \name{ata}
 \alias{ata}
-\alias{ata}
 \alias{print.ata}
 \alias{plot.ata}
 \alias{ata_obj_relative}
@@ -20,14 +19,16 @@ ata(pool, num_form = 1, len = NULL, max_use = NULL, ...)
 
 \method{plot}{ata}(x, ...)
 
-ata_obj_relative(x, coef, mode = c("max", "min"), negative = FALSE,
-  forms = NULL, collapse = FALSE, internal_index = FALSE, ...)
-
-ata_obj_absolute(x, coef, target, forms = NULL, collapse = FALSE,
+ata_obj_relative(x, coef, mode = c("max", "min"), tol = NULL,
+  negative = FALSE, forms = NULL, collapse = FALSE,
   internal_index = FALSE, ...)
 
-ata_constraint(x, coef, min = NA, max = NA, level = NULL, forms = NULL,
-  collapse = FALSE, internal_index = FALSE)
+ata_obj_absolute(x, coef, target, equal_tol = FALSE, tol_up = NULL,
+  tol_down = NULL, forms = NULL, collapse = FALSE,
+  internal_index = FALSE, ...)
+
+ata_constraint(x, coef, min = NA, max = NA, level = NULL,
+  forms = NULL, collapse = FALSE, internal_index = FALSE)
 
 ata_item_use(x, min = NA, max = NA, items = NULL)
 
@@ -39,43 +40,51 @@ ata_solve(x, solver = c("lpsolve", "glpk"), as.list = TRUE,
   details = TRUE, time_limit = 10, message = FALSE, ...)
 }
 \arguments{
-\item{pool}{item pool (must include a, b, c parameters), a data.frame}
+\item{pool}{item pool, a data.frame}
 
-\item{num_form}{the number of forms to be assembled}
+\item{num_form}{number of forms to be assembled}
 
-\item{len}{the length of each form}
+\item{len}{test length of each form}
 
-\item{max_use}{the maximum use of each item}
+\item{max_use}{maximum use of each item}
 
 \item{...}{options, e.g. group, common_items, overlap_items}
 
-\item{x}{the ata object}
+\item{x}{an ATA object}
 
-\item{coef}{the coefficients of the objective function or the constraint}
+\item{coef}{coefficients of the objective function}
 
-\item{mode}{the optimization mode: 'max' for maximization and 'min' for minimization}
+\item{mode}{optimization mode: 'max' for maximization and 'min' for minimization}
 
-\item{negative}{\code{TRUE} when the expected value of the objective function is negative}
+\item{tol}{the tolerance paraemter}
 
-\item{forms}{the indices of forms where objectives are added. \code{NULL} for all forms}
+\item{negative}{\code{TRUE} when the objective function is expected to be negative}
 
-\item{collapse}{\code{TRUE} to collapse all forms into one objective function}
+\item{forms}{forms where objectives are added. \code{NULL} for all forms}
+
+\item{collapse}{\code{TRUE} to collapse into one objective function}
 
 \item{internal_index}{\code{TRUE} to use internal form indices}
 
 \item{target}{the target values of the objective function}
 
+\item{equal_tol}{\code{TRUE} to force upward and downward tolerance to be equal}
+
+\item{tol_up}{the range of upward tolerance}
+
+\item{tol_down}{the range of downward tolerance}
+
 \item{min}{the lower bound of the constraint}
 
 \item{max}{the upper bound of the constraint}
 
-\item{level}{the level of the categorical variable to be constrained}
+\item{level}{the level of a categorical variable to be constrained}
 
-\item{items}{a vector of item indices}
+\item{items}{a vector of item indices, \code{NULL} for all items}
 
-\item{solver}{use 'lpsolve' or 'glpk' solver}
+\item{solver}{use 'lpsolve' for lp_solve 5.5 or 'glpk' for GLPK}
 
-\item{as.list}{\code{TRUE} to return results in a list; otherwise, data frame}
+\item{as.list}{\code{TRUE} to return results in a list; otherwise, a data frame}
 
 \item{details}{\code{TRUE} to print detailed information}
 
@@ -84,94 +93,89 @@ ata_solve(x, solver = c("lpsolve", "glpk"), as.list = TRUE,
 \item{message}{\code{TRUE} to print messages from solvers}
 }
 \description{
-Automated Test Assembly (ATA)
+\code{ata} initiates an ATA model
 
-\code{ata} creates an \code{ata} object
+\code{ata_obj_relative} adds a relative objective to the model
 
-\code{ata_obj_relative} adds relative (maximize/minimize) objectives to LP
+\code{ata_obj_absolute} adds an absolute objective to the model
 
-\code{ata_obj_absolute} adds absolute objectives to the LP model
+\code{ata_constraint} adds a constraint to the model
 
-\code{ata_constraint} adds a constraint to the LP model
+\code{ata_item_use} limits the minimum and maximum usage for items
 
-\code{ata_item_use} sets the minimum and maximum usage for items
+\code{ata_item_enemy} adds an enemy-item constraint to the model
 
-\code{ata_item_enemy} adds enemy item relationships to the LP model
+\code{ata_item_fixedvalue} forces an item to be selected or not selected
 
-\code{ata_item_fixedvalue} sets a fixed value range for items
-
-\code{ata_solve} solves the LP model
+\code{ata_solve} solves the MIP model
 }
 \details{
-The \code{ata} object stores the definition of a LP model. \code{ata_solve} 
-converts definitions to the real LP object and attempts to solve it. When
-successfully solved, \code{result} (a matrix of binary values) and \code{items}
-(a list or data.frame of items) are added to the \code{ata} object.
+The ATA model stores the definition of a MIP model. \code{ata_solve} 
+converts the model definition to a real MIP object and attempts to solve it.
 
-\code{ata_obj_relative}, maximize (y - beta) subject to y <= sum(x) <= y + beta, or
-minimize (y + beta) subject to y - beta <= subject sum(x) <= y.
-When \code{negative=TRUE}, y and beta are negative; otherwise positive.  
-When \code{coef} is a numeric vector of the same length with the pool or forms, the given coefficients 
-are used directly; when a variable name, variable values are used; when a numeric vector with different 
-length with the pool, informations at those theta points are used.
+\code{ata_obj_relative}: 
+when mode='max', maximize (y-tol), subject to y <= sum(x) <= y+tol;
+when mode='min', minimize (y+tol), subject to y-tol <= sum(x) <= y.
+When \code{negative} is \code{TRUE}, y < 0, tol > 0.
+\code{coef} can be a numeric vector that has the same length with the pool or forms, 
+or a variable name in the pool, or a numeric vector of theta points.
+When \code{tol} is \code{NULL}, it is optimized; when \code{FALSE}, ignored; 
+when a number, fixed; when a range, constrained with lower and upper bounds.
 
 \code{ata_obj_absolute} minimizes y0+y1 subject to t-y0 <= sum(x) <= t+y1.
 
-When \code{level} is NA, it is assumed to impose constraints on a quantitative item property;
-otherwise, a categorical item property. \code{coef} can be a variable name, a constant, or 
-a numeric vector of the same length with the pool.
+When \code{level} is \code{NA}, it is assumed that the constraint is on
+a quantitative item property; otherwise, a categorical item property. 
+\code{coef} can be a variable name, a constant, or a numeric vector that has
+the same size as the pool.
 
 \code{ata_solve} takes control options in \code{...}. 
 For lpsolve, see \code{lpSolveAPI::lp.control.options}.
-For glpk, see \code{glpkAPI::glpkConstants}
+For glpk, see \code{glpkAPI::glpkConstants}\cr
+Once the model is solved, additional data are added to the model.
+\code{status} shows the status of the solution, \code{optimum} 
+the optimal value of the objective fucntion found in the solution, 
+\code{obj_vars} the values of two critical variables in the objective
+function, \code{result} the assembly results in a binary matrix, and 
+\code{items} the assembled items
 }
 \examples{
 \dontrun{
-## generate a 100-item pool
-nitems <- 100
-pool <- with(model_3pl_gendata(1, nitems), data.frame(id=1:nitems, a=a, b=b, c=c))
-pool$id <- 1:nitems
-pool$content <- sample(1:3, nitems, replace=TRUE)
-pool$time <- round(rlnorm(nitems, log(60), .2))
-pool$group <- sort(sample(1:round(nitems/3), nitems, replace=TRUE))
+## generate a pool of 100 items
+n_items <- 100
+pool <- with(model_3pl_gendata(1, nitems), data.frame(id=1:n_items, a=a, b=b, c=c))
+pool$content <- sample(1:3, n_items, replace=TRUE)
+pool$time <- round(rlnorm(n_items, log(60), .2))
+pool$group <- sort(sample(1:round(n_items/3), n_items, replace=TRUE))
 
-## ex. 1: 6 forms, 10 items, maximize b parameter
-x <- ata(pool, 6, len=10, max_use=1)
+## ex. 1: four 10-item forms, maximize b parameter
+x <- ata(pool, 4, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "max")
 x <- ata_solve(x, timeout=5)
-sapply(x$items, function(x) c(mean=mean(x$b), std=sd(x$b)))
+data.frame(form=1:4, b=sapply(x$items, function(x) mean(x$b)))
 
-## ex. 2: 3 forms, 10 items, minimize b parameter
-x <- ata(pool, 3, len=10, max_use=1)
+## ex. 2: four 10-item forms, minimize b parameter
+x <- ata(pool, 4, len=10, max_use=1)
 x <- ata_obj_relative(x, "b", "min", negative=TRUE)
 x <- ata_solve(x, as.list=FALSE, timeout=5)
 with(x$items, aggregate(b, by=list(form=form), mean))
 
-## ex. 3: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
+## ex. 3: two 10-item forms, mean(b)=0, sd(b)=1
+## content = (3, 3, 4), avg. time = 58--62 seconds
+constr <- data.frame(name='content',level=1:3, min=c(3,3,4), max=c(3,3,4), stringsAsFactors=F)
+constr <- rbind(constr, c('time', NA, 58*10, 62*10))
 x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_absolute(x, pool$b, 0 * 10)
-x <- ata_obj_absolute(x, (pool$b - 0)^2, 1 * 10)
-x <- ata_constraint(x, "content", min=3, max=3, level=1)
-x <- ata_constraint(x, "content", min=3, max=3, level=2)
-x <- ata_constraint(x, "content", min=4, max=4, level=3)
+x <- ata_obj_absolute(x, pool$b, 0*10)
+x <- ata_obj_absolute(x, (pool$b-0)^2, 1*10)
+for(i in 1:nrow(constr))
+  x <- with(constr, ata_constraint(x, name[i], min[i], max[i], level=level[i]))
 x <- ata_solve(x, timeout=5)
 sapply(x$items, function(x) c(mean=mean(x$b), sd=sd(x$b)))
 
-## ex. 4: same with ex. 3, but group-based
+## ex. 4: two 10-item forms, max TIF over (-1, 1), consider item sets
 x <- ata(pool, 2, len=10, max_use=1, group="group")
-x <- ata_obj_absolute(x, pool$b, 0 * 10)
-x <- ata_obj_absolute(x, (pool$b - 0)^2, 1 * 10)
-x <- ata_constraint(x, "content", min=3, max=3, level=1)
-x <- ata_constraint(x, "content", min=3, max=3, level=2)
-x <- ata_constraint(x, "content", min=4, max=4, level=3)
+x <- ata_obj_relative(x, seq(-1, 1, .5), 'max')
 x <- ata_solve(x, timeout=5)
-sapply(x$items, function(x) c(mean=mean(x$b), sd=sd(x$b), 
-       n_items=length(unique(x$id)), n_groups=length(unique(x$group))))
-
-# ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
-x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_relative(x, seq(-1, 1, .5), "max")
-x <- ata_solve(x)
 plot(x)
 }
 }

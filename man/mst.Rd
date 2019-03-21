@@ -2,8 +2,8 @@
 % Please edit documentation in R/module5_mst.R
 \name{mst}
 \alias{mst}
-\alias{mst}
 \alias{mst_route}
+\alias{mst_get_indices}
 \alias{mst_obj}
 \alias{mst_constraint}
 \alias{mst_stage_length}
@@ -15,10 +15,12 @@
 \alias{mst_get_items}
 \title{Computerized Multistage Testing (MST)}
 \usage{
-mst(pool, design, num_panel, method = c("topdown", "bottomup"), len = NULL,
-  max_use = NULL, group = NULL, ...)
+mst(pool, design, num_panel, method = c("topdown", "bottomup"),
+  len = NULL, max_use = NULL, group = NULL, ...)
 
 mst_route(x, route, op = c("+", "-"))
+
+mst_get_indices(x, indices)
 
 mst_obj(x, theta, indices = NULL, target = NULL, ...)
 
@@ -63,9 +65,9 @@ mst_get_items(x, panel_ix = NULL, stage_ix = NULL, module_ix = NULL,
 
 \item{op}{"+" to add a route and "-" to remove a route}
 
-\item{theta}{a theta point or interval over which the TIF is optimized}
-
 \item{indices}{the indices of the route (topdown) or the module (bottomup) where objectives are added}
+
+\item{theta}{a theta point or interval over which the TIF is optimized}
 
 \item{target}{the target values of the TIF objectives. \code{NULL} for maximization}
 
@@ -92,11 +94,11 @@ mst_get_items(x, panel_ix = NULL, stage_ix = NULL, module_ix = NULL,
 \item{route_ix}{the route index, an integer}
 }
 \description{
-Computerized Multistage Testing (MST)
-
 \code{mst} creates a multistage (MST) object for assembly
 
 \code{mst_route} adds/removes a route to/from the MST
+
+\code{mst_get_indices} maps the input indices to the actual indices
 
 \code{mst_obj} adds objective functions to the MST
 
@@ -215,3 +217,4 @@ x <- mst_assemble(x, timeout=15)
 plot(x, byroute=FALSE)
 }
 }
+\keyword{internal}

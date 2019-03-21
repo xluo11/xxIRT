@@ -254,7 +254,7 @@ ata_obj_relative <- function(x, coef, mode=c('max', 'min'), tol=NULL, negative=F
 #' @param target the target values of the objective function
 #' @param equal_tol \code{TRUE} to force upward and downward tolerance to be equal
 #' @param tol_up the range of upward tolerance
-#' @param tol_lo the range of downward tolerance
+#' @param tol_down the range of downward tolerance
 #' @details 
 #' \code{ata_obj_absolute} minimizes y0+y1 subject to t-y0 <= sum(x) <= t+y1.
 #' @export

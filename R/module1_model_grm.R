@@ -119,7 +119,7 @@ model_grm_rescale <- function(t, a, b, param=c("t", "b"), mean=0, sd=1){
 #' @param xaxis the values of x-axis
 #' @examples
 #' with(model_grm_gendata(10, 5, 3), model_grm_plot(a, b, type='prob'))
-#' with(model_grm_gendata(10, 5, 3), model_grm_plot(a, b, type='info', by_item=T))
+#' with(model_grm_gendata(10, 5, 3), model_grm_plot(a, b, type='info', by_item=TRUE))
 #' @import ggplot2
 #' @importFrom stats aggregate
 #' @export
@@ -134,7 +134,7 @@ model_grm_plot <- function(a, b, D=1.702, type=c('prob', 'info'), by_item=FALSE,
   if(by_item) y <- rbind(y, cbind(aggregate(y$x, by=list(theta=y$theta, item=y$item), sum), category='Total'))
   if(total) y <- cbind(aggregate(y$x, by=list(theta=y$theta, category=y$category), sum), item='Total')
   
-  y <- subset(y, !is.na(x))
+  y <- y[!is.na(y$x),]
   ggplot(y, aes_string(x="theta", y="x", color="category")) +
     geom_line() + facet_wrap(~item, scales='free') +
     xlab(expression(theta)) + ylab(type) +
@@ -147,7 +147,7 @@ model_grm_plot <- function(a, b, D=1.702, type=c('prob', 'info'), by_item=FALSE,
 #' with(model_grm_gendata(5, 50, 3), model_grm_plot_loglh(u, a, b))
 #' @import ggplot2
 #' @export
-model_grm_plot_loglh <- function(u, a, b, d, D=1.702, xaxis=seq(-6, 6, .1), show_mle=FALSE){
+model_grm_plot_loglh <- function(u, a, b, D=1.702, xaxis=seq(-6, 6, .1), show_mle=FALSE){
   n_p <- dim(u)[1]
   n_i <- dim(u)[2]
   n_t <- length(xaxis)

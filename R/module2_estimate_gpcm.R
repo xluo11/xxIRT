@@ -8,7 +8,7 @@ NULL
 #' @param prior the prior distribution
 #' @examples 
 #' with(model_gpcm_gendata(10, 40, 3), cbind(true=t, est=model_gpcm_eap_scoring(u, a, b, d)$t))
-#' @importFrom stat dnorm 
+#' @importFrom stats dnorm 
 #' @export
 model_gpcm_eap_scoring <- function(u, a, b, d, D=1.702, prior=c(0, 1), bound=c(-3, 3)){
   quad <- hermite_gauss('11')
@@ -144,7 +144,7 @@ model_gpcm_dv_jmle <- function(ix, dvp){
   list(dv1=dv1, dv2=dv2)  
 }
 
-#' @rdname model_gpcm
+#' @rdname estimate_gpcm
 #' @description \code{model_gpcm_estimate_jmle} estimates the parameters using the 
 #' joint maximum likelihood estimation (JMLE) method
 #' @param u the observed response matrix, 2d matrix
@@ -175,8 +175,9 @@ model_gpcm_dv_jmle <- function(ix, dvp){
 #' # no priors
 #' y <- model_gpcm_estimate_jmle(x$u, priors=NULL, true_params=x)
 #' }
-#' @import ggplot2
+#' @importFrom stats cor
 #' @importFrom reshape2 melt
+#' @import ggplot2
 #' @export
 model_gpcm_estimate_jmle <- function(u, t=NA, a=NA, b=NA, d=NA, D=1.702, iter=100, nr_iter=10, conv=1e-0, nr_conv=1e-3, scale=c(0, 1), bounds_t=c(-4, 4), bounds_a=c(.01, 2), bounds_b=c(-4, 4), bounds_d=c(-4, 4), priors=list(t=c(0, 1), a=c(-.1, .2), b=c(0, 1), d=c(0, 1)), decay=1, debug=FALSE, true_params=NULL){
   # configuration
@@ -291,7 +292,7 @@ model_gpcm_estimate_jmle <- function(u, t=NA, a=NA, b=NA, d=NA, D=1.702, iter=10
   if(debug){
     xx <- with(tracking, data.frame(iteration=1:iter, fit=fit, t=t, a=a, b=b, d=d))[1:k, ]
     xx <- melt(xx, id.vars='iteration')
-    xx <- subset(xx, !is.na(value))
+    xx <- xx[!is.na(xx$value),]
     g <- ggplot(xx, aes_string(x="iteration", y="value", color="variable")) + 
       geom_line() + facet_wrap(~variable, scales="free") + guides(color=F) + 
       xlab('Iterations') + ylab('') + theme_bw()
@@ -355,6 +356,7 @@ model_gpcm_dv_mmle <- function(u_ix, quad,  pdv){
 #' # no priors
 #' y <- model_gpcm_estimate_mmle(x$u, priors=NULL, true_params=x)
 #' }
+#' @importFrom stats cor
 #' @importFrom reshape2 melt
 #' @import ggplot2
 #' @export
@@ -459,7 +461,7 @@ model_gpcm_estimate_mmle <- function(u, t=NA, a=NA, b=NA, d=NA, D=1.702, iter=10
   if(debug){
     xx <- with(tracking, data.frame(iteration=1:iter, fit=fit, t=t, a=a, b=b, d=d))[1:k, ]
     xx <- melt(xx, id.vars='iteration')
-    xx <- subset(xx, !is.na(value))
+    xx <- xx[!is.na(xx$value),]
     g <- ggplot(xx, aes_string(x="iteration", y="value", color="variable")) + 
       geom_line() + facet_wrap(~variable, scales="free") + guides(color=F) + 
       xlab('Iterations') + ylab('') + theme_bw()
