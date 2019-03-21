@@ -10,10 +10,10 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE, eval=TRUE,  cache=TRUE)
 library(xxIRT)
-library(reshape2)
 library(dplyr)
 library(ggplot2)
-set.seed(180724)
+library(reshape2)
+set.seed(11235813)
 ```
 
 
@@ -31,7 +31,7 @@ set.seed(180724)
 
 ### Installation
 
-To install a stable version from [CRAN](https://cran.r-project.org/package=xxIRT), call `install.packages("xxIRT")` in R console. To install the most recent version from [GitHub](https://github.com/xluo11/xxIRT), call `devtools::install_github("xluo11/xxIRT")` in R console (if *devtools* package has not been installed yet, install it first). To remove the installed package, call `remove.packages("xxIRT")` in R console. 
+To install a stable version from [CRAN](https://cran.r-project.org/package=xxIRT), call `install.packages("xxIRT")` in R console. To install the most recent version from [GitHub](https://github.com/xluo11/xxIRT), call `devtools::install_github("xluo11/xxIRT")` in R console (if the *devtools* package has not been installed yet, install it first). To remove the package, call `remove.packages("xxIRT")` in R console. 
 
 
 ### Introduction
@@ -51,168 +51,249 @@ To install a stable version from [CRAN](https://cran.r-project.org/package=xxIRT
 
 ###### 3PL Model 
 
-The 3-parameter-logistic (3PL) model was introduced by Birnbaum[^1]. This model uses three item parameters (a, b, and c) and one people parameter ($\theta$) to describe the probabilistic relationship between an item and a person. The three item parameters are often referred to as the discrimination, difficulty and pseudo-guessing of an item. By default, the scaling constant D=1.702. When c=0, the model is reduced to the 2PL model. When a=1 and c=0, the model is reduced to the 1PL model. When a=1, c=0, and D=1, the model is **mathematically** equivalent to the Rasch model[^2]. 
+The famous 3-parameter-logistic (3PL) model was introduced by Birnbaum[^1]. 3PL uses three item parameters (*a*, *b*, and *c*) and one ability parameter ($\theta$) to describe the interaction between an item and a person. The three item parameters are often referred to as the discrimination, difficulty and pseudo-guessing. By default, the scaling constant *D* is 1.702. When c=0, the 3PL model is reduced to the 2PL model. When a=1 and c=0, the 3PL model is reduced to the 1PL model. When a=1, c=0, and D=1, the model is **mathematically** equivalent to the Rasch model[^2]. 
 
 The following functions are available for the 3PL model:
 
-+ `model_3pl_prob(t, a, b, c, D)`: Compute the probabilities of correct responses for given parameters. Return results in a people-by-item matrix. `D=1.702` by default.
-+ `model_3pl_info(t, a, b, c, D)`: Compute the information for given parameters and return results in a matrix
-+ `model_3pl_lik(u, t, a, b, c, D, log)`: Compute the response likelihoods for given response data and parameters. Use `log=TRUE` to return log-likelihood. 
-+ `model_3pl_rescale(t, a, b, c, param, mean, sd)`: Transform parameters to a new scale and return a list of rescaled parameters.
-+ `model_3pl_gendata(num_people, num_item, ...)`: Generate response data and parameters using the 3PL model. Pass in `t`, `a`, `b`, and `c` to fix parameters. Otherwise, draw these parameters from the normal, log-normal, normal and beta distributions respectively. Use `t_dist`, `a_dist`, `b_dist`, and `c_dist` to set the sampling distribution. Use `missing` argument to add missing response data.
-+ `model_3pl_plot(a, b, c, D, type, total, ...)`: Plot the item characteristic curves (ICCs; `type='prob'`) or the item information function curves (IIFCs; `type='info'`). When `total=TRUE`, results are summed over items into test characteristic curve (TCC) or the test information function (TIF) curve. 
-+ `model_3pl_plot_loglik(u, a, b, c, D, ...)`: Plot each person's log-likelihood functions. Use `show_mle=TRUE` to print a rough maximum likelihood estimate for each response vector. 
-+ `model_3pl_fitplot(u, t, a, b, c, index, intervals)`: Plot the item fit information. Use `index` to select items, and `intervals` to set the intervals for the fit plots.
++ `model_3pl_prob(t, a, b, c, D)`: Compute the probabilities of the correct response for given item and ability parameters, and return results in a people-by-item matrix. `D=1.702` by default.
++ `model_3pl_info(t, a, b, c, D)`: Compute the information for given item and ability parameters, and return results in a people-by-item matrix.
++ `model_3pl_lh(u, t, a, b, c, D, log)`: Compute the likelihoods of the given responses. Use `log=TRUE` to return log-likelihoods.
++ `model_3pl_rescale(t, a, b, c, param, mean, sd)`: Linearly transform parameters to a new scale, and return rescaled parameters in a list.
++ `model_3pl_gendata(n_p, n_i, ...)`: Generate responses and parameters. Pass in `t`, `a`, `b`, and `c` to fix parameters. Otherwise, sample these parameters from the normal, log-normal, normal and beta distributions respectively. Use `t_dist`, `a_dist`, `b_dist`, and `c_dist` to set the sampling distribution. Use `missing` to add missing responses to the generated data.
++ `model_3pl_plot(a, b, c, D, type, total, ...)`: Plot the item characteristic curves (ICCs; `type='prob'`) or the item information functions (IIFs; `type='info'`). When `total=TRUE`, results are summed over items to the test characteristic curve (TCC) or the test information function (TIF). 
++ `model_3pl_plot_loglh(u, a, b, c, D, ...)`: Plot each person's log-likelihood functions. Use `show_mle=TRUE` to print a rough maximum likelihood estimate (MLE) for each response vector. 
++ `model_3pl_fitplot(u, t, a, b, c, index, intervals)`: Plot the observed and expected scores for checking item fit. Use `index` to select items, and use `intervals` to set the x-axis of the plot.
 
 [^1]: Birnbaum, A. (1968). Some latent trait models. In F.M. Lord & M.R. Novick, (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
 [^2]: Rasch, G. (1966). An item analysis which takes individual differences into account. British journal of mathematical and statistical psychology, 19(1), 49-57.
 
 ###### Examples
 ```{r}
+# prepare data
+a <- c( .8,  1, 1.2)
+b <- c(-.5,  0, 0.5)
+c <- c( .1, .2,  .3)
+t <- c( -1,  0,   1)
+u <- matrix(0, nrow=3, ncol=3)
+u[lower.tri(u, diag=T)] <- 1
+
+# compute the probability for the 3PL model
+# expect: (.40, .32, .33), (.70, .60, .49), (.90, .88, .81)
+model_3pl_prob(t, a, b, c, 1.702) %>% round(., 2)
+# expect: (.38, .27, .18), (.62, .50, .38), (.82, .73, .62)
+model_3pl_prob(t, 1, b, 0, 1) %>% round(., 2)
+
+# compute the information for the 3PL model
+# expect: (.31, .14, .02), (.35, .48, .31), (.17, .29, .51)
+model_3pl_info(t, a, b, c, 1.702) %>% round(., 2)
+# expect: (.24, .20, .15), (.24, .25, .24), (.15, .20, .24)
+model_3pl_info(t, 1, b, 0, 1) %>% round(., 2)
+
+# compute the likelihood for the 3PL model
+# expect: (.40, .68, .67), (.70, .60, .51), (.90, .88, .81)
+model_3pl_lh(u, t, a, b, c, 1.702) %>% round(., 2)
+# expect: (-.91, -.39, -.40), (-.36, -.51, -.66), (-.11, -.13, -.21)
+model_3pl_lh(u, t, a, b, c, 1.702, log=T) %>% round(., 2)
+```
+
+```{r}
 # generate 1PL data with 10% missing
 x <- model_3pl_gendata(10, 5, a=1, c=0, missing=.1)
-# generate 3PL data and sample theta from N(.8, .5) and c-parameter from beta(1, 4)
-x <- model_3pl_gendata(10, 5, t_dist=c(.8, .5), c_dist=c(1, 6))
-# compute the probability using the Rasch model
-p <- model_3pl_prob(x$t, 1, x$b, 0, D=1)
-# compute the probability using the 3PL model
-p <- model_3pl_prob(x$t, x$a, x$b, x$c)
-# compute the information using the 3pl model
-i <- model_3pl_info(x$t, x$a, x$b, x$c)
-# compute the log-likelihood
-l <- model_3pl_lik(x$u, x$t, x$a, x$b, x$c, log=TRUE)
-## rescale parameters to a new scale where theta ~ N(0, 1)
-xx <- model_3pl_rescale(x$t, x$a, x$b, x$c, param="t", mean=0, sd=1)
+with(x, data.frame(a=a, b=b, c=c)) %>% round(., 2)
+
+# generate 3PL data and sample b from N(1.0, .5)
+x <- model_3pl_gendata(10, 5, b_dist=c(1.0, .5))
+with(x, data.frame(a=a, b=b, c=c)) %>% round(., 2)
+
+# rescale b parameters to N(0, 1)
+x <- with(x, model_3pl_rescale(t, a, b, c, param="b", mean=0, sd=1))
+with(x, data.frame(a=a, b=b, c=c)) %>% round(., 2)
 ```
 
 ###### Graphs
 ```{r, fig.height=3, fig.width=4}
-# ICC
-model_3pl_plot(x$a, x$b, x$c, type="prob")
-# TIF
-model_3pl_plot(x$a, x$b, x$c, type="info", total=TRUE)
-# log-likelihood
-model_3pl_plot_loglik(x$u, x$a, x$b, x$c)
-# item fit plot
-model_3pl_fitplot(x$u, x$t, x$a, x$b, x$c, c(1, 3, 5))
+# generate data
+x <- model_3pl_gendata(500, 4)
+# Item characteristic curves
+with(x, model_3pl_plot(a, b, c, type="prob"))
+# Test information function
+with(x, model_3pl_plot(a, b, c, type="info", total=TRUE))
+# Item fit plot
+with(x, model_3pl_fitplot(u, t, a, b, c, index=1:4, intervals=seq(-3, 3, .5)))
 ```
 
 
 ###### Generalized Partial Credit Model 
-The generalized partial credit model (GPCM) was introduced by Muraki[^3][^4]. GPCM extends IRT to model polytomous responses, where items have more than two score categories. There are two parameterization of this model: (1) an item-by-category matrix of *b*-parameter as the item-category parameters, or (2) a vector of *b*-parameters as the item difficulty parameters and an item-by-category matrix of *d*-parameters as the item category parameters (the final item-category parameters are computed as: $b-d$). Because guessing is usually difficult for polytomous items, *c*-parameter is absent in GPCM. Note because the difficulty of the initial category of an item ($b_{j1}$ or $d_{j1}$) does not change the probabilities of score categories of that item, it is usually arbitrarily set to 0. 
+The generalized partial credit model (GPCM) was introduced by Muraki[^3][^4]. GPCM extends IRT to model polytomously scored items where responses have more than two score categories. GPCM uses one ability parameter, one item discrimination parameter, and *k* (number of score categories) item category parameters to describe the interaction between item and people. There are two parameterization of this model: (1) use $b_{ik}$ to represent the difficulty of category *k* in item *i*, or (2) use $b_i$ to represent the overall difficulty of item *i* and $d_{ik}$ the difficulty of category *k* in item *i*. The second model parameterization is adopted in this package. In this parameterization, each item has a vector of *d*-parameters whose sum is equal to 0, and $d_1$ is set to 0.
 
 The following functions are available for GPCM:
 
-+ `model_gpcm_prob(t, a, b, d, D, add_initial)`: Compute the probabilities of score categories for given parameters. When `b` is a matrix and `d` is NULL, *b* is used as the item-category parameter. When `b` is a vector and `d` is a matrix, *b* is used as the item difficulty parameter and *d* the item category parameter. Use `add_initial` to add the initial category to *b* or *d*. The scaling constant `D=1.702` by default. The result is a 3-dimensional array: people by item by category.
-+ `model_gpcm_info(t, a, b, d, D, add_initial)`: Compute the information of score categories and return a 3D array as results.
-+ `model_gpcm_lik(u, t, a, b, d, D, add_initial, log)`: Compute the response likelihood and return a matrix as results. Use `log=TRUE` to return log-likelihood. 
-+ `model_gpcm_gendata(num_people, num_item, num_category, ...)`: Generate response data and parameters using the GPCM. Pass in `t`, `a`, and `b`. Otherwise, draw these parameters from the normal, log-normal, and normal distributions respectively. Use `t_dist`, `a_dist`, and `b_dist` to set the sampling distribution. Use `missing` argument to add missing response data. Use `set_initial` to set the value of the initial category. If `sort_b=TRUE`, category difficulties are sorted for each item.
-+ `model_gpcm_plot(a, b, d, D, add_initial, type, by_item, total, xaxis)`: Plot the item category characteristic curves (ICCCs; `type='prob'`) or item category information function curves (ICIFCs; `type='info'`). Use `by_item=TRUE` to combine category-level statistics into item-level statistics. Use `total=TRUE` to sum over items.
-+ `model_gpcm_plot_loglik(u, a, b, d, D=1.702, add_initial, xaxis, show_mle)`: Plot the log-likelihood for each response vector. Use `show_mle` to print a rough maximum likelihood estimate for each response vector.
++ `model_gpcm_prob(t, a, b, d, D, insert_d0)`: Compute the probability of score categories for given parameters, and return results in a 3D array (people by item by category). Use `insert_d0` to insert an initial category to *d* if it is omiited in the input. The scaling constant is 1.702 by default.
++ `model_gpcm_info(t, a, b, d, D, insert_d0)`: Compute the information of score categories for given parameters, and return results in a 3D array (people by item by category). Summing information over categories will produce a matrix of item information.
++ `model_gpcm_lh(u, t, a, b, d, D, insert_d0, log)`: Compute the likelihood for give responses, and return results in a 2D array (people by item). Use `log=TRUE` to compute log-likelihood. 
++ `model_gpcm_gendata(n_p, n_i, n_c, ...)`: Generate responses and parameters using the GPCM. Pass in `t`, `a`, `b`, and `d` to fix parameters. Otherwise, sample these parameters from the normal, log-normal, normal, and normal distributions respectively. Use `t_dist`, `a_dist`, and `b_dist` to set the sampling distributions. Use `missing` argument to add missing responses to the data. Use `sort_d=TRUE` to sort category parameters in ascending order for each item.
++ `model_gpcm_rescale(t, a, b, d, param, mean, sd)`: Transform parameters to a new scale, and return rescaled parameters in a list.
++ `model_gpcm_plot(a, b, d, D, insert_d0, type, by_item, total, xaxis)`: Plot the item category characteristic curves (ICCCs; `type='prob'`) or item category information functions (ICIFs; `type='info'`). Use `by_item=TRUE` to combine category-level statistics into item-level statistics. Use `total=TRUE` to sum statistics over items. Use `xaxis` to set the x-axis of the plot.
++ `model_gpcm_plot_loglh(u, a, b, d, D=1.702, insert_d0, xaxis, show_mle)`: Plot the log-likelihood for each response vector. Use `show_mle` to print a rough maximum likelihood estimate for each response vector.
 
 [^3]: Muraki, E. (1992). A Generalized Partial Credit Model: Application of an EM Algorithm. Applied Psychological Measurement, 16(2), 159-176.
 [^4]: Muraki, E. (1993). Information Functions of the Generalized Partial Credit Model. Applied Psychological Measurement, 17(4), 351-363.
 
 ###### Examples
 ```{r}
-# generate data: 10 peopel, 5 item, 3 categories in each item
-x <- model_gpcm_gendata(10, 5, 3, set_initial=0)
-# compute probability
-p <- model_gpcm_prob(x$t, x$a, x$b, NULL)
-# compute informtaoin
-i <- model_gpcm_info(x$t, x$a, x$b, NULL)
-# compute likelihood
-l <- model_gpcm_lik(x$u, x$t, x$a, x$b, NULL)
+# prepare data
+a <- c( .8,  1, 1.2)
+b <- c(-.5,  0, 0.5)
+d <- c( -1,-.8, -.2)
+d <- cbind(d1=0, d2=d, d3=-d)
+t <- c(-1,   0,   1)
+
+# compute the probability for GPCM
+# for score=0, expect: (.72, .93, .97), (.18, .44, .73), (.02, .03, .09)
+# for score=1, expect: (.09, .04, .03), (.09, .11, .17), (.03, .04, .17)
+# for score=2, expect: (.18, .03, .00), (.72, .44, .09), (.95, .93, .73)
+model_gpcm_prob(t, a, b, d, 1.702) %>% round(., 2)
+```
+
+```{r}
+# generate data: 10 peopel, 5 item, 3 categories
+x  <- model_gpcm_gendata(10, 5, 3)
+# compute the probability
+p  <- with(x, model_gpcm_prob(t, a, b, d))
+# compute the informtaoin
+i  <- with(x, model_gpcm_info(t, a, b, d))
+# compute the likelihood
+lh <- with(x, model_gpcm_lh(u, t, a, b, d))
 ```
 
 ###### Graphs
 ```{r, fig.height=3, fig.width=9}
 # Figure 1 in Muraki, 1992 (APM)
-model_gpcm_plot(a=c(1,1,.7), b=matrix(c(-2,0,2,-.5,0,2,-.5,0,2), nrow=3, byrow=TRUE), d=NULL, D=1.0, add_initial=0, xaxis=seq(-4, 4, .1), type='prob')
-```
+b <- matrix(c(-2,0,2,-.5,0,2,-.5,0,2), nrow=3, byrow=TRUE)
+model_gpcm_plot(a=c(1,1,.7), b=rowMeans(b), d=rowMeans(b)-b, D=1.0, insert_d0=0)
 
-```{r, fig.height=3, fig.width=6}
 # Figure 2 in Muraki, 1992 (APM)
-model_gpcm_plot(a=.7, b=matrix(c(.5,0,NA,0,0,0), nrow=2, byrow=TRUE), d=NULL, D=1.0, add_initial=0, xaxis=seq(-4, 4, .1))
-```
+b <- matrix(c(.5,0,NA,0,0,0), nrow=2, byrow=TRUE)
+model_gpcm_plot(a=.7, b=rowMeans(b, na.rm=T), d=rowMeans(b, na.rm=T)-b, D=1.0, insert_d0=0)
 
-```{r, fig.height=3, fig.width=6}
 # Figure 3 in Muraki, 1992 (APM)
-model_gpcm_plot(a=c(.778,.946), b=matrix(c(1.759,-1.643,3.970,-2.764), nrow=2, byrow=TRUE), d=NULL, D=1.0, add_initial=0)
-```
+b <- matrix(c(1.759,-1.643,3.970,-2.764), nrow=2, byrow=TRUE)
+model_gpcm_plot(a=c(.778,.946), b=rowMeans(b), d=rowMeans(b)-b, D=1.0, insert_d0=0)
 
-```{r, fig.height=6, fig.width=12}
 # Figure 1 in Muraki, 1993 (APM)
-model_gpcm_plot(a=1, b=matrix(c(0,-2,4,0,-2,2,0,-2,0,0,-2,-2,0,-2,-4), nrow=5, byrow=TRUE), d=NULL, D=1.0)
+b <- matrix(c(0,-2,4,0,-2,2,0,-2,0,0,-2,-2,0,-2,-4), nrow=5, byrow=TRUE)
+model_gpcm_plot(a=1, b=rowMeans(b), d=rowMeans(b)-b, D=1.0)
+
+# Figure 2 in Muraki, 1993 (APM)
+b <- matrix(c(0,-2,4,0,-2,2,0,-2,0,0,-2,-2,0,-2,-4), nrow=5, byrow=TRUE)
+model_gpcm_plot(a=1, b=rowMeans(b), d=rowMeans(b)-b, D=1.0, type='info', by_item=TRUE)
 ```
 
-```{r, fig.height=6, fig.width=12}
-# Figure 2 in Muraki, 1993 (APM)
-model_gpcm_plot(a=1, b=matrix(c(0,-2,4,0,-2,2,0,-2,0,0,-2,-2,0,-2,-4), nrow=5, byrow=TRUE), d=NULL, D=1.0, type='info', by_item=TRUE)
+
+###### Graded Response Model 
+The graded response model (GRM) was introduced by Samejima[^5]. Similar to GPCM, GRM is another polytomous IRT model. However, the difference is that GRM is a "difference" whereas the GPCM is a "divided-by-total" model under the Thissen and Steinberg's[^6] taxonomy of IRT model. The model uses one ability parameter, one item discrimination parameter, and *k-1* ordered item difficulty parameters (*k* is the number of score categories) to describe the interaction between an item and an individual. The probability of a score category involves a two-step computation. First, the *raw* probabilities are computed, where ${P^{*}(x>=m)}$ is computed using a 2PL model. Two special cases are: ${P^{*}(x>=0)}=1$ and  ${P^{*}(x>=k)}=0$. Next, ${P(x=m)}$ is computed as such ${P^{*}(x>=m)-P^{*}(x>=m+1)}$.
+
+The following functions are available for GRM:
+
++ `odel_grm_prob(t, a, b, D, raw)`: Compute the probability of score categories for given parameters, and return results in a 3D array (people by item by category). Use `raw=TRUE` to return ${P^{*}}$. The scaling constant is 1.702 by default.
++ `model_grm_info(t, a, b, d, D)`: Compute the information of score categories for given parameters, and return results in a 3D array (people by item by category). Summing information over categories will produce a matrix of item information.
++ `model_grm_lh(u, t, a, b, d, D, log)`: Compute the likelihood for give responses, and return results in a 2D array (people by item). Use `log=TRUE` to compute log-likelihood. 
++ `model_grm_gendata(n_p, n_i, n_c, ...)`: Generate responses and parameters using the GPCM. Pass in `t`, `a`, and `b` to fix parameters. Otherwise, sample these parameters from the normal, log-normal, and normal distributions respectively. Use `t_dist`, `a_dist`, and `b_dist` to set the sampling distributions. Use `missing` argument to add missing responses to the data. 
++ `model_grm_rescale(t, a, b, param, mean, sd)`: Transform parameters to a new scale, and return rescaled parameters in a list.
++ `model_grm_plot(a, b, D, type, by_item, total, xaxis)`: Plot the item category characteristic curves (ICCCs; `type='prob'`) or item category information functions (ICIFs; `type='info'`). Use `by_item=TRUE` to combine category-level statistics into item-level statistics. Use `total=TRUE` to sum statistics over items. Use `xaxis` to set the x-axis of the plot.
++ `model_grm_plot_loglh(u, a, b, D=1.702, xaxis, show_mle)`: Plot the log-likelihood for each response vector. Use `show_mle` to print a rough maximum likelihood estimate for each response vector.
+
+[^5]: Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. Psychometrika Monograph Supplement, 34(4, Pt. 2), 100.
+[^6]: Thissen, D., & Steinberg, L. (1986). A taxonomy of item response models. Psychometrika, 51(4), 567-577.
+
+###### Examples
+```{r}
+# prepare data
+a <- c( .8,  1, 1.2)
+b <- c(-.5,  0, 0.5)
+b <- cbind(b1=b, b2=b+.5)
+t <- c(-1,   0,   1)
+
+# compute the probability for GRM
+# for score=0, expect: (.66, .85, .96), (.34, .50, .74), (.11, .15, .26)
+# for score=1, expect: (.13, .08, .03), (.16, .20, .15), (.09, .15, .24)
+# for score=2, expect: (.20, .07, .02), (.50, .30, .11), (.80, .70, .50)
+model_grm_prob(t, a, b, 1.702) %>% round(., 2)
 ```
+
+```{r}
+# generate data: 10 peopel, 5 item, 3 categories
+x  <- model_grm_gendata(10, 5, 3)
+# compute the probability
+p  <- with(x, model_grm_prob(t, a, b))
+# compute the informtaoin
+i  <- with(x, model_grm_info(t, a, b))
+# compute the likelihood
+lh <- with(x, model_grm_lh(u, t, a, b))
+```
+
+###### Graphs
+```{r, fig.height=3, fig.width=9}
+# ICCs in GRM
+with(model_grm_gendata(10, 4, 3), model_grm_plot(a, b, type='prob'))
+# IFFs in GRM
+with(model_grm_gendata(10, 4, 3), model_grm_plot(a, b, type='info', by_item=T))
+```
+
 
 
 ##### Parameter Estimation
 
-Parameters are often unknown and need to be estimated using statistical procedures, and parameter estimation is a central activity in IRT. The following functions are available for the estimation of 3PL model: 
+Parameters of an IRT model are often unknown and need to be estimated using statistical procedures, and a central activity in psychometric analysis. A common method is the maximum likelihood estimation (MLE), which attempts to find a set of parameter values that maximizes the likelihood of observed responses. Two popular methods in IRT are: the joint maximum likelihood estimation (JMLE) and the marginal maximum likelihood estimation (MMLE)[^7]. JMLE estimates item parameters and ability parameters in turns, and in each turn it maximizes the likelihood conditional on all parameters. MMLE estimates item parameters using the marginal likelihood which integrates out the ability parameters.  
 
-+ `model_3pl_jmle(u, t=NA, a=NA, b=NA, c=NA, D=1.702, num_iter=100, num_nr=15, h_max=1.0, conv=.1, decay=.95, scale=NULL, bounds=list(), priors=list(), debug=TRUE)`: A joint maximum likelihood estimator of $\theta$ and item parameters, and a MAP estimator when `priors` is set. Pass in `t`, `a`, `b`, `c` to fix parameters. Use `num_iter` and `num_nr` to control the maximum cycles of E-M iteration and Newton-Raphson iteration. Use `conv` to control the convergence criterion. The estimation terminates when the log-likelihood decrement is less than *conv*. Use `scale` to set the scale for $\theta$. Use `bounds` and `priors` to control the bounds and priors of parameters. Use `debug=TRUE` to turn on the debugging mode.
-+ `model_3pl_mmle(u, a=NA, b=NA, c=NA, D=1.702, num_iter=100, num_nr=15, num_quad=c('11', '20'), h_max=1.0, conv=.1, decay=.98, scale=NULL, bounds=list(), priors=list(), debug=FALSE)`: A marginal maximum likelihood estimator of $\theta$ and item parameters. Item parameters are estimated first using the marginal distribution of $\theta$, and $\theta$s are estimated afterwards.
-+ `model_3pl_eap_scoring(u, a, b, c, D)`: An EAP estimator of $\theta$s.
+The following functions are available for estimating parameters: 
 
-The following functions are available for the estimation of GPCM:
++ `model_3pl_estimate_jmle(u, ...)`: Estimate parameters of the 3PL model using JMLE. Set `priors` to apply maximum a posteriori (MAP) estimator instead of regular MLE. Pass in `t`, `a`, `b`, `c` to fix parameters. Use `iter` and `nr_iter` to control the maximum cycles and the maximum Newton-Raphson iteration. Use `conv` and `nr_conv` to control the convergence criterion in terms of -2 log-likelihood in the overall estimation and the the convergence criterion in Newton-Raphson. Use `scale` to set the scale for $\theta$ parameters. Use `bounds_t`, `bounds_a`, `bounds_b`, and `bounds_c` to set bounds for parameters. Use `debug=TRUE` to turn on the debugging mode. Pass a list of true parameters to `true_params` to compare the true and estimated parameters when the estimation is complete, if true parameters are known.
++ `model_3pl_estimate_mmle(u, ...)`: Estimate parameters of the 3PL model using MMLE. Most of the JMLE control parameters are also applicable to MMLE. In additoin, use `scoring` to select the `eap` or `map` scoring method.
++ `model_3pl_eap_scoring(u, a, b, c, D, prior, bound)`: Score response vectors for the 3PL model using the expected a posterior (EAP) method, and return a list of ${theta}$ estimates (`t`) and measurement error (`sd`).
++ `model_3pl_map_scoring(u, a, b, c, D, prior, bound, nr_iter, nr_conv)`: Score response vectors for the 3PL model using the MAP method, and return a list of ${theta}$ estimates (`t`).
++ `model_gpcm_jmle(u, ...)`: Estimate parameters of GPCM using JMLE. See the explanation of `model_3pl_estimate_jmle()` for the control parameters that are available for fine tuning the estimation.    
++ `model_gpcm_estimate_mmle(u, ...)`: Estimate parameters of GPCM using MMLE. See the explanation of `model_3pl_jmle()` for the control parameters that are available for fine tuning the estimation.
++ `model_gpcm_eap_scoring(u, a, b, d, D, prior, bound)`: Score response vectors for GPCM using the EAP method, and return a list of ${theta}$ estimates (`t`) and measurement error (`sd`).
++ `model_gpcm_map_scoring(u, a, b, d, D, prior, bound, nr_iter, nr_conv)`: Score response vectors for GPCM using the MAP method, and return a list of ${theta}$ estimates (`t`).
++ `model_grm_estimate_jmle(u, ...)`: Estimate parameters of GRM using JMLE. See the explanation of `model_3pl_jmle()` for the control parameters that are available for fine tuning the estimation.    
++ `model_grm_estimate_mmle(u, ...)`: Estimate parameters of GRM using MMLE. See the explanation of `model_3pl_jmle()` for the control parameters that are available for fine tuning the estimation.
++ `model_grm_eap_scoring(u, a, b, d, D, prior, bound)`: Score response vectors for GRM using the EAP method, and return a list of ${theta}$ estimates (`t`) and measurement error (`sd`).
++ `model_gpcm_map_scoring(u, a, b, d, D, prior, bound, nr_iter, nr_conv)`: Score response vectors for GRM using the MAP method, and return a list of ${theta}$ estimates (`t`).
 
-+ `model_gpcm_jmle(u, t, a, b, d, D, set_initial, num_iter, num_nr, h_max, conv, decay, scale, bounds=list(), priors=list(), debug)`: A joint  maximum likelihood estimator.
-
+[^7]: Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item parameters: Application of an EM algorithm. Psychometrika, 46(4), 443-459.
 
 ###### Examples
 
-Generate data: 3000 people, 60 items
-```{r}
-data_tru <- model_3pl_gendata(3000, 60)
-```
-
-Joint maximum likelihood estimation
+Estimation of the 3PL model
 ```{r, fig.width=12, fig.height=3}
-data_est <- model_3pl_jmle(u=data_tru$u, scale=c(0, 1), priors=NULL)
-evaluate_3pl_estimation(data_tru, data_est)
+# generate data: 2000 people, 60 items
+x <- model_3pl_gendata(2000, 60)
+# JMLE: free calibration
+y <- with(x, model_3pl_estimate_jmle(u, true_params=x))
+# JMLE: no priors
+y <- with(x, model_3pl_estimate_jmle(u, priors=NULL, true_params=x))
+# JMLE: fix a and c parameters
+y <- with(x, model_3pl_estimate_jmle(u, a=a, c=c, true_params=x))
+# JMLE: fix c=0
+y <- with(x, model_3pl_estimate_jmle(u, c=0, true_params=x))
+# MMLE: free calibration
+y <- with(x, model_3pl_estimate_mmle(u, iter=20, true_params=x))
+# MMLE: fix a and c parameters
+y <- with(x, model_3pl_estimate_mmle(u, a=a, c=c, iter=20, true_params=x))
+# EAP scoring
+y <- with(x, model_3pl_eap_scoring(u, a, b, c))
+c(corr=cor(x$t, y$t), rmse=rmse(x$t, y$t)) %>% round(., 2)
+# MAP scoring
+y <- with(x, model_3pl_map_scoring(u, a, b, c))
+c(corr=cor(x$t, y$t), rmse=rmse(x$t, y$t)) %>% round(., 2)
 ```
 
-MAP with joint maximum likelihood estimation
-```{r, fig.width=12, fig.height=3}
-data_est <- model_3pl_jmle(u=data_tru$u, scale=c(0, 1))
-evaluate_3pl_estimation(data_tru, data_est)
-```
-
-Marginal maximum likelihood estimation
-```{r, fig.width=12, fig.height=3}
-data_est <- model_3pl_mmle(u=data_tru$u, num_quad="11", scale=NULL, priors=NULL)
-evaluate_3pl_estimation(data_tru, data_est)
-```
-
-Estimate item parameters only
-```{r, fig.width=12, fig.height=3}
-data_est <- model_3pl_jmle(u=data_tru$u, t=data_tru$t, priors=NULL)
-evaluate_3pl_estimation(data_tru, data_est)
-```
-
-Estimate $\theta$ only
-```{r}
-theta_est <- with(data_tru, model_3pl_jmle(u=u, a=a, b=b, c=c, priors=NULL))$t
-cat('corr=', round(cor(theta_est, data_tru$t), 2), ', rmse=', round(rmse(theta_est, data_tru$t), 2), '\n', sep='')
-```
-
-EAP estimates of $\theta$
-```{r}
-theta_est <- with(data_tru, model_3pl_eap_scoring(u=u, a=a, b=b, c=c, D=1.702))
-cat('corr=', round(cor(theta_est, data_tru$t), 2), ', rmse=', round(rmse(theta_est, data_tru$t), 2), '\n', sep='')
-```
-
-The effect of sample size and test length on estimation
-```{r, echo=FALSE, fig.height=3, fig.width=9}
+The effect of sample size and test length on the estimation of the 3PL model
+```{r, echo=FALSE, fig.height=3, fig.width=12}
 rs <- NULL
-for(ns in seq(1000, 5000, by=1000)){
-  for(ni in seq(30, 90, by=30)){
+for(ns in seq(500, 3000, by=500)){
+  for(ni in seq(20, 80, by=20)){
     data_tru <- model_3pl_gendata(ns, ni)
     data_est <- model_3pl_jmle(u=data_tru$u, scale=c(0, 1), priors=NULL)
     rs <- rbind(rs, data.frame(tru=data_tru$t, est=data_est$t, param="t", n_sample=ns, n_items=ni),
@@ -223,36 +304,18 @@ for(ns in seq(1000, 5000, by=1000)){
 }
 
 rs %>% mutate(n_items=paste(n_items, "Items")) %>%
-  group_by(n_sample, n_items, param) %>% 
-  summarise(corr=cor(tru, est), rmse=rmse(tru, est)) %>%
-  ggplot(aes(x=n_sample, y=rmse, color=param)) +
-  geom_point() + geom_line() + facet_wrap( ~ n_items, nrow=1) + 
-  xlab("Sample Sizes") + ylab("RMSE") + theme_bw()
+  group_by(n_sample, n_items, param) %>% summarise(rmse=rmse(tru, est)) %>%
+  ggplot(aes(x=n_sample, y=rmse, color=n_items)) +
+  geom_smooth(method='loess', se=F, size=.1, span=1) + 
+  facet_wrap( ~ param, nrow=1) + xlab("Sample Sizes") + ylab("RMSE") + 
+  scale_color_discrete(guide=guide_legend('')) + theme_bw()
 ```
 
-The effects of fixed items on estimation (3000 people and 50 items)
-```{r, echo=FALSE}
-rs <- NULL
-data_tru <- model_3pl_gendata(3000, 50)
-for(ni in seq(0, 40, by=10)){
-  data_est <- with(data_tru, model_3pl_jmle(u, a=c(a[0:ni], rep(NA, 50-ni)), b=c(b[0:ni], rep(NA, 50-ni)), c=c(c[0:ni], rep(NA, 50-ni)), scale=c(0, 1), priors=NULL))
-  rs <- rbind(rs, data.frame(tru=data_tru$t, est=data_est$t, param="t", n_fixed=ni),
-            data.frame(tru=data_tru$a, est=data_est$a, param="a", n_fixed=ni),
-            data.frame(tru=data_tru$b, est=data_est$b, param="b", n_fixed=ni),
-            data.frame(tru=data_tru$c, est=data_est$c, param="c", n_fixed=ni))
-}
-
-rs %>% group_by(n_fixed, param) %>%
-  summarise(corr=cor(tru, est), rmse=rmse(tru, est)) %>%
-  ggplot(aes(x=n_fixed, y=rmse, color=param)) + geom_point() + geom_line() +
-  xlab('Number of Fixed Items') + ylab('RMSE') + theme_bw()
-```
-
-The effect of missing data on estimation (3000 people and 50 items)
+The effect of missing data on the estimation of the 3PL model (2000 people, 60 items)
 ```{r, echo=FALSE}
 rs <- NULL
 for(nm in seq(0, .5, by=.1)){
-  data_tru <- model_3pl_gendata(3000, 50, missing=nm)
+  data_tru <- model_3pl_gendata(2000, 60, missing=nm)
   data_est <- model_3pl_jmle(data_tru$u, scale=c(0, 1), priors=NULL)
   rs <- rbind(rs, data.frame(tru=data_tru$t, est=data_est$t, param="t", n_miss=nm),
               data.frame(tru=data_tru$a, est=data_est$a, param="a",n_miss=nm),
@@ -260,101 +323,222 @@ for(nm in seq(0, .5, by=.1)){
               data.frame(tru=data_tru$c, est=data_est$c, param="c", n_miss=nm))
 }
 
-rs %>% group_by(n_miss, param) %>%
-  summarise(corr=cor(tru, est), rmse=rmse(tru, est)) %>%
-  ggplot(aes(x=n_miss, y=rmse, color=param)) + geom_point() + geom_line() + 
+rs %>% group_by(n_miss, Params=param) %>% summarise(rmse=rmse(tru, est)) %>%
+  ggplot(aes(x=n_miss, y=rmse, color=Params)) + geom_point() + geom_line() + 
   xlab("Percent of Missing Data") + ylab("RMSE") + theme_bw()
 ```
 
 
+Estimation of GPCM
+```{r, fig.width=12, fig.height=3}
+# generate data: 1000 people, 30 items, 3 score categories
+x <- model_gpcm_gendata(1000, 30, 3)
+# JMLE: free calibration
+y <- with(x, model_gpcm_estimate_jmle(u, true_params=x))
+# JMLE: no priors
+y <- with(x, model_gpcm_estimate_jmle(u, priors=NULL, true_params=x))
+# JMLE: fix a=0
+y <- with(x, model_gpcm_estimate_jmle(u, a=1, true_params=x))
+# MMLE: free calibration
+y <- with(x, model_gpcm_estimate_mmle(u, true_params=x))
+# MMLE: fix a=1
+y <- with(x, model_gpcm_estimate_mmle(u, a=1, true_params=x))
+# EAP scoring
+y <- with(x, model_gpcm_eap_scoring(u, a, b, d))
+c(corr=cor(x$t, y$t), rmse=rmse(x$t, y$t)) %>% round(., 2)
+# MAP scoring
+y <- with(x, model_gpcm_map_scoring(u, a, b, d))
+c(corr=cor(x$t, y$t), rmse=rmse(x$t, y$t)) %>% round(., 2)
+```
+
+
+Estimation of GRM
+```{r, fig.width=12, fig.height=3}
+# generate data: 1000 people, 30 items, 3 score categories
+x <- model_grm_gendata(1000, 30, 3)
+# JMLE: free calibration
+y <- with(x, model_grm_estimate_jmle(u, true_params=x))
+# JMLE: no priors
+y <- with(x, model_grm_estimate_jmle(u, priors=NULL, true_params=x))
+# JMLE: fix a=0
+y <- with(x, model_grm_estimate_jmle(u, a=1, true_params=x))
+# MMLE: free calibration
+y <- with(x, model_grm_estimate_mmle(u, true_params=x))
+# MMLE: fix a=1
+y <- with(x, model_grm_estimate_mmle(u, a=1, true_params=x))
+# EAP scoring
+y <- with(x, model_grm_eap_scoring(u, a, b))
+c(corr=cor(x$t, y$t), rmse=rmse(x$t, y$t)) %>% round(., 2)
+# MAP scoring
+y <- with(x, model_grm_map_scoring(u, a, b))
+c(corr=cor(x$t, y$t), rmse=rmse(x$t, y$t)) %>% round(., 2)
+```
+
+
+
 ##### Automated Test Assembly
-Automated test assembly (ATA) applies advanced optimization algorithms to assemble test forms that optimize the objective functions while satisfying a set of constraints. Objectives in ATA can be relative (e.g., maximize or minimize difficulty) or absolute (e.g., approach a TIF target). While there are many ATA methods in psychometric literature [^5][^6][^7], the mixed integer programming (MIP) algorithm is chosen as the implementation method in this package for its versality and flexibility. This module uses the open source solver [lp_solve](http://lpsolve.sourceforge.net/5.5/) via the package [lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI) and [GNU Linear Programming Kit](https://www.gnu.org/software/glpk/) via the package [glpkAPI](https://CRAN.R-project.org/package=glpkAPI).
 
-The following ATA functions are available:
+what's ATA
+why's import
+methods
 
-+ `ata(pool, num_form, len, max_use, group, ...)`: Create an ATA job. Use `len` and `max_use` to conveniently set test length constraint and the maximum item usage constraint. Use `group` (a string to refer to a variable in the item pool or a numeric vector of group coding) to group item belonging to the same sets.
-+ `ata_obj_relative(x, coef, mode, negative, forms, ...)`: Add a relative objective function to the ATA job. Use `mode` to indicate whether to maximize (`mode="max"`) or minimize (`mode="min"`) the objective functions. `coef` is the coefficients in the objective functions, which can be a variable of the item pool or a pool-long numeric vector. When being a numeric vector unequal to the number of items in the pool, it is interpreted as $\theta$ points at which the information is optimized. Use `negative=TRUE` to indicate that the value of the objective function is expected to be negative. Use `forms` to indicate onto which forms objective functions are set (*NULL* for all forms). Use `collapse=TRUE` to collapse objective functions on different forms into one objective function. Use `no_cap` to remove the tolerance parameter $\beta$ which is added to model to control the objective overflow. Use `beta_max` to set a limit on the tolerance parameter.
-+ `ata_obj_absolute(x, coef, target, forms, ...)`: Add an absolute objective function to the ATA job. Use `target` to set the target values. By default, the objective function minimizes the sum of two tolerance parameters, one for negative and one for positive discrepancy. Use `lb_max` and `ub_max` to set limits on the negative and positive tolerance parameters respectively. Use `equal_band=TRUE` to have equal negative and positive tolerance parameters.
-+ `ata_constraint(x, coef, min, max, level, forms, ...)`: Add a constraint to the ATA job. `coef` can be either a variable of the item pool, a pool-long numeric vector, or a single value (broadcasted to all items). When `coef` refers to a categorical variable, use `level` to indicate for which level the constraint is set. When `coef` refers to a quantitative variable, leave `level=NULL`.
+Test assembly is an activity that selects items from the pool to construct test forms that satisfy a set of predefined psychometric, content, and administration requirements. The quality of the assembled test forms has an immediate impact on the test validity and fairness. The traditional manual test assembly approach relies on content developers to handpick items based on their judgments, and this is apprantly an inefficient approach that is difficult to scale up for any large-scale test assembly task. Conversely, automated test assembly (ATA) is an approach that utilizes computer algorithms and mathematical optimization techniques to construct test forms in an automated manner. Not only does it improve the efficiency of test assembly, but also lays the foundation for other advanced testing models such as shadow-test computerized adaptive testing[^8] and computerized adaptive multistage testing[^9].
+
+A test assembly task is an optimization problem in ATA, and it can be solved either by a heuristic[^10][^11] or a mixed integer programming (MIP)[^12] algorithm. Heuristics avoid traversing all possibilities of item combination, yet attempt to find a "shortcut" to one of working solutions. Thus, they are fast but cannot guarantee the optimality of the solution. More importantly, they are usually specialized for a certain type of tasks. On the other hand, MIP is a general framework that is useful for a variety of tasks. To apply MIP, the task has to be defined in linear formulae, with one objective function and a set of constraints. Then, apply a solver to search completely through the feasibility region defined by constraints for a solution that returns the optimal value of the objective function. 
+
+Compared with those general linear programming packages, this package is specifically designed for ATA and thus has more succinct and expressive APIs. Many ATA-specific model configurations are simplified for users. Also, it includes two open source MIP solvers: [lp_solve](http://lpsolve.sourceforge.net/5.5/) (accessed via the package [lpSolveAPI](https://CRAN.R-project.org/package=lpSolveAPI)) and [GNU Linear Programming Kit](https://www.gnu.org/software/glpk/) (accessed via the package [glpkAPI](https://CRAN.R-project.org/package=glpkAPI)).
+
+The following functions are available for ATA:
+
++ `ata(pool, num_form, len, max_use, ...)`: Initiate an ATA job. All subsequent model definitions are stored in the object until `ata_solve()` is called which creates a MIP object according model definitions and attempts to solve it. Use `len` and `max_use` to conveniently set test length constraint and the maximum item usage constraint. `...` takes some useful arguments. For example, use `group` to define the item set grouping variable, use `common_items` and `overlap_items` to define item overlap.
++ `ata_obj_relative(x, coef, mode, tol, negative, forms, ...)`: Add a relative objective to the model. Use `mode` to indicate the optimization direction: `mode="max"` to maximize the objective function and `mode="min"` to minimize the objective functions. `coef` is the coefficients of the objective function, which can be a variable in the item pool, a numeric vector whose length is equal to the size of the pool, or a numeric vector of several ${theta}$ points where TIFs are optimized. By default, a tolerance parameter is added to the model in hopes of getting balanced results (e.g., a flatter TIF over multiple ${theta}$ points). However, users are allowed to use `tol=FALSE` to remove the tolerance parameter or giving `tol` a numeric value to fix it. It is necessary to add `negative=TRUE` to the function call, when the value of the objective function is expected to be negative. Use `forms` to indicate onto which forms objectives are set (*NULL* for all forms). 
++ `ata_obj_absolute(x, coef, target, equal_tol, tol_up, tol_down, forms, ...)`: Add an absolute objective to the model. Use `target` to set the target values. By default, the objective function allows the upward and downward discrepancies from the target to vary and minimize the overall range of these two discrepanceis. Users are allowed to use `equal_tol=TRUE` to force these two tolerance parameters to be equal, and use `tol_up` and `tol_down` to impose extra constraints on the range of these two tolerance parameters.
++ `ata_constraint(x, coef, min, max, level, forms, ...)`: Add a constraint to the model. `coef` can be either a variable in the item pool, a numeric vector which has the size as the pool, or a single numeric value which is broadcasted to all items. When `coef` refers to a categorical variable in the pool, use `level` to indicate for which level the constraint is set. When `coef` refers to a quantitative variable in the pool, leave `level=NULL`.
 + `ata_item_use(x, min, max, items)`: Set the minimum and maximum usage constraints on items. `items` should be a vector of item indices in the pool.
 + `ata_item_enemy(x, items)`: Set the enemy relationship constraints on items.
-+ `ata_item_fixedvalue(x, items, min, max, forms)`: Fix the results of decision variables on items
-+ `ata_solve(x, solver, as.list, details, time_limit, message, ...)`: Solve the ATA job. Use `solver` to choose the *lp_solve* or the *glpk* solver. Use `as.list=TRUE` to return results as list; otherwise, data frame. Use `time_limit` to set the time limits of the job in seconds. Pass additional control parameters in `...` (See the documentation of *lpSolveAPI* and *glpkAPI* for more details). Use `details=TRUE` and `message=TRUE` to print messages from the master function and the solver. Once solved, the ATA job is added with four objects: `status` (status code of the solution), `optimum` (final optimal value of the objective function), `obj_var` (values of two essential objective variables), `result` (a binary matrix of assembly results), and `item` (a list of data frame of assembled test forms).
++ `ata_item_fixedvalue(x, items, min, max, forms)`: Force items to be selected or not selected in given forms.
++ `ata_solve(x, solver, as.list, details, time_limit, message, ...)`: Solve the ATA model. Use `solver` to choose between the *lp_solve* or the *glpk* solver. Use `as.list=TRUE` to return results in list, or in data frame otherwise. Use `time_limit` to set the time limits of the solving process in seconds. Pass additional control parameters in `...` (See the documentation of *lpSolveAPI* and *glpkAPI* for more details). Use `details=TRUE` to print summary messages, and `message=TRUE` to print messages from the solver. Once solved, additional data are appended to the orignal ATA object: `status` (status code of the solution), `optimum` (final value of the objective function), `obj_var` (values of two essential objective variables), `result` (a binary matrix of assembly results), and `item` (assembled test forms).
 + `plot.ata(x, ...)`: Plot the TIFs of assembled test forms.
 
-[^5]: Stocking, M. L., & Swanson, L. (1998). Optimal design of item banks for computerized adaptive tests. Applied Psychological Measurement, 22, 271-279.
-[^6]: Luecht, R. M. (1998). Computer-assisted test assembly using optimization heuristics. Applied Psychological Measurement, 22, 224-236.
-[^7]: van der Linden, W. J., & Reese, L. M. (1998). A model for optimal constrained adaptive testing. Applied Psychological Measurement, 22, 259-270.
+
+[^8]: van der Linden, W. J. (2009). Constrained adaptive testing with shadow tests. In Elements of adaptive testing (pp. 31-55). Springer, New York, NY.
+[^9]: Luecht, R. M., & Nungester, R. J. (1998). Some practical examples of computer‐adaptive sequential testing. Journal of Educational Measurement, 35(3), 229-249.
+[^10]: Stocking, M. L., & Swanson, L. (1998). Optimal design of item banks for computerized adaptive tests. Applied Psychological Measurement, 22, 271-279.
+[^11]: Luecht, R. M. (1998). Computer-assisted test assembly using optimization heuristics. Applied Psychological Measurement, 22, 224-236.
+[^12]: Van der Linden, W. J. (2006). Linear models for optimal test design. Springer Science & Business Media.
+
 
 ###### Examples
-
-Generate a pool of 300 items
 ```{r}
-pool <- with(model_3pl_gendata(1, 300), data.frame(a=a, b=b, c=c))
-pool$id <- 1:nrow(pool)
-pool$content <- sample(1:3, nrow(pool), replace=TRUE)
-pool$time <- round(rlnorm(nrow(pool), 4.2, .3))
-pool$group <- sort(sample(1:round(nrow(pool)/3), nrow(pool), replace=TRUE))
-```
+## Generate a pool of 100 items
+n_items <- 100
+pool <- with(model_3pl_gendata(1, n_items), data.frame(id=1:n_items, a=a, b=b, c=c))
+pool$content <- sample(1:3, n_items, replace=TRUE)
+pool$time <- round(rlnorm(n_items, log(60), .2))
+pool$group <- sort(sample(1:round(n_items/3), n_items, replace=TRUE))
 
-Ex. 1: 6 forms, 10 items, maximize b parameter
-```{r}
-x <- ata(pool, 6, len=10, max_use=1)
-x <- ata_obj_relative(x, "b", "max")
-x <- ata_solve(x)
+## four 10-item forms to maximize b parameters
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, 'b', 'max', negative=F)
+x <- ata_solve(x, 'lpsolve')
+sapply(x$items, function(x) mean(x$b)) %>% round(., 2)
+
+## four 10-item forms to minimize b parameters
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, 'b', 'min', negative=T)
+x <- ata_solve(x, 'glpk')
+sapply(x$items, function(x) mean(x$b)) %>% round(., 2)
+
+## four 10-item forms to maximize TIF at [-1, 0, 1]
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, seq(-1, 1, .5), 'max')
+x <- ata_solve(x, 'lpsolve')
 plot(x)
-sapply(x$items, function(x) c(n=nrow(x), b_mean=mean(x$b), b_sd=sd(x$b))) %>% t()
-```
 
-Ex. 2: 3 forms, 10 items, minimize b parameter
-```{r}
-x <- ata(pool, 3, len=10, max_use=1)
-x <- ata_obj_relative(x, "b", "min", negative=TRUE)
-x <- ata_solve(x, as.list=FALSE, timeout=5)
+## four 10-item forms to maximize TIF at [-1, 0, 1] without tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, seq(-1, 1, .5), 'max', tol=FALSE)
+x <- ata_solve(x, 'lpsolve')
 plot(x)
-group_by(x$items, form) %>% summarise(n=n(), b_mean=mean(b), b_sd=sd(b))
-```
 
-Ex. 3: 2 forms, 10 items, mean(b) = 0, sd(b) = 1.0, content = (3, 3, 4)
-```{r}
-x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_absolute(x, pool$b, 0 * 10)
-x <- ata_obj_absolute(x, (pool$b - 0)^2, 1 * 10)
-x <- ata_constraint(x, "content", min=3, max=3, level=1)
-x <- ata_constraint(x, "content", min=3, max=3, level=2)
-x <- ata_constraint(x, "content", min=4, max=4, level=3)
-x <- ata_solve(x, timeout=5)
+## four 10-item forms to maximize TIF at [-1, 0, 1] with a fixed tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, seq(-1, 1, .5), 'max', tol=.5)
+x <- ata_solve(x, 'lpsolve')
 plot(x)
-sapply(x$items, function(x) c(n=nrow(x), b_mean=mean(x$b), b_sd=sd(x$b))) %>% t()
-```
 
-Ex. 4: Same with ex. 3, but group-based
-```{r}
-x <- ata(pool, 2, len=10, max_use=1, group="group")
-x <- ata_obj_absolute(x, pool$b, 0 * 10)
-x <- ata_obj_absolute(x, (pool$b - 0)^2, 1 * 10)
-x <- ata_constraint(x, "content", min=3, max=3, level=1)
-x <- ata_constraint(x, "content", min=3, max=3, level=2)
-x <- ata_constraint(x, "content", min=4, max=4, level=3)
-x <- ata_solve(x, as.list=FALSE, timeout=10)
+## four 10-item forms to maximize TIF at [-1, 0, 1] with a restricted tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, seq(-1, 1, .5), 'max', tol=c(.4, .8))
+x <- ata_solve(x, 'lpsolve')
 plot(x)
-group_by(x$items, form) %>% summarise(n=n(), b_mean=mean(b), b_sd=sd(b), n_items=length(unique(id)), n_groups=length(unique(group)))
-```
 
-Ex. 5: 2 forms, 10 items, flat TIF over [-1, 1]
-```{r}
-x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_relative(x, seq(-1, 1, by=.5), "max")
-x <- ata_solve(x)
+## four 10-item forms to maximize TIF at [-1, 0, 1] with a restricted tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, seq(-1, 1, .5), 'max', tol=c(NA, .8))
+x <- ata_solve(x, 'lpsolve')
 plot(x)
-```
 
-Ex. 6: 2 forms, 10 items, info target over [-1, 1] to be 5.0
-```{r}
-x <- ata(pool, 2, len=10, max_use=1)
-x <- ata_obj_absolute(x, seq(-1, 1, by=.5), 5.0)
-x <- ata_solve(x, timeout=10)
+## four 10-item forms to have an average difficulty of .8
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_absolute(x, 'b', .5*10, equal_tol=T)
+x <- ata_solve(x, 'glpk')
+sapply(x$items, function(x) mean(x$b)) %>% round(., 2)
+
+## four 10-item forms to have a TIF of 3 at [-1, 0, 1] with equal tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_absolute(x, seq(-1, 1, .5), 3, equal_tol=T)
+x <- ata_solve(x, 'lpsolve')
 plot(x)
+
+## four 10-item forms to have a TIF of 3 at [-1, 0, 1] with unequal tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_absolute(x, seq(-1, 1, .5), 3, equal_tol=F)
+x <- ata_solve(x, 'lpsolve')
+plot(x)
+
+## four 10-item forms to have a TIF of 3 at [-1, 0, 1] with restricted upward tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_absolute(x, seq(-1, 1, .5), 3, equal_tol=F, tol_up=c(NA, .1))
+x <- ata_solve(x, 'lpsolve')
+plot(x)
+
+## four 10-item forms to have a TIF of 3 at [-1, 0, 1] with restricted downward tolerance
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_absolute(x, seq(-1, 1, .5), 3, equal_tol=F, tol_down=c(NA, .1))
+x <- ata_solve(x, 'lpsolve')
+plot(x)
+
+# constraint: item set
+x <- ata(pool, 4, len=10, max_use=1, group='group')
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+x <- ata_solve(x, 'lpsolve', as.list=F)
+group_by(x$items, group) %>% summarise(n_forms=length(unique(form)))
+
+# constraint: matrix design of overlap
+x <- ata(pool, 4, len=10, max_use=1, common_items=4)
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+x <- ata_solve(x, 'lpsolve', as.list=F)
+group_by(x$items, id) %>% summarise(n_forms=length(unique(form))) %>% filter(n_forms > 1)
+
+# constraint: ring desing of overlap
+x <- ata(pool, 4, len=10, max_use=1, overlap_items=2)
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+x <- ata_solve(x, 'lpsolve', as.list=F)
+group_by(x$items, id) %>% summarise(n_forms=length(unique(form))) %>% filter(n_forms > 1)
+
+# constraint: constraints on categorical and quantitative item property
+constraints <- data.frame(name=c('content', 'content', 'time'), level=c(1,3,NA), min=c(3,3,58*10), max=c(3,3,62*10), stringsAsFactors=F)
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+for(i in 1:nrow(constraints))
+  x <- with(constraints, ata_constraint(x, name[i], min=min[i], max=max[i], level=level[i]))
+x <- ata_solve(x, 'lpsolve')
+cbind(constraints, sapply(x$items, function(x) c(sum(x$content==1), sum(x$content==3), sum(x$time))))
+
+# constraint: item use
+x <- ata(pool, 4, len=10)
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+x <- ata_item_use(x, max=2)
+x <- ata_solve(x, 'lpsolve', as.list=F)
+any(table(x$items$id) > 2)
+
+# constraint: item enemy
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+x <- ata_item_enemy(x, 1:20)
+x <- ata_solve(x, 'lpsolve')
+sapply(x$items, function(x) sum(x$id %in% 1:20))
+
+# constraint: fixed values
+x <- ata(pool, 4, len=10, max_use=1)
+x <- ata_obj_relative(x, c(-1, 1), 'max')
+x <- ata_item_fixedvalue(x, 1:3,  min=1, forms=1)
+x <- ata_item_fixedvalue(x, 1:20, max=0, forms=4)
+x <- ata_solve(x, 'lpsolve')
+sapply(x$items, function(x) sum(x$id %in% 1:3))
+sapply(x$items, function(x) sum(x$id %in% 1:20))
+
 ```
 
 
@@ -368,18 +552,18 @@ The following functions are available in this module:
 + `cat_estimate_mle`: The maximum likelihood estimation rule. Use `map_len` (10 by default) to apply MAP to the first K items and use `map_prior` (`c(0, 1)` by default) to set the prior for MAP. MAP is used to prevent extreme result of MLE.
 + `cat_estimate_eap`: The EAP estimation rule. Use `eap_mean` and `eap_sd` options to control the prior.
 + `cat_estimate_hybrid`: A hybrid estimation rule of MLE (for mixed responses) and EAP (for all 1s or 0s response)
-+ `cat_select_maxinfo`: The maximum information selection rule[^8]. Use `group` (variable name) to group items belonging to the set. Use `info_random` to add the random-esque item exposure control.
-+ `cat_select_ccat`: The constrained CAT selection rule[^9]. This rule selects items under the content-balancing constraint. Use `ccat_var` to indicate the content variable in the pool and use `ccat_perc` to set the desired content distribution (a vector in which the element name is the content code and the value is the percentage). Use `ccat_random` to add randomness to initial item selections. Use `info_random` to add the randomesque item exposure control.
-+ `cat_select_shadow`: The shadow-test selection rule[^10]. Use `shadow_id` to group item sets. Use `constraints` to set constraints. Constraints should be in a data frame with four columns: var (variable name), level (variable level, `NA` for quantitative variable), min (lower bound), and max (upper bound).
++ `cat_select_maxinfo`: The maximum information selection rule[^13]. Use `group` (variable name) to group items belonging to the set. Use `info_random` to add the random-esque item exposure control.
++ `cat_select_ccat`: The constrained CAT selection rule[^14]. This rule selects items under the content-balancing constraint. Use `ccat_var` to indicate the content variable in the pool and use `ccat_perc` to set the desired content distribution (a vector in which the element name is the content code and the value is the percentage). Use `ccat_random` to add randomness to initial item selections. Use `info_random` to add the randomesque item exposure control.
++ `cat_select_shadow`: The shadow-test selection rule[^15]. Use `shadow_id` to group item sets. Use `constraints` to set constraints. Constraints should be in a data frame with four columns: var (variable name), level (variable level, `NA` for quantitative variable), min (lower bound), and max (upper bound).
 + `cat_stop_default`: A three-way stopping rule. When `stop_se` is set in options, the standard error stopping rule is invoked. When `stop_mi` is set in options, the minimum information stopping rule is invoked. When `stop_cut` is set in options, the confidence interval stopping rule is invoked. The width of the confidence interval is controlled by the `ci_width` option.
-+ `cat_stop_projection`: The projection-based stopping rule[^11]. Use `projection_method` to choose the projection method (`info` or `diff`). Use `stop_cut` to set the cut score. Use `constraints` to set the constraints. Constraints should be in a data frame with four columns: var (variable name), level (variable level, `NA` for quantitative variable), min (lower bound), max (upper bound). 
++ `cat_stop_projection`: The projection-based stopping rule[^16]. Use `projection_method` to choose the projection method (`info` or `diff`). Use `stop_cut` to set the cut score. Use `constraints` to set the constraints. Constraints should be in a data frame with four columns: var (variable name), level (variable level, `NA` for quantitative variable), min (lower bound), max (upper bound). 
 + `plot.cat(x, ...)`: Plot the results of a CAT simulation.
 
 
-[^8]: Weiss, D. J., & Kingsbury, G. (1984). Application of computerized adaptive testing to educational problems. Journal of Educational Measurement, 21, 361-375.
-[^9]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4, 241-261.
-[^10]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
-[^11]: Luo, X., Kim, D., & Dickison, P. (2018). Projection-based stopping rules for computerized adaptive testing in licensure testing. Applied Psychological Measurement, 42, 275-290
+[^13]: Weiss, D. J., & Kingsbury, G. (1984). Application of computerized adaptive testing to educational problems. Journal of Educational Measurement, 21, 361-375.
+[^14]: Kingsbury, C. G., & Zara, A. R. (1991). A comparison of procedures for content-sensitive item selection in computerized adaptive tests. Applied Measurement in Education, 4, 241-261.
+[^15]: van der Linden, W. J. (2000). Constrained adaptive testing with shadow tests. In Computerized adaptive testing: Theory and practice (pp. 27-52). Springer Netherlands.
+[^16]: Luo, X., Kim, D., & Dickison, P. (2018). Projection-based stopping rules for computerized adaptive testing in licensure testing. Applied Psychological Measurement, 42, 275-290
 
 
 ###### Examples
@@ -444,7 +628,7 @@ Multistage testing (MST) is a computer-based adaptive testing model that gives p
 
 The following functions are available in this module:
 
-+ `mst(pool, design, num_panel, method, len, max_use, group, ...)`: Create a MST assembly job. Use `design` to specify the design/configuration of the MST (e.g., "1-3", "1-2-2", "1-2-3"). Use `num_panel` to simultaneously assembly multiple panels. `method` can be either *topdown*[^12] or *bottomup*[^13]. Use `len` and `max_use` to conveniently set the test length and maximum item usage. Use `group` to group item sets.
++ `mst(pool, design, num_panel, method, len, max_use, group, ...)`: Create a MST assembly job. Use `design` to specify the design/configuration of the MST (e.g., "1-3", "1-2-2", "1-2-3"). Use `num_panel` to simultaneously assembly multiple panels. `method` can be either *topdown*[^17] or *bottomup*[^18]. Use `len` and `max_use` to conveniently set the test length and maximum item usage. Use `group` to group item sets.
 + `mst_route(x, route, op)`: Add or remove a route from the MST
 + `mst_obj(x, theta, indices, target, ...)`: Add objective functions to the assembly job. Use `theta` to specify at which $\theta$ points the information is optimized. When `target` is `NULL`, the information is maximized at $\theta$ points; otherwise, the information approaches the given targets. `indices` sets on which modules or routes the objective functions are added.
 + `mst_constraint(x, coef, min, max, level, indices)`: Add constraints to the assembly job. `coef` should be a variable name of pool-long numeric vector. Set `level=NULL` for a quantitative variable and a specific level for a categorical variable.
@@ -456,8 +640,8 @@ The following functions are available in this module:
 + `plot.mst(x, ...)`: Plot TIFs of assembled routes (when `byroute=TRUE`) or modules (when `byroute=FALSE`). 
 + `mst_sim(x, true, rdp, ...)`: Simulate a MST administration. When `rdp=NULL`, test takers are routed to the module with the maximum information; otherwise test takers are routed according to given routing decision points. Use `t_prior` to pass in the prior distribution for estimation.
 
-[^12]: Luo, X., & Kim, D. (2018). A Top‐Down Approach to Designing the Computerized Adaptive Multistage Test. Journal of Educational Measurement, 55(2), 243-263.
-[^13]: Luecht, R. M., & Nungester, R. J. (1998). Some practical examples of computer‐adaptive sequential testing. Journal of Educational Measurement, 35(3), 229-249.
+[^17]: Luo, X., & Kim, D. (2018). A Top‐Down Approach to Designing the Computerized Adaptive Multistage Test. Journal of Educational Measurement, 55(2), 243-263.
+[^18]: Luecht, R. M., & Nungester, R. J. (1998). Some practical examples of computer‐adaptive sequential testing. Journal of Educational Measurement, 35(3), 229-249.
 
 
 ###### Examples

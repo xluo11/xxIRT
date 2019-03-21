@@ -112,7 +112,6 @@ cat_sim <- function(true, pool, ...){
 }
 
 
-
 #' @rdname cat_sim
 #' @description \code{cat_estimate_mle} is the maximum likelihood estimation rule. Use 
 #' \code{map_len} to apply MAP to the first K items and use \code{map_prior} to set the
@@ -142,7 +141,7 @@ cat_estimate_eap <- function(len, theta, stats, admin, pool, opts){
   eap_sd <- ifelse(is.null(opts$eap_sd), 1, opts$eap_sd)
   u <- stats[1:len, "u"]
   u <- matrix(rep(u, each=2), nrow=2)
-  with(admin, model_3pl_eap_scoring(u=u, a=a[1:len], b=b[1:len], c=c[1:len], D=opts$D))[1]
+  with(admin, model_3pl_eap_scoring(u=u, a=a[1:len], b=b[1:len], c=c[1:len], D=opts$D))$t[1]
 }
 
 #' @rdname cat_sim

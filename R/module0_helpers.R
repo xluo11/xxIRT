@@ -1,3 +1,0 @@
-#' Helpers
-#' @name helpers
-NULL

@@ -2,6 +2,6 @@
 ^\.Rproj\.user$
 
 ^README.*$
-^tests$
+^tests\$
 
 ^change_logs.txt$
