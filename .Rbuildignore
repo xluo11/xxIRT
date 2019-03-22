@@ -2,6 +2,8 @@
 ^\.Rproj\.user$
 
 ^README.*$
-^tests\$
+^README_cache$
+^README_files$
+^tests$
 
-^change_logs.txt$
+^change_log.txt$

@@ -7,7 +7,7 @@ Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.co
 Author: Xiao Luo [aut, cre]
 Maintainer: Xiao Luo <xluo1986@gmail.com>
 Description: A suite of psychometric analysis tools for research and operation, including:
-    (1) computation of probability, informatioin, and likelihood for the 3PL, GPCM, and GRM;
+    (1) computation of probability, information, and likelihood for the 3PL, GPCM, and GRM;
     (2) parameter estimation using joint or marginal likelihood estimation method;
     (3) simulation of computerized adaptive testing using built-in or customized algorithms;
     (4) assembly and simulation of multistage testing. 

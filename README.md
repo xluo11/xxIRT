@@ -617,35 +617,22 @@ x <- ata_solve(x, 'lpsolve', as.list=F)
     ## optimal solution found, optimum: 2.68 (2.73, 0.05)
 
 ``` r
-# check item set constraints
-group_by(x$items, group) %>% summarise(n_forms=length(unique(form)))
+# check item set and item overlap
+group_by(x$items, item_set=group) %>% summarise(n_items=length(unique(id)), n_forms=length(unique(form)))
 ```
 
-    ## # A tibble: 9 x 2
-    ##   group n_forms
-    ##   <int>   <int>
-    ## 1     1       1
-    ## 2     2       1
-    ## 3     5       1
-    ## 4     6       1
-    ## 5     8       2
-    ## 6    12       1
-    ## 7    24       2
-    ## 8    30       2
-    ## 9    33       1
-
-``` r
-# check common items
-group_by(x$items, id) %>% summarise(n_forms=length(unique(form))) %>% filter(n_forms > 1)
-```
-
-    ## # A tibble: 4 x 2
-    ##      id n_forms
-    ##   <int>   <int>
-    ## 1    18       2
-    ## 2    73       2
-    ## 3    86       2
-    ## 4    87       2
+    ## # A tibble: 9 x 3
+    ##   item_set n_items n_forms
+    ##      <int>   <int>   <int>
+    ## 1        1       1       1
+    ## 2        2       1       1
+    ## 3        5       2       1
+    ## 4        6       3       1
+    ## 5        8       1       2
+    ## 6       12       1       1
+    ## 7       24       1       2
+    ## 8       30       2       2
+    ## 9       33       4       1
 
 ``` r
 # check constraints on content and time

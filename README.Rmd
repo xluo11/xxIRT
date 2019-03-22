@@ -429,10 +429,8 @@ x <- ata_constraint(x, 'content', 3, 3, level=1)
 x <- ata_constraint(x, 'content', 3, 3, level=3)
 x <- ata_constraint(x, 'time', 58*10, 62*10)
 x <- ata_solve(x, 'lpsolve', as.list=F)
-# check item set constraints
-group_by(x$items, group) %>% summarise(n_forms=length(unique(form)))
-# check common items
-group_by(x$items, id) %>% summarise(n_forms=length(unique(form))) %>% filter(n_forms > 1)
+# check item set and item overlap
+group_by(x$items, item_set=group) %>% summarise(n_items=length(unique(id)), n_forms=length(unique(form)))
 # check constraints on content and time
 group_by(x$items, form) %>% summarise(content_1=sum(content==1), content_3=sum(content==3), time=mean(time))
 ```

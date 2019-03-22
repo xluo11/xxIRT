@@ -1,6 +1,5 @@
 base
 xxIRT
-reshape2
 dplyr
 ggplot2
-bindrcpp
+reshape2
