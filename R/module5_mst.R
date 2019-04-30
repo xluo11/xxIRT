@@ -149,6 +149,18 @@ mst <- function(pool, design, num_panel, method=c('topdown', 'bottomup'), len=NU
   # constraint: minimum stage length
   x <- mst_stage_length(x, 1:num_stage, min=1)
   
+  # constraint: no item reuse in the same route
+  mat <- matrix(0, nrow=x$num_item*x$num_route*x$num_panel, ncol=x$ata$num_lpvar)
+  for(p in 1:x$num_panel)
+    for(i in 1:x$num_item){
+      ind <- as.matrix(i + (x$route[,1:x$num_stage] - 1) * x$num_item + (p - 1) * x$num_module * x$num_item)
+      for(j in 1:nrow(ind))
+        mat[j+(i-1)*nrow(ind), ind[j,]] <- 1
+    }
+  dir <- rep('<=', nrow(mat))
+  rhs <- rep(1, nrow(mat))
+  x$ata <- ata_append_constraints(x$ata, mat, dir, rhs)
+
   x
 }
 

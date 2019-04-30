@@ -1,6 +1,6 @@
 Package: xxIRT
 Type: Package
-Title: Item Response Theory and Computer-Based Testing in R
+Title: Item Response Theory and Computer-Based Testing
 Version: 2.1.2
 Date: 2019-3-21
 Authors@R: c(person("Xiao", "Luo", role=c("aut","cre"), email="xluo1986@gmail.com"))
