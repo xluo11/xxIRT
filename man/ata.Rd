@@ -143,7 +143,7 @@ function, \code{result} the assembly results in a binary matrix, and
 \dontrun{
 ## generate a pool of 100 items
 n_items <- 100
-pool <- with(model_3pl_gendata(1, nitems), data.frame(id=1:n_items, a=a, b=b, c=c))
+pool <- with(model_3pl_gendata(1, n_items), data.frame(id=1:n_items, a=a, b=b, c=c))
 pool$content <- sample(1:3, n_items, replace=TRUE)
 pool$time <- round(rlnorm(n_items, log(60), .2))
 pool$group <- sort(sample(1:round(n_items/3), n_items, replace=TRUE))
